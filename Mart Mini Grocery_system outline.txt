@@ -1,0 +1,113 @@
+Mart Mini Grocery
+
+Wholesaler Admin — manages products, inventory, orders, reports, user accounts, and business settings.
+Cashier — handles walk-in POS sales and participates in inventory updates through completed sales transactions, manual stock adjustments, and restocking actions allowed by admin policy.
+Retailer/Customer — uses the Android mobile app to browse products, place orders, track status, and communicate with the wholesaler.
+The system is intended to become the operational backbone of a wholesale business by ensuring that both online orders and in-store sales affect a single shared inventory source in real time.
+Requirements
+Must Have
+•	Retailer/customer account registration and login for Android app.
+•	Product catalog browsing with product name, price, stock availability, and category.
+•	Cart and checkout flow for retailer/customer orders.
+•	Order creation and order status tracking by retailer/customer.
+•	POS module for cashier to process walk-in transactions.
+•	Barcode scanning for POS product.
+•	Automatic inventory deduction for both POS sales and confirmed online orders.
+•	Central product and inventory management for wholesaler admin.
+•	Sales, orders, and inventory reports for wholesaler admin.
+•	In-app communication between wholesaler side and retailer/customer.
+•	Role-based access control for wholesaler admin, cashier, and retailer/customer.
+•	Receipt generation for POS transactions.
+•	Order history and transaction history per user role.
+Should Have
+•	Low-stock alerts for admin.
+•	Inventory adjustment logs for audit purposes.
+•	Push notifications for order updates and messages.
+•	Search and filter for products.
+•	Daily, weekly, and monthly summary reports.
+•	Dashboard for admin showing sales, orders, and stock movement overview.
+Could Have (Recommendations)
+•	Customer loyalty or discount rules.
+•	Scheduled promotions for selected products.
+•	Printable reports and export to CSV/PDF.
+ 
+Method
+1. Technical Approach
+The MVP(Minimum-Viable Product) will be implemented as a centralized client-server system with two main client experiences:
+1.Retailer/Customer Android App for browsing products, placing orders, tracking order status, and chatting with the wholesaler.
+2.Browser-Based Staff POS and Admin System for wholesaler admin and cashier functions, including POS, order confirmation, inventory management actions allowed by role, messaging, and reporting.
+A single backend is preferred for the MVP because it keeps inventory, orders, POS transactions, and communication synchronized under one source of truth. This reduces reconciliation problems and is simpler for a contractor team to implement and deploy.
+Recommended stack for the MVP:
+•	Retailer mobile app: Flutter for the Android customer application. Flutter’s official site describes it as a framework for building apps from a single codebase, and the official docs provide Android setup, app creation, and Android release guidance. (flutter.dev) (docs.flutter.dev) (docs.flutter.dev) (docs.flutter.dev)
+•	Computer-based POS/Admin client: Web application used through a browser on desktop or laptop computers inside the store or office.
+•	Backend API: Spring Boot for REST APIs, WebSocket support, security, and transaction handling. Spring Boot’s official docs describe it as suitable for stand-alone production-grade Spring applications; current official Spring sources also show active 4.0.x releases. (docs.spring.io)
+•	Database: PostgreSQL as the system of record for inventory, orders, POS, messages, and reporting data. PostgreSQL’s official docs list version 18 as current. (postgresql.org)
+•	Push notifications: Firebase Cloud Messaging (FCM) for order updates and chat/message notifications on Android. Google’s official Firebase docs describe FCM as the messaging layer for Android client apps. (firebase.google.com)
+•	Authentication: JWT-based access tokens with role-based authorization.
+•	File/report export: server-side PDF/CSV generation.
+2. Core Design Principles
+Single Source of Truth for Inventory
+Inventory is stored centrally in PostgreSQL. Neither the retailer app nor the POS app maintains its own editable stock copy. All stock-affecting actions must pass through backend transactions.
+Confirmed-Order Stock Deduction Rule
+Retailer/customer orders do not deduct inventory when placed.
+Stock changes only when: - a cashier completes a POS sale, or - an admin/cashier confirms an online order.
+This directly matches your stated business rule and avoids blocking stock for unverified customer requests.
+Event Logging for Auditability
+Every stock-affecting action creates an inventory movement record. This allows the system to explain why stock changed at any time.
+Role-Based Separation
+•	Wholesaler Admin: full management access.
+•	Cashier: POS access, order confirmation, manual stock adjustment, restocking, and limited inventory actions.
+•	Retailer/Customer: browse, order, track, communicate.
+
+3. High-Level Architecture
+@startuml
+actor Retailer as R
+actor Cashier as C
+actor Admin as A
+node "Android App - Retailer" {
+  component "Catalog / Cart / Orders / Chat" }
+node "Browser-Based POS / Admin Client" {
+  component "POS / Orders / Inventory / Reports" }
+
+node "Backend (Spring Boot)" {
+  component "Auth Module"
+  component "Catalog Module"
+  component "Order Module"
+  component "POS Module"
+  component "Inventory Module"
+  component "Messaging Module"
+  component "Reporting Module"
+  component "Notification Module" }
+
+database "PostgreSQL" as DB
+cloud "Firebase Cloud Messaging" as FCM
+
+use case scenarios
+R --> "Catalog / Cart / Orders / Chat"
+C --> "POS / Orders / Add Inventory / Reports"
+A --> "POS / Orders / Manage Inventory / Reports/ Manage users"
+
+
+"Catalog / Cart / Orders / Chat" --> "Backend (Spring Boot)"
+"POS / Orders / Inventory / Reports" --> "Backend (Spring Boot)"
+
+"Backend (Spring Boot)" --> DB
+"Notification Module" --> FCM
+@enduml
+
+4. Main Backend Modules
+4.1 Auth Module
+Responsibilities: - user registration for retailer/customer - login for all roles - JWT issuance and refresh - password hashing - role authorization checks
+4.2 Catalog Module
+Responsibilities: - product CRUD by admin - category management - product search/filter - stock visibility for customer app - price retrieval for POS and online ordering
+4.3 Order Module
+Responsibilities: - create customer orders - manage order lifecycle - confirm/reject/cancel orders - track status history - trigger stock deduction only on confirmation
+Suggested order statuses: - PENDING - CONFIRMED - REJECTED - PREPARING - READY_FOR_PICKUP - COMPLETED - CANCELLED
+4.4 POS Module
+Responsibilities: - create walk-in sale - compute totals - record payment method - finalize transaction - deduct stock instantly upon completed sale - generate receipt
+4.5 Inventory Module
+Responsibilities: - maintain on-hand stock - apply stock deductions/additions - record inventory movements - support stock adjustments and restocking by authorized staff - raise low-stock alerts
+4.6 Messaging Module
+Responsibilities: - direct chat between retailer/customer and wholesaler side - order-specific messages - system-generated updates (for example, “Order confirmed”) - unread status tracking
+4.7 Reporting Module
+Responsibilities: - sales reports - order reports - inventory reports - daily/weekly/monthly summaries

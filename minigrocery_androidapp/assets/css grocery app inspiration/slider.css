@@ -1,0 +1,1431 @@
+/* Slider */
+
+box-sizing: border-box;
+
+position: relative;
+width: 470px;
+height: 746px;
+
+border: 1px dashed #9747FF;
+border-radius: 5px;
+
+
+/* Property 1=Default */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 15px;
+gap: 14px;
+
+position: absolute;
+width: 430px;
+height: 222px;
+left: 20px;
+top: 20px;
+
+
+
+/* Slider 1 */
+
+width: 383px;
+height: 222px;
+
+background: #D7FFD4;
+border-radius: 10px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Ellipse 6 */
+
+position: absolute;
+width: 288px;
+height: 40px;
+left: 125px;
+top: 149px;
+
+background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 100%);
+
+
+/* image 3 */
+
+position: absolute;
+width: 232px;
+height: 155px;
+left: 161px;
+top: 34px;
+
+background: url(.png);
+
+
+/* Up to 30% offer */
+
+position: absolute;
+width: 153px;
+height: 24px;
+left: 25px;
+top: 63px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 20px;
+line-height: 24px;
+
+color: #000000;
+
+
+
+/* Enjoy our big offer */
+
+position: absolute;
+width: 116px;
+height: 16px;
+left: 25px;
+top: 95px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #0CA201;
+
+
+
+/* Buttons */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 10px;
+gap: 10px;
+
+position: absolute;
+width: 101px;
+height: 36px;
+left: 23px;
+top: 123px;
+
+background: #0CA201;
+border-radius: 5px;
+
+
+/* Icons */
+
+display: none;
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+width: 64px;
+height: 20px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 13px;
+line-height: 20px;
+/* identical to box height, or 154% */
+
+color: #FFFFFF;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Slider 2 */
+
+width: 276.62px;
+height: 178px;
+
+background: #0CA201;
+border-radius: 7.22344px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* image 4 */
+
+position: absolute;
+width: 132.94px;
+height: 183.48px;
+left: 119.19px;
+top: 0px;
+
+background: url();
+
+
+/* Up to 25% offer */
+
+position: absolute;
+width: 110px;
+height: 17px;
+left: 23.84px;
+top: 45.51px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 14.4469px;
+line-height: 17px;
+
+color: #FFFFFF;
+
+
+
+/* On first buyers */
+
+position: absolute;
+width: 62px;
+height: 10px;
+left: 23.84px;
+top: 68.62px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 8.66813px;
+line-height: 10px;
+
+color: #FFFFFF;
+
+
+
+/* Buttons */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 7.22344px;
+gap: 7.22px;
+
+position: absolute;
+width: 72.96px;
+height: 26px;
+left: 22.39px;
+top: 88.85px;
+
+background: #FFFFFF;
+border-radius: 3.61172px;
+
+
+/* Icons */
+
+display: none;
+width: 17.34px;
+height: 17.34px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+width: 50px;
+height: 15px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 10.1128px;
+line-height: 14px;
+/* identical to box height, or 143% */
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 17.34px;
+height: 17.34px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Slider 3 */
+
+width: 358px;
+height: 222px;
+
+background: #FFDB24;
+border-radius: 10px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Ellipse 6 */
+
+position: absolute;
+width: 233px;
+height: 43px;
+left: 149px;
+top: 155px;
+
+background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 100%);
+
+
+/* image 5 */
+
+position: absolute;
+width: 172.08px;
+height: 196px;
+left: 192px;
+top: 8px;
+
+background: url(.png);
+
+
+/* Frame 46 */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+gap: 16px;
+
+position: absolute;
+width: 141px;
+height: 119px;
+left: 27px;
+top: 46px;
+
+
+
+/* Frame 46 */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 4px;
+
+width: 141px;
+height: 67px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Get Same day Deliver */
+
+width: 141px;
+height: 48px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 20px;
+line-height: 24px;
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* On orders above $20 */
+
+width: 141px;
+height: 15px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 15px;
+/* identical to box height */
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Buttons */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 10px;
+gap: 10px;
+
+width: 101px;
+height: 36px;
+
+background: #FFFFFF;
+border-radius: 5px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+width: 69px;
+height: 20px;
+
+/* Secondary Text */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Property 1=Variant2 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px 15px;
+gap: 14px;
+
+position: absolute;
+width: 430px;
+height: 222px;
+left: 20px;
+top: 262px;
+
+
+
+/* Slider 1 */
+
+width: 289.84px;
+height: 168px;
+
+background: #D7FFD4;
+border-radius: 7.56757px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Ellipse 6 */
+
+position: absolute;
+width: 217.95px;
+height: 30.27px;
+left: 94.59px;
+top: 112.76px;
+
+background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 100%);
+
+
+/* image 3 */
+
+position: absolute;
+width: 175.57px;
+height: 117.3px;
+left: 121.84px;
+top: 25.73px;
+
+background: url(.png);
+
+
+/* Up to 30% offer */
+
+position: absolute;
+width: 116px;
+height: 18px;
+left: 18.92px;
+top: 47.68px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 15.1351px;
+line-height: 18px;
+
+color: #000000;
+
+
+
+/* Enjoy our big offer */
+
+position: absolute;
+width: 88px;
+height: 12px;
+left: 18.92px;
+top: 71.89px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 9.83784px;
+line-height: 12px;
+/* identical to box height */
+
+color: #0CA201;
+
+
+
+/* Buttons */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 7.56757px;
+gap: 7.57px;
+
+position: absolute;
+width: 76.43px;
+height: 27.24px;
+left: 17.41px;
+top: 93.08px;
+
+background: #0CA201;
+border-radius: 3.78378px;
+
+
+/* Icons */
+
+display: none;
+width: 18.16px;
+height: 18.16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+width: 49px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 9.83784px;
+line-height: 15px;
+/* identical to box height, or 154% */
+
+color: #FFFFFF;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 18.16px;
+height: 18.16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Slider 2 */
+
+width: 345px;
+height: 222px;
+
+background: #0CA201;
+border-radius: 9.00901px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* image 4 */
+
+position: absolute;
+width: 165.81px;
+height: 228.83px;
+left: 148.65px;
+top: 0px;
+
+background: url();
+
+
+/* Up to 25% offer */
+
+position: absolute;
+width: 137px;
+height: 22px;
+left: 29.73px;
+top: 56.76px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 18.018px;
+line-height: 22px;
+/* identical to box height */
+
+color: #FFFFFF;
+
+
+
+/* On first buyers */
+
+position: absolute;
+width: 77px;
+height: 13px;
+left: 29.73px;
+top: 85.59px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 10.8108px;
+line-height: 13px;
+/* identical to box height */
+
+color: #FFFFFF;
+
+
+
+/* Buttons */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 9.00901px;
+gap: 9.01px;
+
+position: absolute;
+width: 90.99px;
+height: 32.43px;
+left: 27.93px;
+top: 110.81px;
+
+background: #FFFFFF;
+border-radius: 4.5045px;
+
+
+/* Icons */
+
+display: none;
+width: 21.62px;
+height: 21.62px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+width: 62px;
+height: 19px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12.6126px;
+line-height: 18px;
+/* or 143% */
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 21.62px;
+height: 21.62px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Slider 3 */
+
+width: 293.5px;
+height: 182px;
+
+background: #FFDB24;
+border-radius: 8.1982px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Ellipse 6 */
+
+position: absolute;
+width: 191.02px;
+height: 35.25px;
+left: 122.15px;
+top: 127.07px;
+
+background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 100%);
+
+
+/* image 5 */
+
+position: absolute;
+width: 141.08px;
+height: 160.68px;
+left: 157.41px;
+top: 6.56px;
+
+background: url(.png);
+
+
+/* Frame 46 */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+gap: 13.12px;
+
+position: absolute;
+width: 115.59px;
+height: 97.91px;
+left: 22.13px;
+top: 37.71px;
+
+
+
+/* Frame 46 */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 3.28px;
+
+width: 115.59px;
+height: 55.28px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Get Same day Deliver */
+
+width: 115.59px;
+height: 40px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 16.3964px;
+line-height: 20px;
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* On orders above $20 */
+
+width: 115.59px;
+height: 12px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 9.83784px;
+line-height: 12px;
+/* identical to box height */
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Buttons */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 8.1982px;
+gap: 8.2px;
+
+width: 82.8px;
+height: 29.51px;
+
+background: #FFFFFF;
+border-radius: 4.0991px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 19.68px;
+height: 19.68px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+width: 57px;
+height: 17px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11.4775px;
+line-height: 16px;
+/* identical to box height, or 143% */
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 19.68px;
+height: 19.68px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Property 1=Variant3 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: flex-end;
+align-items: center;
+padding: 0px 15px;
+gap: 14px;
+
+position: absolute;
+width: 430px;
+height: 222px;
+left: 20px;
+top: 504px;
+
+
+
+/* Slider 1 */
+
+width: 383px;
+height: 222px;
+
+background: #D7FFD4;
+border-radius: 10px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Ellipse 6 */
+
+position: absolute;
+width: 288px;
+height: 40px;
+left: 125px;
+top: 149px;
+
+background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 100%);
+
+
+/* image 3 */
+
+position: absolute;
+width: 232px;
+height: 155px;
+left: 161px;
+top: 34px;
+
+background: url(.png);
+
+
+/* Up to 30% offer */
+
+position: absolute;
+width: 153px;
+height: 24px;
+left: 25px;
+top: 63px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 20px;
+line-height: 24px;
+
+color: #000000;
+
+
+
+/* Enjoy our big offer */
+
+position: absolute;
+width: 116px;
+height: 16px;
+left: 25px;
+top: 95px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #0CA201;
+
+
+
+/* Buttons */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 10px;
+gap: 10px;
+
+position: absolute;
+width: 101px;
+height: 36px;
+left: 23px;
+top: 123px;
+
+background: #0CA201;
+border-radius: 5px;
+
+
+/* Icons */
+
+display: none;
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+width: 64px;
+height: 20px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 13px;
+line-height: 20px;
+/* identical to box height, or 154% */
+
+color: #FFFFFF;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Slider 2 */
+
+width: 279.73px;
+height: 180px;
+
+background: #0CA201;
+border-radius: 7.3046px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* image 4 */
+
+position: absolute;
+width: 134.44px;
+height: 185.54px;
+left: 120.53px;
+top: 0px;
+
+background: url();
+
+
+/* Up to 25% offer */
+
+position: absolute;
+width: 111px;
+height: 18px;
+left: 24.11px;
+top: 46.02px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 14.6092px;
+line-height: 18px;
+/* identical to box height */
+
+color: #FFFFFF;
+
+
+
+/* On first buyers */
+
+position: absolute;
+width: 63px;
+height: 11px;
+left: 24.11px;
+top: 69.39px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 8.76552px;
+line-height: 11px;
+/* identical to box height */
+
+color: #FFFFFF;
+
+
+
+/* Buttons */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 7.3046px;
+gap: 7.3px;
+
+position: absolute;
+width: 73.78px;
+height: 26.3px;
+left: 22.64px;
+top: 89.85px;
+
+background: #FFFFFF;
+border-radius: 3.6523px;
+
+
+/* Icons */
+
+display: none;
+width: 17.53px;
+height: 17.53px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+width: 50px;
+height: 15px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 10.2264px;
+line-height: 15px;
+/* identical to box height, or 143% */
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 17.53px;
+height: 17.53px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Slider 3 */
+
+width: 358px;
+height: 222px;
+
+background: #FFDB24;
+border-radius: 10px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Ellipse 6 */
+
+position: absolute;
+width: 233px;
+height: 43px;
+left: 149px;
+top: 155px;
+
+background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 100%);
+
+
+/* image 5 */
+
+position: absolute;
+width: 172.08px;
+height: 196px;
+left: 192px;
+top: 8px;
+
+background: url(.png);
+
+
+/* Frame 46 */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+gap: 16px;
+
+position: absolute;
+width: 141px;
+height: 119px;
+left: 27px;
+top: 46px;
+
+
+
+/* Frame 46 */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 4px;
+
+width: 141px;
+height: 67px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Get Same day Deliver */
+
+width: 141px;
+height: 48px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 20px;
+line-height: 24px;
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* On orders above $20 */
+
+width: 141px;
+height: 15px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 15px;
+/* identical to box height */
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Buttons */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 10px;
+gap: 10px;
+
+width: 101px;
+height: 36px;
+
+background: #FFFFFF;
+border-radius: 5px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+width: 69px;
+height: 20px;
+
+/* Secondary Text */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+
+color: #0A0B0A;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icons */
+
+display: none;
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
