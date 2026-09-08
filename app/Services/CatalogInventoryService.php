@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\InventoryReason;
 use App\Enums\ReorderAlertStatus;
 use App\Exceptions\InsufficientStockException;
+use App\Exceptions\PosSaleException;
 use App\Models\Business;
 use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
@@ -114,6 +115,52 @@ class CatalogInventoryService
             ]);
 
             return $movements;
+        });
+    }
+
+    /**
+     * @param  array<int, array{product_id:int, quantity:int}>  $lines
+     * @return array<int, Product>
+     */
+    public function deductForSale(Business $business, User $actor, array $lines, string $receiptNumber): array
+    {
+        return DB::transaction(function () use ($business, $actor, $lines, $receiptNumber): array {
+            usort($lines, fn (array $left, array $right): int => $left['product_id'] <=> $right['product_id']);
+            $products = [];
+            foreach ($lines as $line) {
+                $product = Product::query()->where('business_id', $business->getKey())
+                    ->whereKey($line['product_id'])->lockForUpdate()->first();
+                if (! $product || ! $product->is_active) {
+                    throw new PosSaleException(
+                        'PRODUCT_UNAVAILABLE',
+                        'One or more products are unavailable.',
+                        409,
+                        ['lines' => ["Product {$line['product_id']} is unavailable."]],
+                    );
+                }
+                $stock = InventoryStock::query()->where('business_id', $business->getKey())
+                    ->where('product_id', $product->getKey())->lockForUpdate()->firstOrFail();
+                if ($stock->quantity < $line['quantity']) {
+                    throw new PosSaleException(
+                        'INSUFFICIENT_STOCK',
+                        'One or more items have insufficient stock.',
+                        409,
+                        ['lines' => ["{$product->name} has {$stock->quantity} available; {$line['quantity']} requested."]],
+                    );
+                }
+                $this->applyStockChange(
+                    $product,
+                    $stock,
+                    $actor,
+                    -$line['quantity'],
+                    InventoryReason::PosSale,
+                    "POS receipt {$receiptNumber}",
+                    null,
+                );
+                $products[$product->getKey()] = $product;
+            }
+
+            return $products;
         });
     }
 

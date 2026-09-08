@@ -1,5 +1,5 @@
+import * as React from "react";
+
 export function usePrintReceipt() {
-  return () => {
-    window.print();
-  };
+  return React.useCallback(() => window.print(), []);
 }

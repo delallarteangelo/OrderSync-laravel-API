@@ -61,6 +61,7 @@ All tenant-owned records must include a business identifier and be protected by 
 - [Authentication and tenant boundary](docs/AUTH_TENANCY.md)
 - [SaaS administration and subscriptions](docs/SAAS_ADMINISTRATION.md)
 - [Catalog and inventory](docs/CATALOG_INVENTORY.md)
+- [Point of sale](docs/POINT_OF_SALE.md)
 - [Current build status](docs/BUILD_STATUS.md)
 - [Web system overview](web/README.md)
 - [Web implementation plan](web/implementation_plan.md)
@@ -72,7 +73,7 @@ All tenant-owned records must include a business identifier and be protected by 
 
 ## Current Status
 
-Phases 1-4 are complete: the repository foundation, PostgreSQL environment, tenant authentication/authorization, SaaS administration/subscriptions, and React-connected catalog/inventory are implemented and verified. POS, customer ordering, recorded digital payments, notification delivery, analytics, AI support, PWA hardening, deployment, and the remaining Flutter business integrations are deferred to their separately approved phases.
+Phases 1-5 are complete: the repository foundation, PostgreSQL environment, tenant authentication/authorization, SaaS administration/subscriptions, React-connected catalog/inventory, and transactional point of sale are implemented and verified. Customer ordering, payment-proof verification, notification delivery, analytics, AI support, PWA hardening, deployment, and the remaining Flutter business integrations are deferred to their separately approved phases.
 
 ## License
 

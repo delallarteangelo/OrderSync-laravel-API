@@ -13,6 +13,7 @@ import {
   BarChart3,
   Users,
   Settings,
+  ReceiptText,
   Store,
   ChevronLeft,
   ChevronRight,
@@ -40,6 +41,7 @@ const groups: NavGroup[] = [
     items: [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/pos", label: "POS", icon: ScanBarcode },
+      { to: "/pos/history", label: "Sales history", icon: ReceiptText },
       { to: "/orders", label: "Orders", icon: ShoppingBag },
       { to: "/messages", label: "Messages", icon: MessageSquare },
     ],

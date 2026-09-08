@@ -231,7 +231,7 @@ export const useMockDataStore = create<State>((set, get) => ({
           l.productId,
           -l.quantity,
           "POS_SALE",
-          { id: sale.cashierId, name: sale.cashierName },
+          { id: sale.cashierId ?? "system", name: sale.cashierName },
           `Receipt ${sale.receiptNumber}`,
         );
       });

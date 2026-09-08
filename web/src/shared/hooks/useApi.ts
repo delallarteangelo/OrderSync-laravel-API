@@ -25,7 +25,7 @@ import {
   type MovementFilters,
 } from "@/shared/api/inventory";
 import { getOrder, listOrders, transitionOrder, type OrderFilters } from "@/shared/api/orders";
-import { finalizeSale, listSales } from "@/shared/api/pos";
+import { finalizeSale, getSale, listSales } from "@/shared/api/pos";
 import { listMessages, listThreads, markThreadRead, sendMessage } from "@/shared/api/messages";
 import {
   createUser,
@@ -76,6 +76,8 @@ export const tenantQk = {
   lowStock: (businessId: string) => ["tenant", businessId, "inventory", "low-stock"] as const,
   movements: (businessId: string, f?: MovementFilters) =>
     ["tenant", businessId, "movements", f ?? {}] as const,
+  sales: (businessId: string) => ["tenant", businessId, "pos", "sales"] as const,
+  sale: (businessId: string, id: string) => ["tenant", businessId, "pos", "sale", id] as const,
 };
 
 function useBusinessId(): string {
@@ -257,18 +259,26 @@ export function useTransitionOrder() {
 }
 
 // ---- POS ----
-export const useSales = () => useQuery({ queryKey: qk.sales, queryFn: listSales });
+export const useSales = () => {
+  const businessId = useBusinessId();
+  return useQuery({ queryKey: tenantQk.sales(businessId), queryFn: listSales });
+};
+export const useSale = (id: string | undefined) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: tenantQk.sale(businessId, id ?? ""),
+    queryFn: () => getSale(id!),
+    enabled: !!id,
+  });
+};
 export function useFinalizeSale() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: finalizeSale,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.sales });
-      qc.invalidateQueries({ queryKey: qk.inventory });
-      qc.invalidateQueries({ queryKey: ["products"] });
-      qc.invalidateQueries({ queryKey: ["movements"] });
+      qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
       qc.invalidateQueries({ queryKey: qk.dashboard });
-      qc.invalidateQueries({ queryKey: qk.lowStock });
     },
   });
 }

@@ -12,7 +12,13 @@ export const mockPosSales: PosSale[] = Array.from({ length: 12 }).map((_, i) => 
   const p3 = pick(i + 7);
   const lines = [
     { productId: p1.id, sku: p1.sku, name: p1.name, unitPrice: p1.price, quantity: 1 + (i % 3) },
-    { productId: p2.id, sku: p2.sku, name: p2.name, unitPrice: p2.price, quantity: 1 + ((i + 1) % 2) },
+    {
+      productId: p2.id,
+      sku: p2.sku,
+      name: p2.name,
+      unitPrice: p2.price,
+      quantity: 1 + ((i + 1) % 2),
+    },
     ...(i % 2 === 0
       ? [{ productId: p3.id, sku: p3.sku, name: p3.name, unitPrice: p3.price, quantity: 1 }]
       : []),
@@ -23,9 +29,11 @@ export const mockPosSales: PosSale[] = Array.from({ length: 12 }).map((_, i) => 
   return {
     id: `pos-${2000 + i}`,
     code: `POS-${20260000 + i}`,
+    businessName: "Tonette's Minimart",
     lines,
     subtotal,
     taxTotal,
+    taxRate: 12,
     discountTotal: 0,
     grandTotal,
     paymentMethod: i % 3 === 0 ? "CARD" : "CASH",

@@ -28,7 +28,6 @@ export const handlers = [...authHandlers, ...nonAuthHandlers];
 // remain mocked until their backend work is approved.
 export const browserHandlers = [
   ...ordersHandlers,
-  ...posHandlers,
   ...messagesHandlers,
   ...usersHandlers,
   ...settingsHandlers,

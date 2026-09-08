@@ -50,7 +50,7 @@ All routes use the `/api/v1` prefix and require a tenant-bound bearer token.
 | `POST /inventory/adjust` | Apply a reason-coded manual stock delta with a required note |
 | `POST /inventory/restock` | Atomically apply up to 100 unique restock lines |
 
-Manual adjustments accept only `ADJUSTMENT`. `RESTOCK` is assigned by the restock endpoint; `POS_SALE` and `ORDER_CONFIRMED` are reserved for later server-owned workflows.
+Manual adjustments accept only `ADJUSTMENT`. `RESTOCK` is assigned by the restock endpoint, and `POS_SALE` is now assigned only by the Phase 5 checkout transaction. `ORDER_CONFIRMED` remains reserved for the later ordering workflow.
 
 ## Transaction and alert behavior
 

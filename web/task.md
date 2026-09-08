@@ -10,6 +10,7 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 - [x] 2026-09-08 — Phase 2 tenant/auth boundary verified: real Laravel login/refresh/logout, complete role vocabulary, business-bound session context, guarded workspace/platform navigation, multi-business selection, and role tests. Later business APIs remain mocked. See [`../docs/AUTH_TENANCY.md`](../docs/AUTH_TENANCY.md).
 - [x] 2026-09-08 — Phase 3 SaaS administration verified: business application/approval, suspension/reactivation, plan entitlements, subscription lifecycle, internal billing, platform metrics, account activation, and owner subscription visibility use real Laravel APIs. See [`../docs/SAAS_ADMINISTRATION.md`](../docs/SAAS_ADMINISTRATION.md).
 - [x] 2026-09-08 — Phase 4 catalog and inventory verified: tenant products/categories/images, transactional stock, immutable movements, restocking, low-stock alerts, role-aware controls, and tenant-scoped query caches use real Laravel APIs. See [`../docs/CATALOG_INVENTORY.md`](../docs/CATALOG_INVENTORY.md).
+- [x] 2026-09-08 — Phase 5 transactional POS verified: tenant sales and receipt snapshots, server pricing, idempotent checkout, atomic stock deduction, recorded payment references, Cashier access, sales history, and tenant-scoped caches use real Laravel APIs. See [`../docs/POINT_OF_SALE.md`](../docs/POINT_OF_SALE.md).
 
 ## Legend
 
@@ -103,18 +104,18 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 
 ## Phase 6 — POS module
 
-- [ ] Create `src/shared/types/pos.ts` (`CartLine`, `PosSale`, `PaymentMethod` zod schemas)
-- [ ] Create Zustand `posCartStore` with persistent local draft (sessionStorage)
-- [ ] Implement `src/shared/hooks/useBarcodeScanner.ts` (time-windowed character buffer; Enter terminator; configurable threshold)
-- [ ] Build webcam fallback using `@zxing/browser` behind a button toggle
-- [ ] Build `features/pos/pages/PosPage.tsx` (full-screen layout: scan input + product search left, cart right)
-- [ ] Build `features/pos/components/ScanInput.tsx` (auto-focused, debounce on manual search)
+- [x] Create `src/shared/types/pos.ts` (`CartLine`, `PosSale`, `PaymentMethod` zod schemas)
+- [x] Create Zustand `posCartStore` with persistent local draft (sessionStorage)
+- [x] Implement `src/shared/hooks/useBarcodeScanner.ts` (time-windowed character buffer; Enter terminator; configurable threshold)
+- [x] Build webcam fallback using `@zxing/browser` behind a button toggle
+- [x] Build `features/pos/pages/PosPage.tsx` (full-screen layout: scan input + product search left, cart right)
+- [x] Build `features/pos/components/ScanInput.tsx` (auto-focused, debounce on manual search)
 - [ ] Build `features/pos/components/CartPanel.tsx` (quantity steppers, line discount admin-gated, line remove, clear-all with confirmation)
-- [ ] Build `features/pos/components/PaymentDialog.tsx` (cash plus recorded GCash/Maya or other methods; cash computes change)
-- [ ] Implement `src/shared/api/pos.ts` (`finalizeSale`)
-- [ ] Atomically clear cart only on `finalizeSale` success
-- [ ] Build `features/pos/components/ReceiptView.tsx` (print-friendly stylesheet for 80mm thermal printer)
-- [ ] Implement `src/shared/hooks/usePrintReceipt.ts` (`window.print()` with print-only stylesheet)
+- [x] Build `features/pos/components/PaymentDialog.tsx` (cash plus recorded GCash/Maya or other methods; cash computes change)
+- [x] Implement `src/shared/api/pos.ts` (`finalizeSale`)
+- [x] Atomically clear cart only on `finalizeSale` success
+- [x] Build `features/pos/components/ReceiptView.tsx` (print-friendly stylesheet for 80mm thermal printer)
+- [x] Implement `src/shared/hooks/usePrintReceipt.ts` (`window.print()` with print-only stylesheet)
 - [ ] Wire keyboard shortcuts: focus scan input, edit qty, finalize sale, cancel sale
 - [ ] E2E (Playwright): mocked scanner inputs → complete sale → receipt visible
 

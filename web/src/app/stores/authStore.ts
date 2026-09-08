@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { User, Role } from "@/shared/types/auth";
 import { adminUser, cashierUser, mockUsers } from "@/mock/mockUsers";
+import { usePosCartStore } from "./posCartStore";
 
 type AuthState = {
   user: User | null;
@@ -17,17 +18,37 @@ type AuthState = {
   switchRole: (role: Role) => void;
 };
 
+function syncCartTenant(user: User | null) {
+  usePosCartStore.getState().setBusiness(user?.business?.id ?? null);
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   accessToken: null,
   bootstrapped: false,
-  setSession: ({ accessToken, user }) => set({ accessToken, user }),
-  clear: () => set({ accessToken: null, user: null }),
+  setSession: ({ accessToken, user }) => {
+    syncCartTenant(user);
+    set({ accessToken, user });
+  },
+  clear: () => {
+    syncCartTenant(null);
+    set({ accessToken: null, user: null });
+  },
   markBootstrapped: () => set({ bootstrapped: true }),
-  signIn: (role) =>
-    set({ user: role === "BUSINESS_OWNER" ? adminUser : cashierUser, accessToken: "demo-token" }),
-  signOut: () => set({ user: null, accessToken: null }),
-  switchRole: (role) => set({ user: role === "BUSINESS_OWNER" ? adminUser : cashierUser }),
+  signIn: (role) => {
+    const user = role === "BUSINESS_OWNER" ? adminUser : cashierUser;
+    syncCartTenant(user);
+    set({ user, accessToken: "demo-token" });
+  },
+  signOut: () => {
+    syncCartTenant(null);
+    set({ user: null, accessToken: null });
+  },
+  switchRole: (role) => {
+    const user = role === "BUSINESS_OWNER" ? adminUser : cashierUser;
+    syncCartTenant(user);
+    set({ user });
+  },
 }));
 
 export { mockUsers };

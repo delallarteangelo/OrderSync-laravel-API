@@ -13,7 +13,7 @@ This is the repository-level source of truth for implementation status. Client t
 | 2 — Multi-tenancy, authentication, authorization | Complete | Tenant-bound authentication, role enforcement, policy checks, client login integration, and audit foundation verified. |
 | 3 — SaaS administration and subscriptions | Complete | Business lifecycle, fixed plans/configurable entitlements, subscriptions, internal billing, platform dashboard, and user status administration verified. |
 | 4 — Catalog and inventory | Complete | Tenant catalog, product images, transactional stock, immutable movement history, low-stock alerts, and React integration verified. |
-| 5 — Point of sale | Not started | Requires separate approval. |
+| 5 — Point of sale | Complete | Tenant POS, server-authoritative totals, idempotent finalization, atomic stock deduction, recorded payments, receipts, and history verified. |
 | 6 — Customer storefront and ordering | Not started | Requires separate approval. |
 | 7 — Recorded GCash and Maya payments | Not started | Requires separate approval. |
 | 8 — Messaging, realtime events, notifications | Not started | Requires separate approval. |
@@ -74,6 +74,20 @@ See [`SAAS_ADMINISTRATION.md`](SAAS_ADMINISTRATION.md) for lifecycle rules, API 
 
 See [`CATALOG_INVENTORY.md`](CATALOG_INVENTORY.md) for schema rules, API contracts, permissions, transaction behavior, and image handling.
 
+## Phase 5 baseline
+
+- PostgreSQL is authoritative for completed tenant sales, sale-line snapshots, receipt identifiers, payment records, and idempotency state.
+- Business Owners, Staff, and Cashiers can complete sales and read tenant history when the subscription is effective and `pos_enabled`; only Business Owners can discount lines.
+- Laravel reloads products and integer-minor-unit prices from PostgreSQL, calculates all totals, and rejects inactive, missing, foreign-tenant, or understocked products.
+- Checkout locks idempotency and stock state, deducts inventory, appends `POS_SALE` movements, synchronizes reorder alerts, writes receipt snapshots, and audits completion in one transaction.
+- Identical retries return the original sale without another deduction; reuse of a checkout key with a different normalized request returns a conflict.
+- Cash records tender and calculated change. GCash, Maya, card, and other methods record a required reference only and do not imply provider confirmation.
+- Completed sales and lines are immutable through the application model contract, and historical receipt values remain stable after catalog edits.
+- React POS and sales history use real Laravel APIs in normal development, keep drafts in per-tab session storage, and clear a cart only after confirmed finalization.
+- Phase 5 intentionally records a zero tax rate because tenant tax configuration is outside the approved scope.
+
+See [`POINT_OF_SALE.md`](POINT_OF_SALE.md) for data rules, API contracts, idempotency, transaction behavior, roles, and payment limitations.
+
 ## Validation matrix
 
 | Surface | Command/check | Result |
@@ -123,10 +137,24 @@ See [`CATALOG_INVENTORY.md`](CATALOG_INVENTORY.md) for schema rules, API contrac
 | Flutter | Phase 4 scope review | No source change required; customer catalog integration remains assigned to Phase 6 |
 | Hosted CI | Workflow definition | Not executed — no remote repository or external account was authorized |
 
+## Phase 5 validation matrix
+
+| Surface | Command/check | Result |
+| --- | --- | --- |
+| PostgreSQL | Additive development migration and isolated test rebuild | Passed — 8 migrations; tenant sales, line snapshots, idempotency uniqueness, payment, total, index, foreign-key, and check constraints created |
+| Laravel | Pint and complete PHPUnit suite | Passed — formatting clean; 43 tests and 351 assertions |
+| POS authorization | Tenant boundary, roles, entitlement, subscription, owner-only discounts | Passed — foreign sales hidden; Cashier sale/history allowed; unauthorized discounts and unavailable POS rejected |
+| Transaction safety | Server pricing, tender, multi-line stock, immutable snapshots, audit | Passed — invalid checkout fully rolls back; successful lines deduct once and create consistent receipts |
+| Idempotency | Replay, payload mismatch, tenant scope, 8 simultaneous workers | Passed — 1 sale, 1 line, 1 movement, quantity 9/version 1; 1 create and 7 replays |
+| Recorded payments | Cash, GCash reference, nullable tender/change rules | Passed — references persist without any provider-confirmation claim |
+| React | Lint, typecheck, tests, production build | Passed — 0 lint errors (20 existing warnings), clean typecheck, 40 tests, build complete |
+| Flutter | Phase 5 scope review | No source change required; customer storefront and ordering remain assigned to Phase 6 |
+| Hosted CI | Workflow definition | Not executed — no remote repository or external account was authorized |
+
 ## Known limitations
 
-- React business-operational behavior beyond authentication, SaaS administration, catalog, and inventory still depends on MSW fixtures.
-- React lint retains 21 non-blocking warnings, and the production build reports a 2.81 MB main chunk that should be code-split in a later web phase.
+- React business-operational behavior beyond authentication, SaaS administration, catalog, inventory, and POS still depends on MSW fixtures.
+- React lint retains 20 non-blocking warnings, and the production build reports a 2.81 MB main chunk that should be code-split in a later web phase.
 - Flutter business data remains a static design prototype; only authentication uses the real API contract.
 - Flutter tokens are intentionally memory-only because no encrypted-storage dependency was approved for Phase 2; cold-start restoration remains deferred.
 - Android release packaging was not part of Phase 1; JDK 17 remains required before release-oriented work.
@@ -136,7 +164,10 @@ See [`CATALOG_INVENTORY.md`](CATALOG_INVENTORY.md) for schema rules, API contrac
 - Platform user administration currently covers visibility and activation status; self-deactivation and last-Super-Admin lockout are prohibited.
 - Reorder alerts are persisted but external realtime/push notification delivery is deferred to Phase 8.
 - Local product images use Laravel's public disk; production object-storage configuration and image lifecycle operations are deferred to release hardening.
-- No real POS, customer ordering, payment-proof, notification transport, AI, or deployment implementation exists yet.
+- POS tax remains zero until tenant tax settings and applicable fiscal requirements receive a separately approved design.
+- POS GCash, Maya, card, and other non-cash references are recorded but not provider-confirmed; proof upload and manual verification remain Phase 7 work.
+- Completed sales have no void, return, refund, or correction workflow; direct mutation is intentionally prohibited.
+- No real customer ordering, payment-proof verification, notification transport, AI, or deployment implementation exists yet.
 - The local Laragon PostgreSQL cluster uses trusted loopback authentication; non-local environments must use passwords or managed identity.
 
 ## Current decisions
@@ -152,3 +183,5 @@ See [`CATALOG_INVENTORY.md`](CATALOG_INVENTORY.md) for schema rules, API contrac
 - Catalog and inventory access is subscription-entitlement gated; server-side tenant filters remain authoritative over client route guards.
 - Stock changes lock the stock row, forbid negative results, increment a version, append a movement, and synchronize the reorder alert in one transaction.
 - Phase 4 development product images use Laravel's local public disk; no external storage service was introduced.
+- POS totals and product snapshots are server-owned; checkout idempotency is tenant-scoped, and stock plus receipt persistence is one PostgreSQL transaction.
+- Recorded non-cash POS methods never imply GCash, Maya, card-provider, or other external confirmation.

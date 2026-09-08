@@ -5,6 +5,7 @@ describe("tenant query keys", () => {
   it("keeps catalog and inventory caches isolated by business", () => {
     expect(tenantQk.products("business-a")).not.toEqual(tenantQk.products("business-b"));
     expect(tenantQk.inventory("business-a")).not.toEqual(tenantQk.inventory("business-b"));
+    expect(tenantQk.sales("business-a")).not.toEqual(tenantQk.sales("business-b"));
     expect(tenantQk.movements("business-a")).toEqual(["tenant", "business-a", "movements", {}]);
   });
 });

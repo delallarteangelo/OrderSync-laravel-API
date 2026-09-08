@@ -27,6 +27,7 @@ describe("pos api", () => {
       ],
       paymentMethod: "CASH",
       tendered: p.price * 2 + 200,
+      idempotencyKey: crypto.randomUUID(),
     });
 
     expect(sale.id).toBeDefined();
@@ -59,6 +60,7 @@ describe("pos api", () => {
         ],
         paymentMethod: "CASH",
         tendered: 999_999,
+        idempotencyKey: crypto.randomUUID(),
       }),
     ).rejects.toSatisfy((e: unknown) => isApiError(e) && e.code === "INSUFFICIENT_STOCK");
   });

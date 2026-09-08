@@ -52,4 +52,9 @@ class Product extends Model
     {
         return $this->hasMany(InventoryMovement::class);
     }
+
+    public function saleLines(): HasMany
+    {
+        return $this->hasMany(SaleLine::class);
+    }
 }

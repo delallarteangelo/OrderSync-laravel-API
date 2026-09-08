@@ -99,7 +99,18 @@ npm test
 npm run build
 ```
 
-MSW remains enabled by default for future-phase prototype modules. Authentication, SaaS administration, catalog, and inventory bypass MSW and use Laravel in normal development.
+MSW remains enabled by default for future-phase prototype modules. Authentication, SaaS administration, catalog, inventory, and POS bypass MSW and use Laravel in normal development.
+
+### Phase 5 POS workflow
+
+1. Sign in as a seeded Business Owner, Staff member, or Cashier and open `/pos`.
+2. Scan a barcode/SKU or choose an active product with available stock.
+3. Use cash, or record the customer-provided reference for GCash, Maya, card, or another method.
+4. Confirm the payment and verify the receipt appears only after the server succeeds.
+5. Open `/pos/history` to find the completed sale and print its receipt snapshot.
+6. Open inventory movement history and verify one `POS_SALE` deduction per sold line.
+
+GCash, Maya, card, and other references are records only; this workflow does not confirm payment with an external provider. The server currently applies zero tax because tenant tax configuration is deferred.
 
 Authentication bypasses MSW by default and is proxied to Laravel through `VITE_API_PROXY_TARGET`. Set `VITE_USE_MOCK_AUTH=true` only when deliberately running the legacy mock authentication tests or demo.
 

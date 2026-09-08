@@ -1,28 +1,16 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
-import {
-  ArrowLeft,
-  Camera,
-  ScanBarcode,
-  Search,
-  Store,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Camera, History, ScanBarcode, Search, Store, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Separator } from "@/shared/components/ui/separator";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/shared/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 import { Money } from "@/shared/components/Money";
-import { useCategories, useFinalizeSale, useProducts, useSettings } from "@/shared/hooks/useApi";
+import { useCategories, useFinalizeSale, useProducts } from "@/shared/hooks/useApi";
 import { usePosCartStore } from "@/app/stores/posCartStore";
 import { useAuthStore } from "@/app/stores/authStore";
 import { useRole } from "@/shared/hooks/useRole";
@@ -33,13 +21,12 @@ import { ScanInput } from "../components/ScanInput";
 import { PaymentDialog } from "../components/PaymentDialog";
 import { ReceiptView } from "../components/ReceiptView";
 import { WebcamScannerDialog } from "../components/WebcamScannerDialog";
-import type { PosSale } from "@/shared/types/pos";
+import type { PaymentMethod, PosSale } from "@/shared/types/pos";
 
 export function PosPage() {
   const products = useProducts().data ?? [];
   const categories = useCategories().data ?? [];
-  const settings = useSettings().data;
-  const taxRate = (settings?.taxRate ?? 12) / 100;
+  const taxRate = 0;
   const cart = usePosCartStore();
   const { isAdmin } = useRole();
   const user = useAuthStore((s) => s.user)!;
@@ -56,6 +43,7 @@ export function PosPage() {
   const [webcamOpen, setWebcamOpen] = React.useState(false);
   const [lastSale, setLastSale] = React.useState<PosSale | null>(null);
   const scanRef = React.useRef<HTMLInputElement>(null);
+  const checkoutKey = React.useRef<string | null>(null);
 
   const visibleProducts = React.useMemo(() => {
     let list = products.filter((p) => p.isActive);
@@ -72,25 +60,36 @@ export function PosPage() {
     return list.slice(0, 36);
   }, [products, activeCat, search]);
 
-  const subtotal = cart.lines.reduce(
-    (a, l) => a + l.unitPrice * l.quantity - (l.lineDiscount ?? 0),
-    0,
-  );
-  const tax = Math.round(subtotal * taxRate * 100) / 100;
-  const grandTotal = subtotal + tax;
+  const subtotal = cart.lines.reduce((total, line) => total + line.unitPrice * line.quantity, 0);
+  const discountTotal = cart.lines.reduce((total, line) => total + (line.lineDiscount ?? 0), 0);
+  const tax = Math.round((subtotal - discountTotal) * taxRate * 100) / 100;
+  const grandTotal = subtotal - discountTotal + tax;
+
+  const addProduct = (product: (typeof products)[number]) => {
+    const inCart = cart.lines.find((line) => line.productId === product.id)?.quantity ?? 0;
+    if (!product.isActive || product.stockOnHand <= inCart) {
+      toast.error(`${product.name} has no more available stock`);
+      return;
+    }
+    cart.addProduct(product);
+    toast.success(`Added ${product.name}`);
+  };
+
+  const openPayment = () => {
+    if (!checkoutKey.current) checkoutKey.current = crypto.randomUUID();
+    setPaymentOpen(true);
+  };
 
   // Global barcode/SKU scan
   useBarcodeScanner(async (code) => {
-    const local = products.find((p) => p.sku === code || p.barcode === code);
+    const local = products.find((p) => p.isActive && (p.sku === code || p.barcode === code));
     if (local) {
-      cart.addProduct(local);
-      toast.success(`Added ${local.name}`);
+      addProduct(local);
       return;
     }
     try {
       const remote = await getProductByBarcode(code);
-      cart.addProduct(remote);
-      toast.success(`Added ${remote.name}`);
+      addProduct(remote);
     } catch {
       toast.error(`No product for "${code}"`);
     }
@@ -104,7 +103,7 @@ export function PosPage() {
         scanRef.current?.focus();
       } else if (e.key === "F9") {
         e.preventDefault();
-        if (cart.lines.length) setPaymentOpen(true);
+        if (cart.lines.length) openPayment();
       } else if (e.key === "Escape") {
         if (paymentOpen) setPaymentOpen(false);
       }
@@ -114,41 +113,41 @@ export function PosPage() {
   }, [cart.lines.length, paymentOpen]);
 
   const handleScan = async (code: string) => {
-    const local = products.find((p) => p.sku === code || p.barcode === code);
+    const local = products.find((p) => p.isActive && (p.sku === code || p.barcode === code));
     if (local) {
-      cart.addProduct(local);
-      toast.success(`Added ${local.name}`);
+      addProduct(local);
       return;
     }
     try {
       const remote = await getProductByBarcode(code);
-      cart.addProduct(remote);
-      toast.success(`Added ${remote.name}`);
+      addProduct(remote);
     } catch {
       toast.error(`No product for "${code}"`);
     }
   };
 
-  const handleFinalize = (
-    method: "CASH" | "CARD" | "OTHER",
-    tendered?: number,
-  ) => {
+  const handleFinalize = (method: PaymentMethod, tendered?: number, paymentReference?: string) => {
+    const idempotencyKey = checkoutKey.current ?? crypto.randomUUID();
+    checkoutKey.current = idempotencyKey;
     finalizeM.mutate(
       {
         lines: [...cart.lines],
         paymentMethod: method,
         tendered,
-        discountTotal: cart.lines.reduce((a, l) => a + (l.lineDiscount ?? 0), 0),
+        paymentReference,
+        idempotencyKey,
       },
       {
         onSuccess: (sale) => {
           setLastSale(sale);
           cart.clear();
+          checkoutKey.current = null;
           setPaymentOpen(false);
           toast.success(`Sale finalized · ${sale.receiptNumber}`);
         },
         onError: (e) => {
-          toast.error(isApiError(e) ? e.message : "Failed to finalize sale");
+          const lineError = isApiError(e) ? e.fieldErrors?.lines?.[0] : undefined;
+          toast.error(isApiError(e) ? (lineError ?? e.message) : "Failed to finalize sale");
         },
       },
     );
@@ -171,6 +170,12 @@ export function PosPage() {
         <Badge variant="secondary">{user.fullName}</Badge>
         <div className="ml-auto flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
+            <Link to="/pos/history">
+              <History className="mr-1 h-4 w-4" />
+              Sales history
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
             <Link to="/dashboard">
               <ArrowLeft className="mr-1 h-4 w-4" />
               Back to app
@@ -189,6 +194,10 @@ export function PosPage() {
                 <p className="text-sm font-medium">Scan or type SKU/barcode</p>
               </div>
               <ScanInput ref={scanRef} onScan={handleScan} />
+              <Button variant="outline" size="sm" onClick={() => setWebcamOpen(true)}>
+                <Camera className="mr-1 h-4 w-4" />
+                Scan with camera
+              </Button>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -215,19 +224,15 @@ export function PosPage() {
             {visibleProducts.map((p) => (
               <button
                 key={p.id}
-                onClick={() => {
-                  cart.addProduct(p);
-                  toast.success(`Added ${p.name}`);
-                }}
-                className="group relative flex flex-col items-start gap-1 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary hover:bg-accent/40"
+                disabled={p.stockOnHand === 0}
+                onClick={() => addProduct(p)}
+                className="group relative flex flex-col items-start gap-1 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary hover:bg-accent/40 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <div className="flex h-16 w-full items-center justify-center rounded-md bg-muted/40 text-muted-foreground">
                   <ScanBarcode className="h-6 w-6 opacity-50" />
                 </div>
                 <p className="line-clamp-2 text-xs font-medium">{p.name}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {categoryName(p.categoryId)}
-                </p>
+                <p className="text-[10px] text-muted-foreground">{categoryName(p.categoryId)}</p>
                 <div className="mt-auto flex w-full items-center justify-between">
                   <Money value={p.price} className="text-sm font-semibold" />
                   {p.stockOnHand <= p.lowStockThreshold && (
@@ -306,12 +311,20 @@ export function PosPage() {
                           size="icon"
                           variant="outline"
                           className="h-7 w-7"
+                          disabled={
+                            l.quantity >=
+                            (products.find((product) => product.id === l.productId)?.stockOnHand ??
+                              0)
+                          }
                           onClick={() => cart.setQty(l.productId, l.quantity + 1)}
                         >
                           +
                         </Button>
                       </div>
-                      <Money value={l.unitPrice * l.quantity - (l.lineDiscount ?? 0)} className="text-sm font-medium" />
+                      <Money
+                        value={l.unitPrice * l.quantity - (l.lineDiscount ?? 0)}
+                        className="text-sm font-medium"
+                      />
                     </div>
                     {isAdmin && (
                       <div className="mt-2 flex items-center gap-2">
@@ -320,7 +333,12 @@ export function PosPage() {
                           type="number"
                           className="h-7 w-24"
                           value={l.lineDiscount ?? 0}
-                          onChange={(e) => cart.setDiscount(l.productId, Number(e.target.value) || 0)}
+                          onChange={(e) =>
+                            cart.setDiscount(
+                              l.productId,
+                              Math.min(l.unitPrice * l.quantity, Number(e.target.value) || 0),
+                            )
+                          }
                         />
                       </div>
                     )}
@@ -331,7 +349,8 @@ export function PosPage() {
           </div>
           <div className="space-y-2 border-t p-4">
             <Row label="Subtotal" value={<Money value={subtotal} />} />
-            <Row label={`Tax (${(taxRate * 100).toFixed(0)}%)`} value={<Money value={tax} />} />
+            {discountTotal > 0 && <Row label="Discount" value={<Money value={discountTotal} />} />}
+            <Row label="Tax" value={<Money value={tax} />} />
             <Separator />
             <Row
               label={<span className="text-base font-semibold">Total</span>}
@@ -344,8 +363,8 @@ export function PosPage() {
             <Button
               className="w-full"
               size="lg"
-              disabled={cart.lines.length === 0}
-              onClick={() => setPaymentOpen(true)}
+              disabled={cart.lines.length === 0 || finalizeM.isPending}
+              onClick={openPayment}
             >
               Charge <Money value={grandTotal} className="ml-2" />
             </Button>
@@ -355,8 +374,13 @@ export function PosPage() {
 
       <PaymentDialog
         open={paymentOpen}
-        onOpenChange={setPaymentOpen}
+        onOpenChange={(open) => {
+          setPaymentOpen(open);
+          if (!open && !finalizeM.isPending) checkoutKey.current = null;
+          if (open && !checkoutKey.current) checkoutKey.current = crypto.randomUUID();
+        }}
         total={grandTotal}
+        submitting={finalizeM.isPending}
         onFinalize={handleFinalize}
       />
       <ConfirmDialog

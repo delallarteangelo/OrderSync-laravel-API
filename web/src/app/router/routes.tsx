@@ -15,6 +15,7 @@ import { InventoryListPage } from "@/features/inventory/pages/InventoryListPage"
 import { RestockPage } from "@/features/inventory/pages/RestockPage";
 import { MovementLogPage } from "@/features/inventory/pages/MovementLogPage";
 import { PosPage } from "@/features/pos/pages/PosPage";
+import { PosHistoryPage } from "@/features/pos/pages/PosHistoryPage";
 import { OrderListPage } from "@/features/orders/pages/OrderListPage";
 import { OrderDetailPage } from "@/features/orders/pages/OrderDetailPage";
 import { ChatPage } from "@/features/messaging/pages/ChatPage";
@@ -114,6 +115,7 @@ export const router = createBrowserRouter([
         ),
       },
       { path: "inventory/movements", element: <MovementLogPage /> },
+      { path: "pos/history", element: <PosHistoryPage /> },
 
       { path: "messages", element: <ChatPage /> },
       { path: "messages/:threadId", element: <ChatPage /> },

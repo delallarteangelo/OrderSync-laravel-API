@@ -3,6 +3,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Money } from "@/shared/components/Money";
 import type { PosSale } from "@/shared/types/pos";
 import { fmtDateTime } from "@/shared/lib/dates";
+import { usePrintReceipt } from "@/shared/hooks/usePrintReceipt";
 
 type Props = {
   sale: PosSale;
@@ -10,7 +11,7 @@ type Props = {
 };
 
 export function ReceiptView({ sale, onClose }: Props) {
-  const print = () => window.print();
+  const print = usePrintReceipt();
   return (
     <div className="flex min-h-screen flex-col items-center bg-muted/40 p-6">
       <div className="mb-4 flex w-full max-w-md items-center justify-between print:hidden">
@@ -25,9 +26,8 @@ export function ReceiptView({ sale, onClose }: Props) {
       </div>
       <div className="receipt-print w-full max-w-[320px] rounded-md border bg-white p-4 font-mono text-[12px] leading-tight text-black shadow-sm">
         <div className="text-center">
-          <p className="text-sm font-bold">TONETTE'S MINIMART</p>
-          <p>123 Sample St., Lipa City</p>
-          <p>VAT Reg TIN 000-000-000-000</p>
+          <p className="text-sm font-bold">{sale.businessName}</p>
+          <p>OrderSync POS sales receipt</p>
         </div>
         <hr className="my-2 border-dashed border-black/50" />
         <div className="flex justify-between">
@@ -57,14 +57,27 @@ export function ReceiptView({ sale, onClose }: Props) {
         <hr className="my-2 border-dashed border-black/50" />
         <Row label="Subtotal" value={<Money value={sale.subtotal} />} />
         <Row label="Discount" value={<Money value={sale.discountTotal} />} />
-        <Row label="VAT (12%)" value={<Money value={sale.taxTotal} />} />
-        <Row label={<strong>TOTAL</strong>} value={<strong><Money value={sale.grandTotal} /></strong>} />
+        <Row label={`Tax (${sale.taxRate}%)`} value={<Money value={sale.taxTotal} />} />
+        <Row
+          label={<strong>TOTAL</strong>}
+          value={
+            <strong>
+              <Money value={sale.grandTotal} />
+            </strong>
+          }
+        />
         <hr className="my-2 border-dashed border-black/50" />
-        <Row label={`Paid (${sale.paymentMethod})`} value={<Money value={sale.tendered ?? sale.grandTotal} />} />
-        {sale.change !== undefined && <Row label="Change" value={<Money value={sale.change} />} />}
+        <Row
+          label={
+            sale.paymentMethod === "CASH" ? "Cash tendered" : `Recorded (${sale.paymentMethod})`
+          }
+          value={<Money value={sale.tendered ?? sale.grandTotal} />}
+        />
+        {sale.paymentReference && <Row label="Reference" value={sale.paymentReference} />}
+        {sale.change != null && <Row label="Change" value={<Money value={sale.change} />} />}
         <hr className="my-2 border-dashed border-black/50" />
         <p className="text-center">Thank you for shopping!</p>
-        <p className="text-center text-[10px]">This serves as your official receipt.</p>
+        <p className="text-center text-[10px]">Recorded by OrderSync.</p>
       </div>
     </div>
   );

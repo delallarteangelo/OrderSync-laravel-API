@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\PlatformDashboardController;
 use App\Http\Controllers\Api\V1\PlatformPlanController;
 use App\Http\Controllers\Api\V1\PlatformSubscriptionController;
 use App\Http\Controllers\Api\V1\PlatformUserController;
+use App\Http\Controllers\Api\V1\PosSaleController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProductImageController;
 use App\Http\Controllers\Api\V1\TenantSubscriptionController;
@@ -94,4 +95,11 @@ Route::prefix('/v1')->group(function (): void {
             Route::post('/inventory/restock', [InventoryController::class, 'restock']);
         });
     });
+
+    Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER,STAFF,CASHIER', 'entitlement:pos_enabled'])
+        ->prefix('/pos')->group(function (): void {
+            Route::get('/sales', [PosSaleController::class, 'index']);
+            Route::post('/sales', [PosSaleController::class, 'store']);
+            Route::get('/sales/{sale}', [PosSaleController::class, 'show']);
+        });
 });

@@ -18,20 +18,25 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   total: number;
-  onFinalize: (method: PaymentMethod, tendered?: number) => void;
+  submitting: boolean;
+  onFinalize: (method: PaymentMethod, tendered?: number, paymentReference?: string) => void;
 };
 
-export function PaymentDialog({ open, onOpenChange, total, onFinalize }: Props) {
+export function PaymentDialog({ open, onOpenChange, total, submitting, onFinalize }: Props) {
   const [method, setMethod] = React.useState<PaymentMethod>("CASH");
   const [tenderedStr, setTenderedStr] = React.useState<string>("");
+  const [paymentReference, setPaymentReference] = React.useState("");
   const tendered = Number(tenderedStr) || 0;
   const change = Math.max(0, tendered - total);
-  const insufficient = method === "CASH" && tendered < total;
+  const invalid =
+    (method === "CASH" && tendered < total) ||
+    (method !== "CASH" && paymentReference.trim().length === 0);
 
   React.useEffect(() => {
     if (open) {
       setMethod("CASH");
       setTenderedStr(total.toFixed(2));
+      setPaymentReference("");
     }
   }, [open, total]);
 
@@ -41,12 +46,17 @@ export function PaymentDialog({ open, onOpenChange, total, onFinalize }: Props) 
         <DialogHeader>
           <DialogTitle>Take payment</DialogTitle>
           <DialogDescription>
-            Total due: <strong><Money value={total} /></strong>
+            Total due:{" "}
+            <strong>
+              <Money value={total} />
+            </strong>
           </DialogDescription>
         </DialogHeader>
         <Tabs value={method} onValueChange={(v) => setMethod(v as PaymentMethod)}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid h-auto w-full grid-cols-5">
             <TabsTrigger value="CASH">Cash</TabsTrigger>
+            <TabsTrigger value="GCASH">GCash</TabsTrigger>
+            <TabsTrigger value="MAYA">Maya</TabsTrigger>
             <TabsTrigger value="CARD">Card</TabsTrigger>
             <TabsTrigger value="OTHER">Other</TabsTrigger>
           </TabsList>
@@ -84,22 +94,45 @@ export function PaymentDialog({ open, onOpenChange, total, onFinalize }: Props) 
               </div>
             </div>
           </TabsContent>
+          <TabsContent value="GCASH" className="pt-3 text-sm text-muted-foreground">
+            Record the customer-provided GCash reference. This does not verify it with GCash.
+          </TabsContent>
+          <TabsContent value="MAYA" className="pt-3 text-sm text-muted-foreground">
+            Record the customer-provided Maya reference. This does not verify it with Maya.
+          </TabsContent>
           <TabsContent value="CARD" className="pt-3 text-sm text-muted-foreground">
-            Swipe / tap the card on the terminal. Confirm when approved.
+            Record the reference returned by the separate card terminal.
           </TabsContent>
           <TabsContent value="OTHER" className="pt-3 text-sm text-muted-foreground">
-            Record the reference (e.g. GCash, bank transfer) on the receipt note after confirming.
+            Record the reference supplied for this payment.
           </TabsContent>
         </Tabs>
+        {method !== "CASH" && (
+          <div className="space-y-1.5">
+            <Label>Payment reference</Label>
+            <Input
+              value={paymentReference}
+              onChange={(event) => setPaymentReference(event.target.value)}
+              maxLength={120}
+              placeholder="Required recorded reference"
+            />
+          </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
-            disabled={insufficient}
-            onClick={() => onFinalize(method, method === "CASH" ? tendered : undefined)}
+            disabled={invalid || submitting}
+            onClick={() =>
+              onFinalize(
+                method,
+                method === "CASH" ? tendered : undefined,
+                method === "CASH" ? undefined : paymentReference.trim(),
+              )
+            }
           >
-            Confirm payment
+            {submitting ? "Finalizing…" : "Confirm payment"}
           </Button>
         </DialogFooter>
       </DialogContent>
