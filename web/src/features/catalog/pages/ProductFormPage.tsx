@@ -33,6 +33,7 @@ import {
   useCreateProduct,
   useProduct,
   useUpdateProduct,
+  useUploadProductImage,
 } from "@/shared/hooks/useApi";
 import { isApiError, type FieldErrors } from "@/shared/api/errors";
 
@@ -59,7 +60,18 @@ export function ProductFormPage() {
   const existing = existingQ.data;
   const createM = useCreateProduct();
   const updateM = useUpdateProduct();
-  const [imagePreview, setImagePreview] = React.useState<string | undefined>(existing?.imageUrl);
+  const uploadImageM = useUploadProductImage();
+  const [imagePreview, setImagePreview] = React.useState<string | undefined>(
+    existing?.imageUrl ?? undefined,
+  );
+  const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
+
+  React.useEffect(
+    () => () => {
+      if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+    },
+    [imagePreview],
+  );
 
   React.useEffect(() => {
     if (existing) {
@@ -70,7 +82,7 @@ export function ProductFormPage() {
         categoryId: existing.categoryId,
         description: existing.description ?? "",
         price: existing.price,
-        costPrice: existing.costPrice,
+        costPrice: existing.costPrice ?? 0,
         stockOnHand: existing.stockOnHand,
         lowStockThreshold: existing.lowStockThreshold,
         isActive: existing.isActive,
@@ -90,7 +102,7 @@ export function ProductFormPage() {
           categoryId: existing.categoryId,
           description: existing.description ?? "",
           price: existing.price,
-          costPrice: existing.costPrice,
+          costPrice: existing.costPrice ?? 0,
           stockOnHand: existing.stockOnHand,
           lowStockThreshold: existing.lowStockThreshold,
           isActive: existing.isActive,
@@ -109,7 +121,7 @@ export function ProductFormPage() {
         },
   });
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
     const payload: Partial<Product> = {
       name: values.name,
       sku: values.sku,
@@ -118,39 +130,39 @@ export function ProductFormPage() {
       description: values.description || undefined,
       price: values.price,
       costPrice: values.costPrice,
-      stockOnHand: values.stockOnHand,
+      ...(!existing ? { stockOnHand: values.stockOnHand } : {}),
       lowStockThreshold: values.lowStockThreshold,
       isActive: values.isActive,
-      imageUrl: imagePreview,
     };
-    const opts = {
-      onSuccess: () => {
-        toast.success(existing ? "Product updated" : "Product created");
-        navigate("/catalog");
-      },
-      onError: (e: unknown) => {
-        if (isApiError(e) && e.fieldErrors) {
-          const fe = e.fieldErrors as FieldErrors;
-          for (const k of Object.keys(fe)) {
+    try {
+      const saved = existing
+        ? await updateM.mutateAsync({ id: existing.id, payload })
+        : await createM.mutateAsync(payload);
+      if (selectedImage) {
+        await uploadImageM.mutateAsync({ productId: saved.id, file: selectedImage });
+      }
+      toast.success(existing ? "Product updated" : "Product created");
+      navigate("/catalog");
+    } catch (e: unknown) {
+      if (isApiError(e) && e.fieldErrors) {
+        const fe = e.fieldErrors as FieldErrors;
+        for (const k of Object.keys(fe)) {
+          if (k in form.getValues()) {
             form.setError(k as keyof FormValues, { message: fe[k][0] });
           }
-        } else {
-          toast.error(isApiError(e) ? e.message : "Failed to save product");
         }
-      },
-    };
-    if (existing) {
-      updateM.mutate({ id: existing.id, payload }, opts);
-    } else {
-      createM.mutate(payload, opts);
+      }
+      toast.error(isApiError(e) ? e.message : "Failed to save product");
     }
   };
 
-  const saving = createM.isPending || updateM.isPending;
+  const saving = createM.isPending || updateM.isPending || uploadImageM.isPending;
 
   const handleImage = (file?: File) => {
     if (!file) return;
     const url = URL.createObjectURL(file);
+    if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+    setSelectedImage(file);
     setImagePreview(url);
   };
 
@@ -293,8 +305,11 @@ export function ProductFormPage() {
                     <FormItem>
                       <FormLabel>Stock on hand</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} />
+                        <Input type="number" {...field} disabled={!!existing} />
                       </FormControl>
+                      {existing && (
+                        <FormDescription>Use Inventory to adjust existing stock.</FormDescription>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -308,7 +323,9 @@ export function ProductFormPage() {
                       <FormControl>
                         <Input type="number" {...field} />
                       </FormControl>
-                      <FormDescription>Alert when stock falls to or below this value.</FormDescription>
+                      <FormDescription>
+                        Alert when stock falls to or below this value.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -325,14 +342,18 @@ export function ProductFormPage() {
               <CardContent className="space-y-3">
                 <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-md border border-dashed bg-muted/40">
                   {imagePreview ? (
-                    <img src={imagePreview} alt="Product preview" className="h-full w-full object-cover" />
+                    <img
+                      src={imagePreview}
+                      alt="Product preview"
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <ImageIcon className="h-10 w-10 text-muted-foreground" />
                   )}
                 </div>
                 <Input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={(e) => handleImage(e.target.files?.[0])}
                 />
                 <p className="text-xs text-muted-foreground">Optional. Used on POS grid tiles.</p>

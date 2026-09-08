@@ -55,11 +55,15 @@ export const catalogHandlers = [
     const fieldErrors: Record<string, string[]> = {};
     if (!body.sku) fieldErrors.sku = ["SKU is required"];
     else if (db.products.some((p) => p.sku === body.sku)) fieldErrors.sku = ["SKU already exists"];
-    if (body.barcode && db.products.some((p) => p.barcode === body.barcode)) fieldErrors.barcode = ["Barcode already exists"];
+    if (body.barcode && db.products.some((p) => p.barcode === body.barcode))
+      fieldErrors.barcode = ["Barcode already exists"];
     if (!body.name) fieldErrors.name = ["Name is required"];
     if (!body.categoryId) fieldErrors.categoryId = ["Category is required"];
     if (Object.keys(fieldErrors).length) {
-      return HttpResponse.json({ code: "VALIDATION", message: "Invalid product", fieldErrors }, { status: 422 });
+      return HttpResponse.json(
+        { code: "VALIDATION", message: "Invalid product", fieldErrors },
+        { status: 422 },
+      );
     }
     const product: Product = {
       id: randomId("p"),
@@ -85,10 +89,15 @@ export const catalogHandlers = [
     const idx = db.products.findIndex((x) => x.id === params.id);
     if (idx === -1) return HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 });
     const fieldErrors: Record<string, string[]> = {};
-    if (body.sku && db.products.some((p, i) => p.sku === body.sku && i !== idx)) fieldErrors.sku = ["SKU already exists"];
-    if (body.barcode && db.products.some((p, i) => p.barcode === body.barcode && i !== idx)) fieldErrors.barcode = ["Barcode already exists"];
+    if (body.sku && db.products.some((p, i) => p.sku === body.sku && i !== idx))
+      fieldErrors.sku = ["SKU already exists"];
+    if (body.barcode && db.products.some((p, i) => p.barcode === body.barcode && i !== idx))
+      fieldErrors.barcode = ["Barcode already exists"];
     if (Object.keys(fieldErrors).length) {
-      return HttpResponse.json({ code: "VALIDATION", message: "Invalid product", fieldErrors }, { status: 422 });
+      return HttpResponse.json(
+        { code: "VALIDATION", message: "Invalid product", fieldErrors },
+        { status: 422 },
+      );
     }
     db.products[idx] = { ...db.products[idx], ...body };
     return HttpResponse.json(db.products[idx]);
@@ -120,7 +129,14 @@ export const catalogHandlers = [
     if (!requireAdmin(request)) return HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 });
     const body = (await request.json()) as Partial<Category>;
     if (!body.name) {
-      return HttpResponse.json({ code: "VALIDATION", message: "Name required", fieldErrors: { name: ["Name is required"] } }, { status: 422 });
+      return HttpResponse.json(
+        {
+          code: "VALIDATION",
+          message: "Name required",
+          fieldErrors: { name: ["Name is required"] },
+        },
+        { status: 422 },
+      );
     }
     const cat: Category = { id: randomId("cat"), name: body.name, iconUrl: body.iconUrl };
     db.categories = [...db.categories, cat];
@@ -140,14 +156,24 @@ export const catalogHandlers = [
     if (!requireAdmin(request)) return HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 });
     const inUse = db.products.some((p) => p.categoryId === params.id);
     if (inUse) {
-      return HttpResponse.json({ code: "IN_USE", message: "Category is in use by one or more products" }, { status: 409 });
+      return HttpResponse.json(
+        { code: "IN_USE", message: "Category is in use by one or more products" },
+        { status: 409 },
+      );
     }
     db.categories = db.categories.filter((c) => c.id !== params.id);
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // PRODUCT IMAGE UPLOAD (placeholder)
-  http.post("/api/v1/uploads/products", async () => {
-    return HttpResponse.json({ url: `https://cdn.example.com/products/${randomId("img")}.jpg` });
+  // PRODUCT IMAGE UPLOAD (demo-mode placeholder)
+  http.post("/api/v1/products/:id/image", ({ request, params }) => {
+    if (!requireAdmin(request)) return HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 });
+    const idx = db.products.findIndex((product) => product.id === params.id);
+    if (idx === -1) return HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 });
+    db.products[idx] = {
+      ...db.products[idx],
+      imageUrl: `https://cdn.example.com/products/${randomId("img")}.jpg`,
+    };
+    return HttpResponse.json(db.products[idx]);
   }),
 ];

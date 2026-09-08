@@ -23,12 +23,14 @@ import {
   useReactivateProduct,
 } from "@/shared/hooks/useApi";
 import { isApiError } from "@/shared/api/errors";
+import { useRole } from "@/shared/hooks/useRole";
 
 export function ProductListPage() {
   const productsQ = useProducts();
   const categoriesQ = useCategories();
   const deactivateM = useDeactivateProduct();
   const reactivateM = useReactivateProduct();
+  const { canManageCatalog } = useRole();
   const products = productsQ.data ?? [];
   const categories = categoriesQ.data ?? [];
   const categoryName = React.useCallback(
@@ -45,7 +47,8 @@ export function ProductListPage() {
       if (activity === "active" && !p.isActive) return false;
       if (activity === "inactive" && p.isActive) return false;
       if (stock === "out" && p.stockOnHand > 0) return false;
-      if (stock === "low" && (p.stockOnHand === 0 || p.stockOnHand > p.lowStockThreshold)) return false;
+      if (stock === "low" && (p.stockOnHand === 0 || p.stockOnHand > p.lowStockThreshold))
+        return false;
       if (stock === "ok" && p.stockOnHand <= p.lowStockThreshold) return false;
       return true;
     });
@@ -73,7 +76,9 @@ export function ProductListPage() {
         id: "category",
         header: "Category",
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">{categoryName(row.original.categoryId)}</span>
+          <span className="text-sm text-muted-foreground">
+            {categoryName(row.original.categoryId)}
+          </span>
         ),
       },
       {
@@ -104,50 +109,51 @@ export function ProductListPage() {
       {
         id: "actions",
         header: "",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-1">
-            <Button asChild size="sm" variant="ghost">
-              <Link to={`/catalog/${row.original.id}/edit`}>
-                <Pencil className="mr-1 h-3.5 w-3.5" />
-                Edit
-              </Link>
-            </Button>
-            {row.original.isActive ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={deactivateM.isPending}
-                onClick={() =>
-                  deactivateM.mutate(row.original.id, {
-                    onSuccess: () => toast.success(`${row.original.name} deactivated`),
-                    onError: (e) => handleErr(e, "Failed to deactivate"),
-                  })
-                }
-              >
-                <PowerOff className="mr-1 h-3.5 w-3.5" />
-                Deactivate
+        cell: ({ row }) =>
+          canManageCatalog ? (
+            <div className="flex items-center gap-1">
+              <Button asChild size="sm" variant="ghost">
+                <Link to={`/catalog/${row.original.id}/edit`}>
+                  <Pencil className="mr-1 h-3.5 w-3.5" />
+                  Edit
+                </Link>
               </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={reactivateM.isPending}
-                onClick={() =>
-                  reactivateM.mutate(row.original.id, {
-                    onSuccess: () => toast.success(`${row.original.name} reactivated`),
-                    onError: (e) => handleErr(e, "Failed to reactivate"),
-                  })
-                }
-              >
-                <Power className="mr-1 h-3.5 w-3.5" />
-                Activate
-              </Button>
-            )}
-          </div>
-        ),
+              {row.original.isActive ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={deactivateM.isPending}
+                  onClick={() =>
+                    deactivateM.mutate(row.original.id, {
+                      onSuccess: () => toast.success(`${row.original.name} deactivated`),
+                      onError: (e) => handleErr(e, "Failed to deactivate"),
+                    })
+                  }
+                >
+                  <PowerOff className="mr-1 h-3.5 w-3.5" />
+                  Deactivate
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={reactivateM.isPending}
+                  onClick={() =>
+                    reactivateM.mutate(row.original.id, {
+                      onSuccess: () => toast.success(`${row.original.name} reactivated`),
+                      onError: (e) => handleErr(e, "Failed to reactivate"),
+                    })
+                  }
+                >
+                  <Power className="mr-1 h-3.5 w-3.5" />
+                  Activate
+                </Button>
+              )}
+            </div>
+          ) : null,
       },
     ],
-    [categoryName, deactivateM, reactivateM],
+    [canManageCatalog, categoryName, deactivateM, reactivateM],
   );
 
   return (
@@ -156,12 +162,14 @@ export function ProductListPage() {
         title="Catalog"
         description="All products available in your store."
         actions={
-          <Button asChild>
-            <Link to="/catalog/new">
-              <Plus className="mr-1 h-4 w-4" />
-              New product
-            </Link>
-          </Button>
+          canManageCatalog ? (
+            <Button asChild>
+              <Link to="/catalog/new">
+                <Plus className="mr-1 h-4 w-4" />
+                New product
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
       <DataTable

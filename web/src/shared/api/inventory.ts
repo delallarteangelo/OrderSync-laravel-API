@@ -8,11 +8,14 @@ import type {
 import type { Product } from "@/shared/types/catalog";
 
 export type LowStockItem = {
+  id?: string;
   productId: string;
   productName: string;
   sku: string;
   stockOnHand: number;
   threshold: number;
+  status?: "OPEN" | "RESOLVED";
+  openedAt?: string;
 };
 
 export async function listInventory(): Promise<Product[]> {
@@ -38,16 +41,22 @@ export async function listMovements(filters: MovementFilters = {}): Promise<Inve
   if (filters.reason) params.reason = filters.reason;
   if (filters.from) params.from = filters.from;
   if (filters.to) params.to = filters.to;
-  const { data } = await http.get<{ items: InventoryMovement[] }>("/inventory/movements", { params });
+  const { data } = await http.get<{ items: InventoryMovement[] }>("/inventory/movements", {
+    params,
+  });
   return data.items;
 }
 
-export async function adjustStock(payload: StockAdjustment): Promise<{ product: Product; movement: InventoryMovement }> {
+export async function adjustStock(
+  payload: StockAdjustment,
+): Promise<{ product: Product; movement: InventoryMovement }> {
   const { data } = await http.post("/inventory/adjust", payload);
   return data;
 }
 
-export async function restock(entries: RestockEntry[]): Promise<{ movements: InventoryMovement[] }> {
+export async function restock(
+  entries: RestockEntry[],
+): Promise<{ movements: InventoryMovement[] }> {
   const { data } = await http.post("/inventory/restock", { entries });
   return data;
 }

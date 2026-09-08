@@ -23,3 +23,14 @@ export const nonAuthHandlers = [
 ];
 
 export const handlers = [...authHandlers, ...nonAuthHandlers];
+
+// Implemented modules use Laravel in normal development. Future-phase modules
+// remain mocked until their backend work is approved.
+export const browserHandlers = [
+  ...ordersHandlers,
+  ...posHandlers,
+  ...messagesHandlers,
+  ...usersHandlers,
+  ...settingsHandlers,
+  ...reportsHandlers,
+];

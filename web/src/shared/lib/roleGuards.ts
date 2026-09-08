@@ -6,7 +6,11 @@ export function isAdmin(role: Role | undefined): boolean {
 }
 
 export function canEditCatalog(role: Role | undefined): boolean {
-  return role === "BUSINESS_OWNER";
+  return role === "BUSINESS_OWNER" || role === "STAFF";
+}
+
+export function canAdjustInventory(role: Role | undefined): boolean {
+  return role === "BUSINESS_OWNER" || role === "STAFF";
 }
 
 export function canManageUsers(role: Role | undefined): boolean {
@@ -27,10 +31,7 @@ export function canApplyLineDiscount(role: Role | undefined): boolean {
 
 // Order transition matrix — what each role may set from each status.
 // Both roles can move pipeline forward; admin has more rights for cancel/reject.
-export function allowedTransitions(
-  role: Role | undefined,
-  status: OrderStatus,
-): OrderStatus[] {
+export function allowedTransitions(role: Role | undefined, status: OrderStatus): OrderStatus[] {
   if (!role) return [];
   const base: Record<OrderStatus, OrderStatus[]> = {
     PENDING: ["CONFIRMED", "REJECTED"],

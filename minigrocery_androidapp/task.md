@@ -11,6 +11,7 @@ This tracker covers the customer Android client within the OrderSync multi-tenan
 - [x] 2026-09-07 — Phase 1 engineering foundation verified: dependencies resolve, formatting and analysis are clean, the boot widget test passes, and the shared CI baseline is present. See [`../docs/BUILD_STATUS.md`](../docs/BUILD_STATUS.md).
 - [x] 2026-09-08 — Phase 2 mobile auth integration verified: typed roles/session parsing, real customer login, business selection, rotating mobile refresh contract, profile identity, and server logout. Tokens remain memory-only pending approval of encrypted storage. See [`../docs/AUTH_TENANCY.md`](../docs/AUTH_TENANCY.md).
 - [x] 2026-09-08 — Phase 3 backend subscription boundary verified with no Flutter scope change: suspended businesses cannot refresh customer sessions, while customer-facing subscription and catalog experiences remain deferred. See [`../docs/SAAS_ADMINISTRATION.md`](../docs/SAAS_ADMINISTRATION.md).
+- [x] 2026-09-08 — Phase 4 backend catalog and inventory contracts verified with no Flutter source change: tenant-safe read APIs now exist, while customer catalog integration remains assigned to the separately approved customer-storefront phase. See [`../docs/CATALOG_INVENTORY.md`](../docs/CATALOG_INVENTORY.md).
 
 ## Legend
 

@@ -13,7 +13,9 @@ import {
   type ProductFilters,
   getProduct,
   getProductByBarcode,
+  uploadProductImage,
 } from "@/shared/api/catalog";
+import { useAuthStore } from "@/app/stores/authStore";
 import {
   adjustStock,
   listInventory,
@@ -34,7 +36,12 @@ import {
   updateUser,
 } from "@/shared/api/users";
 import { getSettings, updateSettings } from "@/shared/api/settings";
-import { getInventoryReport, getOrdersReport, getSalesReport, type ReportRange } from "@/shared/api/reports";
+import {
+  getInventoryReport,
+  getOrdersReport,
+  getSalesReport,
+  type ReportRange,
+} from "@/shared/api/reports";
 
 // ---- query keys ----
 export const qk = {
@@ -59,104 +66,145 @@ export const qk = {
   reportInventory: ["reports", "inventory"] as const,
 };
 
+export const tenantQk = {
+  root: (businessId: string) => ["tenant", businessId] as const,
+  products: (businessId: string, f?: ProductFilters) =>
+    ["tenant", businessId, "products", f ?? {}] as const,
+  product: (businessId: string, id: string) => ["tenant", businessId, "product", id] as const,
+  categories: (businessId: string) => ["tenant", businessId, "categories"] as const,
+  inventory: (businessId: string) => ["tenant", businessId, "inventory"] as const,
+  lowStock: (businessId: string) => ["tenant", businessId, "inventory", "low-stock"] as const,
+  movements: (businessId: string, f?: MovementFilters) =>
+    ["tenant", businessId, "movements", f ?? {}] as const,
+};
+
+function useBusinessId(): string {
+  return useAuthStore((state) => state.user?.business?.id ?? "no-business");
+}
+
 // ---- Dashboard ----
 export const useDashboard = () =>
   useQuery({ queryKey: qk.dashboard, queryFn: getDashboard, staleTime: 15_000 });
 
 // ---- Catalog ----
-export const useProducts = (filters?: ProductFilters) =>
-  useQuery({ queryKey: qk.products(filters), queryFn: () => listProducts(filters) });
+export const useProducts = (filters?: ProductFilters) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: tenantQk.products(businessId, filters),
+    queryFn: () => listProducts(filters),
+  });
+};
 
-export const useProduct = (id: string | undefined) =>
-  useQuery({ queryKey: qk.product(id ?? ""), queryFn: () => getProduct(id!), enabled: !!id });
+export const useProduct = (id: string | undefined) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: tenantQk.product(businessId, id ?? ""),
+    queryFn: () => getProduct(id!),
+    enabled: !!id,
+  });
+};
 
 export const useProductByBarcode = () => useMutation({ mutationFn: getProductByBarcode });
 
-export const useCategories = () =>
-  useQuery({ queryKey: qk.categories, queryFn: listCategories });
+export const useCategories = () => {
+  const businessId = useBusinessId();
+  return useQuery({ queryKey: tenantQk.categories(businessId), queryFn: listCategories });
+};
 
 export function useCreateProduct() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: createProduct,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["products"] });
-      qc.invalidateQueries({ queryKey: qk.inventory });
+      qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
       qc.invalidateQueries({ queryKey: qk.dashboard });
     },
   });
 }
 export function useUpdateProduct() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: (vars: { id: string; payload: Parameters<typeof updateProduct>[1] }) =>
       updateProduct(vars.id, vars.payload),
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["products"] });
-      qc.invalidateQueries({ queryKey: qk.product(vars.id) });
-      qc.invalidateQueries({ queryKey: qk.inventory });
+      qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
+      qc.invalidateQueries({ queryKey: tenantQk.product(businessId, vars.id) });
       qc.invalidateQueries({ queryKey: qk.dashboard });
     },
   });
 }
 export function useDeactivateProduct() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: deactivateProduct,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["products"] });
-      qc.invalidateQueries({ queryKey: qk.inventory });
+      qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
     },
   });
 }
 export function useReactivateProduct() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: reactivateProduct,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["products"] });
-      qc.invalidateQueries({ queryKey: qk.inventory });
+      qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
     },
   });
 }
 export function useCreateCategory() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: createCategory,
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.categories }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantQk.root(businessId) }),
   });
 }
 export function useUpdateCategory() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: (vars: { id: string; payload: Parameters<typeof updateCategory>[1] }) =>
       updateCategory(vars.id, vars.payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.categories }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantQk.root(businessId) }),
   });
 }
 export function useDeleteCategory() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: deleteCategory,
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.categories }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantQk.root(businessId) }),
   });
 }
 
 // ---- Inventory ----
-export const useInventory = () => useQuery({ queryKey: qk.inventory, queryFn: listInventory });
-export const useLowStock = () => useQuery({ queryKey: qk.lowStock, queryFn: listLowStock });
-export const useMovements = (filters?: MovementFilters) =>
-  useQuery({ queryKey: qk.movements(filters), queryFn: () => listMovements(filters) });
+export const useInventory = () => {
+  const businessId = useBusinessId();
+  return useQuery({ queryKey: tenantQk.inventory(businessId), queryFn: listInventory });
+};
+export const useLowStock = () => {
+  const businessId = useBusinessId();
+  return useQuery({ queryKey: tenantQk.lowStock(businessId), queryFn: listLowStock });
+};
+export const useMovements = (filters?: MovementFilters) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: tenantQk.movements(businessId, filters),
+    queryFn: () => listMovements(filters),
+  });
+};
 
 export function useAdjustStock() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: adjustStock,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.inventory });
-      qc.invalidateQueries({ queryKey: ["movements"] });
-      qc.invalidateQueries({ queryKey: ["products"] });
-      qc.invalidateQueries({ queryKey: qk.lowStock });
+      qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
       qc.invalidateQueries({ queryKey: qk.dashboard });
     },
   });
@@ -164,14 +212,25 @@ export function useAdjustStock() {
 
 export function useRestock() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: restock,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.inventory });
-      qc.invalidateQueries({ queryKey: ["movements"] });
-      qc.invalidateQueries({ queryKey: ["products"] });
-      qc.invalidateQueries({ queryKey: qk.lowStock });
+      qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
       qc.invalidateQueries({ queryKey: qk.dashboard });
+    },
+  });
+}
+
+export function useUploadProductImage() {
+  const qc = useQueryClient();
+  const businessId = useBusinessId();
+  return useMutation({
+    mutationFn: ({ productId, file }: { productId: string; file: File }) =>
+      uploadProductImage(productId, file),
+    onSuccess: (_product, variables) => {
+      qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
+      qc.invalidateQueries({ queryKey: tenantQk.product(businessId, variables.productId) });
     },
   });
 }

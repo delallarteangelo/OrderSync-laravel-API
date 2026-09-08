@@ -2,13 +2,17 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BusinessRegistrationController;
+use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ContextController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\PlatformBusinessController;
 use App\Http\Controllers\Api\V1\PlatformDashboardController;
 use App\Http\Controllers\Api\V1\PlatformPlanController;
 use App\Http\Controllers\Api\V1\PlatformSubscriptionController;
 use App\Http\Controllers\Api\V1\PlatformUserController;
+use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\ProductImageController;
 use App\Http\Controllers\Api\V1\TenantSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,4 +61,37 @@ Route::prefix('/v1')->group(function (): void {
 
     Route::get('/tenant/subscription', TenantSubscriptionController::class)
         ->middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER']);
+
+    Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER,STAFF,CASHIER'])->group(function (): void {
+        Route::middleware('entitlement:catalog_enabled')->group(function (): void {
+            Route::get('/categories', [CategoryController::class, 'index']);
+            Route::get('/products', [ProductController::class, 'index']);
+            Route::get('/products/by-barcode/{code}', [ProductController::class, 'byBarcode']);
+            Route::get('/products/{product}', [ProductController::class, 'show']);
+        });
+
+        Route::middleware('entitlement:inventory_enabled')->group(function (): void {
+            Route::get('/inventory', [InventoryController::class, 'index']);
+            Route::get('/inventory/low-stock', [InventoryController::class, 'lowStock']);
+            Route::get('/inventory/movements', [InventoryController::class, 'movements']);
+        });
+    });
+
+    Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER,STAFF'])->group(function (): void {
+        Route::middleware('entitlement:catalog_enabled')->group(function (): void {
+            Route::post('/categories', [CategoryController::class, 'store']);
+            Route::put('/categories/{category}', [CategoryController::class, 'update']);
+            Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+            Route::post('/products', [ProductController::class, 'store']);
+            Route::put('/products/{product}', [ProductController::class, 'update']);
+            Route::post('/products/{product}/deactivate', [ProductController::class, 'deactivate']);
+            Route::post('/products/{product}/reactivate', [ProductController::class, 'reactivate']);
+            Route::post('/products/{product}/image', [ProductImageController::class, 'store']);
+        });
+
+        Route::middleware('entitlement:inventory_enabled')->group(function (): void {
+            Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
+            Route::post('/inventory/restock', [InventoryController::class, 'restock']);
+        });
+    });
 });

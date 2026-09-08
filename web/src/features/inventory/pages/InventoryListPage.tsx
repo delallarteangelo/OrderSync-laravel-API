@@ -3,7 +3,6 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Product } from "@/shared/types/catalog";
-import type { ReasonCode } from "@/shared/types/inventory";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { DataTable } from "@/shared/components/DataTable";
 import { Badge } from "@/shared/components/ui/badge";
@@ -19,15 +18,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { useAdjustStock, useCategories, useInventory } from "@/shared/hooks/useApi";
 import { isApiError } from "@/shared/api/errors";
+import { useRole } from "@/shared/hooks/useRole";
 
 function StockBadge({ p }: { p: Product }) {
   if (p.stockOnHand === 0) return <Badge variant="destructive">Out</Badge>;
@@ -44,24 +37,28 @@ export function InventoryListPage() {
     [categories],
   );
   const [target, setTarget] = React.useState<Product | null>(null);
+  const { canManageInventory } = useRole();
 
   const columns: ColumnDef<Product>[] = React.useMemo(
     () => [
       {
         accessorKey: "name",
         header: "Product",
-        cell: ({ row }) => (
-          <div>
-            <p className="text-sm font-medium">{row.original.name}</p>
-            <p className="text-xs text-muted-foreground">SKU {row.original.sku}</p>
-          </div>
-        ),
+        cell: ({ row }) =>
+          canManageInventory ? (
+            <div>
+              <p className="text-sm font-medium">{row.original.name}</p>
+              <p className="text-xs text-muted-foreground">SKU {row.original.sku}</p>
+            </div>
+          ) : null,
       },
       {
         id: "category",
         header: "Category",
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">{categoryName(row.original.categoryId)}</span>
+          <span className="text-sm text-muted-foreground">
+            {categoryName(row.original.categoryId)}
+          </span>
         ),
       },
       {
@@ -89,7 +86,7 @@ export function InventoryListPage() {
         ),
       },
     ],
-    [categoryName],
+    [canManageInventory, categoryName],
   );
 
   return (
@@ -101,33 +98,26 @@ export function InventoryListPage() {
         searchKey="name"
         searchPlaceholder="Search product…"
       />
-      <AdjustStockDialog product={target} onClose={() => setTarget(null)} />
+      {canManageInventory && <AdjustStockDialog product={target} onClose={() => setTarget(null)} />}
     </>
   );
 }
 
-function AdjustStockDialog({
-  product,
-  onClose,
-}: {
-  product: Product | null;
-  onClose: () => void;
-}) {
+function AdjustStockDialog({ product, onClose }: { product: Product | null; onClose: () => void }) {
   const adjustM = useAdjustStock();
   const [delta, setDelta] = React.useState<number>(0);
-  const [reason, setReason] = React.useState<ReasonCode>("ADJUSTMENT");
   const [note, setNote] = React.useState("");
 
   React.useEffect(() => {
     if (product) {
       setDelta(0);
-      setReason("ADJUSTMENT");
       setNote("");
     }
   }, [product]);
 
   if (!product) return null;
-  const needsNote = delta < 0 && note.trim().length === 0;
+  const invalidNote = note.trim().length < 3;
+  const wouldBeNegative = product.stockOnHand + delta < 0;
 
   return (
     <Dialog open={!!product} onOpenChange={(o) => !o && onClose()}>
@@ -140,33 +130,18 @@ function AdjustStockDialog({
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label>Reason</Label>
-            <Select value={reason} onValueChange={(v) => setReason(v as ReasonCode)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
-                <SelectItem value="RESTOCK">Restock</SelectItem>
-                <SelectItem value="POS_SALE">POS sale (manual)</SelectItem>
-                <SelectItem value="ORDER_CONFIRMED">Order confirmed (manual)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
             <Label>Delta</Label>
-            <Input
-              type="number"
-              value={delta}
-              onChange={(e) => setDelta(Number(e.target.value))}
-            />
+            <Input type="number" value={delta} onChange={(e) => setDelta(Number(e.target.value))} />
             <p className="text-xs text-muted-foreground">
-              Resulting on hand: <strong>{Math.max(0, product.stockOnHand + delta)}</strong>
+              Resulting on hand:{" "}
+              <strong className={wouldBeNegative ? "text-rose-600" : undefined}>
+                {product.stockOnHand + delta}
+              </strong>
             </p>
           </div>
           <div className="space-y-1.5">
             <Label>
-              Note {delta < 0 && <span className="text-rose-600">(required for deductions)</span>}
+              Note <span className="text-rose-600">(required)</span>
             </Label>
             <Textarea
               value={note}
@@ -181,17 +156,16 @@ function AdjustStockDialog({
             Cancel
           </Button>
           <Button
-            disabled={delta === 0 || needsNote || adjustM.isPending}
+            disabled={delta === 0 || invalidNote || wouldBeNegative || adjustM.isPending}
             onClick={() => {
               adjustM.mutate(
-                { productId: product.id, delta, reasonCode: reason, note: note || undefined },
+                { productId: product.id, delta, reasonCode: "ADJUSTMENT", note: note.trim() },
                 {
                   onSuccess: () => {
                     toast.success(`Stock for ${product.name} adjusted by ${delta}`);
                     onClose();
                   },
-                  onError: (e) =>
-                    toast.error(isApiError(e) ? e.message : "Failed to adjust stock"),
+                  onError: (e) => toast.error(isApiError(e) ? e.message : "Failed to adjust stock"),
                 },
               );
             }}

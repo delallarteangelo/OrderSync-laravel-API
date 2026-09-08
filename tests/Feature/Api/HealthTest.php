@@ -21,6 +21,10 @@ class HealthTest extends TestCase
 
     public function test_health_endpoint_fails_without_disclosing_the_exception(): void
     {
+        $database = app('db');
+        DB::shouldReceive('connection')->zeroOrMoreTimes()->andReturnUsing(
+            fn (?string $name = null) => $database->connection($name),
+        );
         DB::shouldReceive('select')
             ->once()
             ->with('select 1')

@@ -9,6 +9,7 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 - [x] 2026-09-07 — Phase 1 engineering foundation verified: typed environment flags, clean typecheck/tests/build, PostgreSQL-backed Laravel health contract, and CI baseline. See [`../docs/BUILD_STATUS.md`](../docs/BUILD_STATUS.md).
 - [x] 2026-09-08 — Phase 2 tenant/auth boundary verified: real Laravel login/refresh/logout, complete role vocabulary, business-bound session context, guarded workspace/platform navigation, multi-business selection, and role tests. Later business APIs remain mocked. See [`../docs/AUTH_TENANCY.md`](../docs/AUTH_TENANCY.md).
 - [x] 2026-09-08 — Phase 3 SaaS administration verified: business application/approval, suspension/reactivation, plan entitlements, subscription lifecycle, internal billing, platform metrics, account activation, and owner subscription visibility use real Laravel APIs. See [`../docs/SAAS_ADMINISTRATION.md`](../docs/SAAS_ADMINISTRATION.md).
+- [x] 2026-09-08 — Phase 4 catalog and inventory verified: tenant products/categories/images, transactional stock, immutable movements, restocking, low-stock alerts, role-aware controls, and tenant-scoped query caches use real Laravel APIs. See [`../docs/CATALOG_INVENTORY.md`](../docs/CATALOG_INVENTORY.md).
 
 ## Legend
 
@@ -76,26 +77,26 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 
 ## Phase 4 — Catalog & category management
 
-- [ ] Create `src/shared/types/catalog.ts` (`Product`, `Category` zod schemas)
-- [ ] Create `src/shared/api/catalog.ts` (`listProducts`, `getProduct`, `createProduct`, `updateProduct`, `deactivateProduct`, `listCategories`, `createCategory`, `updateCategory`, `deleteCategory`)
-- [ ] Build shared `DataTable` component (`src/shared/components/DataTable.tsx`) with TanStack Table: sort, filter, paginate, column visibility, row actions
-- [ ] Build `features/catalog/pages/ProductListPage.tsx` (search, category filter, active filter)
-- [ ] Build `features/catalog/pages/ProductFormPage.tsx` (create + edit, image upload widget, barcode field, SKU uniqueness error mapping)
-- [ ] Build `features/catalog/pages/CategoryListPage.tsx` with inline create/edit/delete (guard delete when category in use)
-- [ ] Render write controls for Business Owner and policy-authorized Staff/Cashier users only
+- [x] Create `src/shared/types/catalog.ts` (`Product`, `Category` zod schemas)
+- [x] Create `src/shared/api/catalog.ts` (`listProducts`, `getProduct`, `createProduct`, `updateProduct`, `deactivateProduct`, `listCategories`, `createCategory`, `updateCategory`, `deleteCategory`)
+- [x] Build shared `DataTable` component (`src/shared/components/DataTable.tsx`) with TanStack Table: sort, filter, paginate, column visibility, row actions
+- [x] Build `features/catalog/pages/ProductListPage.tsx` (search, category filter, active filter)
+- [x] Build `features/catalog/pages/ProductFormPage.tsx` (create + edit, image upload widget, barcode field, SKU uniqueness error mapping)
+- [x] Build `features/catalog/pages/CategoryListPage.tsx` with inline create/edit/delete (guard delete when category in use)
+- [x] Render write controls for Business Owner and policy-authorized Staff/Cashier users only
 - [ ] Component test: product form surfaces server `fieldErrors` inline
 
 ---
 
 ## Phase 5 — Inventory management & movement logs
 
-- [ ] Create `src/shared/types/inventory.ts` (`InventoryMovement`, `StockAdjustment`, `RestockEntry`)
-- [ ] Create `src/shared/api/inventory.ts` (`listInventory`, `listMovements`, `adjustStock`, `submitRestock`, `listLowStock`)
-- [ ] Build `features/inventory/pages/InventoryListPage.tsx` with stock-level badges
+- [x] Create `src/shared/types/inventory.ts` (`InventoryMovement`, `StockAdjustment`, `RestockEntry`)
+- [x] Create `src/shared/api/inventory.ts` (`listInventory`, `listMovements`, `adjustStock`, `submitRestock`, `listLowStock`)
+- [x] Build `features/inventory/pages/InventoryListPage.tsx` with stock-level badges
 - [ ] Build `features/inventory/pages/AdjustStockDialog.tsx` (reason code dropdown, delta input, required note for negative deltas)
-- [ ] Build `features/inventory/pages/RestockPage.tsx` with multi-line entry table
-- [ ] Build `features/inventory/pages/MovementLogPage.tsx` (date-range, product, reason filters; CSV export via `papaparse`)
-- [ ] Add tenant-scoped low-stock and reorder alerts for authorized business users
+- [x] Build `features/inventory/pages/RestockPage.tsx` with multi-line entry table
+- [x] Build `features/inventory/pages/MovementLogPage.tsx` (date-range, product, reason filters; CSV export via `papaparse`)
+- [x] Add tenant-scoped low-stock and reorder alerts for authorized business users
 - [ ] Component test: negative adjustment requires a note before submission
 
 ---

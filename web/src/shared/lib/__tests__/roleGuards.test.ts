@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   allowedTransitions,
+  canAdjustInventory,
   canApplyLineDiscount,
   canEditCatalog,
   canManageSettings,
@@ -10,17 +11,22 @@ import {
 } from "../roleGuards";
 
 describe("role guards", () => {
-  it("grants tenant management only to the business owner", () => {
+  it("grants catalog and inventory operations to owners and staff", () => {
     expect(canEditCatalog("BUSINESS_OWNER")).toBe(true);
+    expect(canEditCatalog("STAFF")).toBe(true);
+    expect(canAdjustInventory("BUSINESS_OWNER")).toBe(true);
+    expect(canAdjustInventory("STAFF")).toBe(true);
+    expect(canAdjustInventory("CASHIER")).toBe(false);
     expect(canManageUsers("BUSINESS_OWNER")).toBe(true);
     expect(canManageSettings("BUSINESS_OWNER")).toBe(true);
     expect(canViewReports("BUSINESS_OWNER")).toBe(true);
     expect(canApplyLineDiscount("BUSINESS_OWNER")).toBe(true);
 
-    for (const role of ["STAFF", "CASHIER", "CUSTOMER", "SUPER_ADMIN"] as const) {
+    for (const role of ["CASHIER", "CUSTOMER", "SUPER_ADMIN"] as const) {
       expect(canEditCatalog(role)).toBe(false);
       expect(canManageUsers(role)).toBe(false);
     }
+    expect(canManageUsers("STAFF")).toBe(false);
   });
 
   it("keeps platform and business administrators distinct", () => {

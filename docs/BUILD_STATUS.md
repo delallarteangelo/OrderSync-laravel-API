@@ -12,7 +12,7 @@ This is the repository-level source of truth for implementation status. Client t
 | 1 — Engineering foundation and PostgreSQL | Complete | Verified locally on PostgreSQL 17.2; CI definition added for all three surfaces. |
 | 2 — Multi-tenancy, authentication, authorization | Complete | Tenant-bound authentication, role enforcement, policy checks, client login integration, and audit foundation verified. |
 | 3 — SaaS administration and subscriptions | Complete | Business lifecycle, fixed plans/configurable entitlements, subscriptions, internal billing, platform dashboard, and user status administration verified. |
-| 4 — Catalog and inventory | Not started | Requires separate approval. |
+| 4 — Catalog and inventory | Complete | Tenant catalog, product images, transactional stock, immutable movement history, low-stock alerts, and React integration verified. |
 | 5 — Point of sale | Not started | Requires separate approval. |
 | 6 — Customer storefront and ordering | Not started | Requires separate approval. |
 | 7 — Recorded GCash and Maya payments | Not started | Requires separate approval. |
@@ -60,6 +60,20 @@ See [`AUTH_TENANCY.md`](AUTH_TENANCY.md) for the role, token, API, and tenant-bo
 
 See [`SAAS_ADMINISTRATION.md`](SAAS_ADMINISTRATION.md) for lifecycle rules, API contracts, entitlement behavior, and audit coverage.
 
+## Phase 4 baseline
+
+- PostgreSQL is authoritative for tenant categories, products, product images, current stock, append-only stock movements, and persisted reorder alerts.
+- Category names are case-insensitively unique per business; normalized SKU and non-null barcode are unique per business.
+- Product creation initializes stock transactionally; subsequent stock changes are accepted only by inventory mutation endpoints.
+- Manual adjustments, multi-line restocks, alert synchronization, and audit writes run inside PostgreSQL transactions with row locks and non-negative constraints.
+- Business Owners and Staff can manage catalog and inventory; Cashiers can read catalog, stock, alerts, and movement history only.
+- Effective subscription state and the `catalog_enabled` or `inventory_enabled` entitlement gate every module route.
+- Local JPEG, PNG, and WebP product images use Laravel's public disk with a 4 MB limit and tenant-specific paths.
+- React catalog and inventory calls use real Laravel APIs in normal development, and tenant query keys include the authenticated business ID.
+- Reorder-alert records are ready for later notification delivery; Phase 8 remains responsible for realtime and push transport.
+
+See [`CATALOG_INVENTORY.md`](CATALOG_INVENTORY.md) for schema rules, API contracts, permissions, transaction behavior, and image handling.
+
 ## Validation matrix
 
 | Surface | Command/check | Result |
@@ -95,9 +109,23 @@ See [`SAAS_ADMINISTRATION.md`](SAAS_ADMINISTRATION.md) for lifecycle rules, API 
 | Flutter | Phase 3 scope review | No source change required; Phase 2 authentication baseline remains applicable |
 | Hosted CI | Workflow definition | Not executed — no remote repository or external account was authorized |
 
+## Phase 4 validation matrix
+
+| Surface | Command/check | Result |
+| --- | --- | --- |
+| PostgreSQL | Additive development migration and isolated test rebuild | Passed — 7 migrations; tenant catalog, images, stock, movement, alert, index, foreign-key, and check constraints created |
+| Laravel | Pint and complete PHPUnit suite | Passed — formatting clean; 33 tests and 258 assertions |
+| Catalog/inventory security | Cross-tenant IDs, per-business uniqueness, roles, entitlements, inactive subscriptions | Passed — foreign tenant records hidden; Cashier writes and unavailable features rejected |
+| Stock consistency | Negative adjustments, atomic restock, immutable history, alert lifecycle | Passed — rollback and before/after/version invariants verified |
+| Concurrency | 12 independent workers incrementing one stock row | Passed — quantity 12, version 12, and 12 immutable movements; no lost update |
+| Product images | MIME/size validation, tenant path, replacement cleanup | Passed with isolated public-disk storage |
+| React | Lint, typecheck, tests, production build | Passed — 0 lint errors (21 existing warnings), clean typecheck, 39 tests, build complete |
+| Flutter | Phase 4 scope review | No source change required; customer catalog integration remains assigned to Phase 6 |
+| Hosted CI | Workflow definition | Not executed — no remote repository or external account was authorized |
+
 ## Known limitations
 
-- React business-operational behavior beyond authentication and SaaS administration still depends on MSW fixtures.
+- React business-operational behavior beyond authentication, SaaS administration, catalog, and inventory still depends on MSW fixtures.
 - React lint retains 21 non-blocking warnings, and the production build reports a 2.81 MB main chunk that should be code-split in a later web phase.
 - Flutter business data remains a static design prototype; only authentication uses the real API contract.
 - Flutter tokens are intentionally memory-only because no encrypted-storage dependency was approved for Phase 2; cold-start restoration remains deferred.
@@ -106,7 +134,9 @@ See [`SAAS_ADMINISTRATION.md`](SAAS_ADMINISTRATION.md) for lifecycle rules, API 
 - Plan prices are intentionally unconfigured by default and require an approved Super Admin value before bills are created.
 - Subscription status is evaluated on reads; no external scheduler or automatic invoicing service was introduced.
 - Platform user administration currently covers visibility and activation status; self-deactivation and last-Super-Admin lockout are prohibited.
-- No real catalog, inventory, POS, customer ordering, payment-proof, notification, AI, or deployment implementation exists yet.
+- Reorder alerts are persisted but external realtime/push notification delivery is deferred to Phase 8.
+- Local product images use Laravel's public disk; production object-storage configuration and image lifecycle operations are deferred to release hardening.
+- No real POS, customer ordering, payment-proof, notification transport, AI, or deployment implementation exists yet.
 - The local Laragon PostgreSQL cluster uses trusted loopback authentication; non-local environments must use passwords or managed identity.
 
 ## Current decisions
@@ -119,3 +149,6 @@ See [`SAAS_ADMINISTRATION.md`](SAAS_ADMINISTRATION.md) for lifecycle rules, API 
 - PostgreSQL connections are pinned to UTC; each business retains an explicit display timezone.
 - Business suspension preserves all tenant data but blocks new and existing tenant sessions until Super Admin reactivation.
 - Subscription billing is an internal/manual record in Phase 3; no gateway, wallet API, external account, or provider confirmation exists.
+- Catalog and inventory access is subscription-entitlement gated; server-side tenant filters remain authoritative over client route guards.
+- Stock changes lock the stock row, forbid negative results, increment a version, append a movement, and synchronize the reorder alert in one transaction.
+- Phase 4 development product images use Laravel's local public disk; no external storage service was introduced.

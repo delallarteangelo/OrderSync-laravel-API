@@ -29,6 +29,7 @@ type NavItem = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
+  managerOnly?: boolean;
 };
 
 type NavGroup = { heading: string; items: NavItem[] };
@@ -47,15 +48,15 @@ const groups: NavGroup[] = [
     heading: "Inventory",
     items: [
       { to: "/inventory", label: "Stock", icon: Package },
-      { to: "/inventory/restock", label: "Restock", icon: PackagePlus },
+      { to: "/inventory/restock", label: "Restock", icon: PackagePlus, managerOnly: true },
       { to: "/inventory/movements", label: "Movements", icon: History },
     ],
   },
   {
     heading: "Admin",
     items: [
-      { to: "/catalog", label: "Catalog", icon: Boxes, adminOnly: true },
-      { to: "/categories", label: "Categories", icon: Tags, adminOnly: true },
+      { to: "/catalog", label: "Catalog", icon: Boxes },
+      { to: "/categories", label: "Categories", icon: Tags, managerOnly: true },
       { to: "/reports", label: "Reports", icon: BarChart3, adminOnly: true },
       { to: "/users", label: "Users", icon: Users, adminOnly: true },
       { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
@@ -66,7 +67,7 @@ const groups: NavGroup[] = [
 export function Sidebar() {
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggle = useUiStore((s) => s.toggleSidebar);
-  const { canManageBusiness } = useRole();
+  const { canManageBusiness, canManageInventory } = useRole();
   const businessName = useAuthStore((s) => s.user?.business?.name ?? "OrderSync");
 
   return (
@@ -82,16 +83,17 @@ export function Sidebar() {
         </div>
         {!collapsed && (
           <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-semibold">
-              {businessName}
-            </p>
+            <p className="truncate text-sm font-semibold">{businessName}</p>
             <p className="truncate text-xs text-muted-foreground">POS & Admin</p>
           </div>
         )}
       </div>
       <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-4">
         {groups.map((group) => {
-          const visible = group.items.filter((i) => (i.adminOnly ? canManageBusiness : true));
+          const visible = group.items.filter(
+            (item) =>
+              (!item.adminOnly || canManageBusiness) && (!item.managerOnly || canManageInventory),
+          );
           if (visible.length === 0) return null;
           return (
             <div key={group.heading} className="space-y-1">

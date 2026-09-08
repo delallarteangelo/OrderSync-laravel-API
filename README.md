@@ -60,6 +60,7 @@ All tenant-owned records must include a business identifier and be protected by 
 - [Local development setup](docs/SETUP.md)
 - [Authentication and tenant boundary](docs/AUTH_TENANCY.md)
 - [SaaS administration and subscriptions](docs/SAAS_ADMINISTRATION.md)
+- [Catalog and inventory](docs/CATALOG_INVENTORY.md)
 - [Current build status](docs/BUILD_STATUS.md)
 - [Web system overview](web/README.md)
 - [Web implementation plan](web/implementation_plan.md)
@@ -71,7 +72,7 @@ All tenant-owned records must include a business identifier and be protected by 
 
 ## Current Status
 
-The existing web and mobile prototypes began as a single-store solution. The next implementation cycle must migrate them to the generalized OrderSync domain: tenant-aware records, four-role authorization, subscriptions, recorded digital payments, AI support, expanded analytics, and PWA capabilities.
+Phases 1-4 are complete: the repository foundation, PostgreSQL environment, tenant authentication/authorization, SaaS administration/subscriptions, and React-connected catalog/inventory are implemented and verified. POS, customer ordering, recorded digital payments, notification delivery, analytics, AI support, PWA hardening, deployment, and the remaining Flutter business integrations are deferred to their separately approved phases.
 
 ## License
 

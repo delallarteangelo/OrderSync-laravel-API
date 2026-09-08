@@ -65,8 +65,9 @@ export async function deleteCategory(id: string): Promise<void> {
   await http.delete(`/categories/${id}`);
 }
 
-export async function uploadProductImage(_file: File): Promise<{ url: string }> {
-  // MSW handler returns a placeholder URL.
-  const { data } = await http.post<{ url: string }>("/uploads/products");
+export async function uploadProductImage(productId: string, file: File): Promise<Product> {
+  const form = new FormData();
+  form.append("image", file);
+  const { data } = await http.post<Product>(`/products/${productId}/image`, form);
   return data;
 }

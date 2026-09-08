@@ -29,6 +29,7 @@ import { ForbiddenPage } from "@/features/misc/ForbiddenPage";
 import { PlatformHomePage } from "@/features/platform/pages/PlatformHomePage";
 
 const businessWorkspaceRoles = ["BUSINESS_OWNER", "STAFF", "CASHIER"] as const;
+const inventoryManagerRoles = ["BUSINESS_OWNER", "STAFF"] as const;
 
 function Wrap({ children }: { children: React.ReactNode }) {
   return <AuthProvider>{children}</AuthProvider>;
@@ -104,17 +105,23 @@ export const router = createBrowserRouter([
       { path: "orders/:id", element: <OrderDetailPage /> },
 
       { path: "inventory", element: <InventoryListPage /> },
-      { path: "inventory/restock", element: <RestockPage /> },
+      {
+        path: "inventory/restock",
+        element: (
+          <RequireRole allow={[...inventoryManagerRoles]}>
+            <RestockPage />
+          </RequireRole>
+        ),
+      },
       { path: "inventory/movements", element: <MovementLogPage /> },
 
       { path: "messages", element: <ChatPage /> },
       { path: "messages/:threadId", element: <ChatPage /> },
 
-      // Admin-only
       {
         path: "catalog",
         element: (
-          <RequireRole allow="BUSINESS_OWNER">
+          <RequireRole allow={[...businessWorkspaceRoles]}>
             <ProductListPage />
           </RequireRole>
         ),
@@ -122,7 +129,7 @@ export const router = createBrowserRouter([
       {
         path: "catalog/new",
         element: (
-          <RequireRole allow="BUSINESS_OWNER">
+          <RequireRole allow={[...inventoryManagerRoles]}>
             <ProductFormPage />
           </RequireRole>
         ),
@@ -130,7 +137,7 @@ export const router = createBrowserRouter([
       {
         path: "catalog/:id/edit",
         element: (
-          <RequireRole allow="BUSINESS_OWNER">
+          <RequireRole allow={[...inventoryManagerRoles]}>
             <ProductFormPage />
           </RequireRole>
         ),
@@ -138,7 +145,7 @@ export const router = createBrowserRouter([
       {
         path: "categories",
         element: (
-          <RequireRole allow="BUSINESS_OWNER">
+          <RequireRole allow={[...inventoryManagerRoles]}>
             <CategoryListPage />
           </RequireRole>
         ),

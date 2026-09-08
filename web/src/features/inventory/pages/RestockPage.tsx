@@ -27,6 +27,7 @@ type Row = {
   key: string;
   productId: string;
   quantity: number;
+  supplierRef?: string;
   note?: string;
 };
 
@@ -57,6 +58,7 @@ export function RestockPage() {
       valid.map((r) => ({
         productId: r.productId,
         quantity: r.quantity,
+        supplierRef: r.supplierRef,
         note: r.note,
       })),
       {
@@ -88,6 +90,7 @@ export function RestockPage() {
               <TableRow>
                 <TableHead className="w-[40%]">Product</TableHead>
                 <TableHead className="w-32">Quantity</TableHead>
+                <TableHead>Supplier ref</TableHead>
                 <TableHead>Note</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
@@ -96,7 +99,17 @@ export function RestockPage() {
               {rows.map((r) => (
                 <TableRow key={r.key}>
                   <TableCell>
-                    <Select value={r.productId} onValueChange={(v) => updateRow(r.key, { productId: v })}>
+                    <Input
+                      placeholder="PO or delivery ref"
+                      value={r.supplierRef ?? ""}
+                      onChange={(e) => updateRow(r.key, { supplierRef: e.target.value })}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={r.productId}
+                      onValueChange={(v) => updateRow(r.key, { productId: v })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select product" />
                       </SelectTrigger>

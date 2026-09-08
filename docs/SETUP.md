@@ -70,7 +70,13 @@ ORDERSYNC_DEV_SEED_PASSWORD=choose-a-local-password
 php artisan db:seed
 ```
 
-This creates local-only owner, cashier, customer, and Super Admin identities under `@ordersync.local`, plus an active Basic subscription for the pilot business. The seeder refuses to create these identities in production and does nothing when the password is missing or too short. Plan prices remain unconfigured until entered by a Super Admin.
+This creates local-only owner, staff, cashier, customer, and Super Admin identities under `@ordersync.local`, an active Basic subscription, and a small pilot catalog with stock history and a low-stock alert. The seeder refuses to create these fixtures in production and does nothing when the password is missing or too short. Plan prices remain unconfigured until entered by a Super Admin.
+
+For Phase 4 product images, create Laravel's local public-disk link once:
+
+```powershell
+php artisan storage:link
+```
 
 ### Phase 3 administration workflow
 
@@ -93,7 +99,7 @@ npm test
 npm run build
 ```
 
-MSW remains enabled by default for the existing prototype. Turning it off will not expose business APIs until later phases implement them in Laravel.
+MSW remains enabled by default for future-phase prototype modules. Authentication, SaaS administration, catalog, and inventory bypass MSW and use Laravel in normal development.
 
 Authentication bypasses MSW by default and is proxied to Laravel through `VITE_API_PROXY_TARGET`. Set `VITE_USE_MOCK_AUTH=true` only when deliberately running the legacy mock authentication tests or demo.
 
