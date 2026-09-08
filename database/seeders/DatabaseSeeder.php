@@ -3,8 +3,10 @@
 namespace Database\Seeders;
 
 use App\Enums\Role;
+use App\Enums\SubscriptionStatus;
 use App\Models\Business;
 use App\Models\Membership;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -34,6 +36,19 @@ class DatabaseSeeder extends Seeder
         $business = Business::query()->firstOrCreate(
             ['slug' => 'tonettes-minimart'],
             ['name' => "Tonette's Minimart", 'timezone' => 'Asia/Manila'],
+        );
+
+        $plan = SubscriptionPlan::query()->where('code', 'BASIC')->firstOrFail();
+        $now = now();
+        $business->subscription()->firstOrCreate(
+            ['business_id' => $business->getKey()],
+            [
+                'subscription_plan_id' => $plan->getKey(),
+                'status' => SubscriptionStatus::Active,
+                'starts_at' => $now,
+                'current_period_start' => $now,
+                'current_period_end' => $now->copy()->addMonthNoOverflow(),
+            ],
         );
 
         $this->seedMember($business, 'owner@ordersync.local', 'Local Business Owner', Role::BusinessOwner, $password);

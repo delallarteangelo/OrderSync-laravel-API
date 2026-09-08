@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate, useLocation, Navigate } from "react-router-dom";
+import { useNavigate, useLocation, Navigate, Link } from "react-router-dom";
 import { Store, ShoppingBag, ScanBarcode, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
@@ -96,7 +96,8 @@ export function LoginPage() {
         <div className="space-y-4">
           <h2 className="text-3xl font-semibold leading-tight">Run your sari-sari like a pro.</h2>
           <p className="text-sm opacity-90">
-            Inventory, point-of-sale, orders, and reports — all in one place, built for Filipino neighborhood stores.
+            Inventory, point-of-sale, orders, and reports — all in one place, built for Filipino
+            neighborhood stores.
           </p>
           <div className="grid grid-cols-2 gap-3 pt-2">
             <Card className="border-white/10 bg-white/10 text-primary-foreground">
@@ -134,12 +135,24 @@ export function LoginPage() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Sign in to your account to continue.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Sign in to your account to continue.
+            </p>
           </div>
-          <form onSubmit={form.handleSubmit((v) => loginMutation.mutate(v))} className="space-y-3" noValidate>
+          <form
+            onSubmit={form.handleSubmit((v) => loginMutation.mutate(v))}
+            className="space-y-3"
+            noValidate
+          >
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@minimart.ph" autoComplete="email" {...form.register("email")} />
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@minimart.ph"
+                autoComplete="email"
+                {...form.register("email")}
+              />
               {form.formState.errors.email && (
                 <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
               )}
@@ -162,7 +175,12 @@ export function LoginPage() {
             )}
             <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" autoComplete="current-password" {...form.register("password")} />
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                {...form.register("password")}
+              />
               {form.formState.errors.password && (
                 <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>
               )}
@@ -183,6 +201,12 @@ export function LoginPage() {
             <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
               {loginMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              New to OrderSync?{" "}
+              <Link className="text-primary hover:underline" to="/register-business">
+                Register your business
+              </Link>
+            </p>
           </form>
           {flags.useMockAuth && (
             <>
@@ -193,10 +217,20 @@ export function LoginPage() {
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" type="button" disabled={loginMutation.isPending} onClick={() => quickLogin("tonette@minimart.ph")}>
+                <Button
+                  variant="outline"
+                  type="button"
+                  disabled={loginMutation.isPending}
+                  onClick={() => quickLogin("tonette@minimart.ph")}
+                >
                   Continue as owner
                 </Button>
-                <Button variant="outline" type="button" disabled={loginMutation.isPending} onClick={() => quickLogin("maria.cashier@minimart.ph")}>
+                <Button
+                  variant="outline"
+                  type="button"
+                  disabled={loginMutation.isPending}
+                  onClick={() => quickLogin("maria.cashier@minimart.ph")}
+                >
                   Continue as cashier
                 </Button>
               </div>

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\BusinessStatus;
 use App\Enums\Role;
 use App\Models\AccessToken;
 use App\Models\Membership;
@@ -46,12 +47,13 @@ class AuthTokenService
             $membership = null;
             if ($refreshToken->business_id !== null) {
                 $membership = Membership::query()
+                    ->with('business')
                     ->where('user_id', $user->getKey())
                     ->where('business_id', $refreshToken->business_id)
                     ->where('is_active', true)
                     ->first();
 
-                if (! $membership) {
+                if (! $membership || $membership->business->status !== BusinessStatus::Active) {
                     $refreshToken->update(['revoked_at' => now()]);
 
                     return null;
@@ -112,6 +114,34 @@ class AuthTokenService
             }
 
             $refreshTokens->update(['revoked_at' => now()]);
+        });
+    }
+
+    public function revokeBusinessSessions(int $businessId): void
+    {
+        DB::transaction(function () use ($businessId): void {
+            AccessToken::query()
+                ->where('business_id', $businessId)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+            RefreshToken::query()
+                ->where('business_id', $businessId)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+        });
+    }
+
+    public function revokeUserSessions(int $userId): void
+    {
+        DB::transaction(function () use ($userId): void {
+            AccessToken::query()
+                ->where('user_id', $userId)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+            RefreshToken::query()
+                ->where('user_id', $userId)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
         });
     }
 

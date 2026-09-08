@@ -58,7 +58,7 @@ php artisan test
 
 If `.env.testing` already exists, preserve it instead of overwriting it. Never point `migrate:fresh` at `ordersync`, staging, or production.
 
-### Optional local Phase 2 identities
+### Optional local development identities
 
 To exercise authentication locally, set a unique local value of at least 12 characters in the untracked `.env` file, then seed:
 
@@ -70,7 +70,17 @@ ORDERSYNC_DEV_SEED_PASSWORD=choose-a-local-password
 php artisan db:seed
 ```
 
-This creates local-only owner, cashier, customer, and Super Admin identities under `@ordersync.local`. The seeder refuses to create these identities in production and does nothing when the password is missing or too short.
+This creates local-only owner, cashier, customer, and Super Admin identities under `@ordersync.local`, plus an active Basic subscription for the pilot business. The seeder refuses to create these identities in production and does nothing when the password is missing or too short. Plan prices remain unconfigured until entered by a Super Admin.
+
+### Phase 3 administration workflow
+
+1. Open `/register-business` in the React app to submit a new business and owner application.
+2. Sign in as `superadmin@ordersync.local` and open `/platform`.
+3. Approve the pending business, configure plan price/entitlements, and apply a plan.
+4. Use **Add bill** to create an internal PHP billing record; **Mark paid** records only a manual internal reference.
+5. Suspend the business and confirm its tenant sessions stop working, then reactivate it and sign in again.
+
+No external billing account, wallet API, or payment gateway is used by this workflow.
 
 ## React web setup
 

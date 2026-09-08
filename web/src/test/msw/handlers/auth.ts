@@ -16,7 +16,11 @@ function authResponse(userId: string) {
   const { accessToken, refreshToken } = issueSession(userId);
   return HttpResponse.json(
     { accessToken, accessExpiresAt: new Date(Date.now() + 15 * 60_000).toISOString(), user },
-    { headers: { "Set-Cookie": `${REFRESH_COOKIE}=${refreshToken}; Path=/; HttpOnly; SameSite=Strict` } },
+    {
+      headers: {
+        "Set-Cookie": `${REFRESH_COOKIE}=${refreshToken}; Path=/; HttpOnly; SameSite=Strict`,
+      },
+    },
   );
 }
 
@@ -36,28 +40,49 @@ export const authHandlers = [
     const password = body.password ?? "";
     if (!email) {
       return HttpResponse.json(
-        { code: "VALIDATION", message: "Invalid input", fieldErrors: { email: ["Email is required"] } },
+        {
+          code: "VALIDATION",
+          message: "Invalid input",
+          fieldErrors: { email: ["Email is required"] },
+        },
         { status: 422 },
       );
     }
     const user = db.users.find((u) => u.email.toLowerCase() === email);
     if (!user || db.passwords[user.email] !== password) {
-      return HttpResponse.json({ code: "INVALID_CREDENTIALS", message: "Invalid email or password" }, { status: 401 });
+      return HttpResponse.json(
+        { code: "INVALID_CREDENTIALS", message: "Invalid email or password" },
+        { status: 401 },
+      );
     }
     if (!user.isActive) {
-      return HttpResponse.json({ code: "INACTIVE", message: "Account is disabled" }, { status: 403 });
+      return HttpResponse.json(
+        { code: "INACTIVE", message: "Account is disabled" },
+        { status: 403 },
+      );
     }
-    if (!["BUSINESS_OWNER", "STAFF", "CASHIER"].includes(user.role)) {
-      return HttpResponse.json({ code: "FORBIDDEN_ROLE", message: "This account cannot use the web console" }, { status: 403 });
+    if (!["SUPER_ADMIN", "BUSINESS_OWNER", "STAFF", "CASHIER"].includes(user.role)) {
+      return HttpResponse.json(
+        { code: "FORBIDDEN_ROLE", message: "This account cannot use the web console" },
+        { status: 403 },
+      );
     }
     return authResponse(user.id);
   }),
 
   http.post("/api/v1/auth/refresh", ({ request }) => {
     const refresh = readCookie(request, REFRESH_COOKIE);
-    if (!refresh) return HttpResponse.json({ code: "NO_REFRESH", message: "No refresh token" }, { status: 401 });
+    if (!refresh)
+      return HttpResponse.json(
+        { code: "NO_REFRESH", message: "No refresh token" },
+        { status: 401 },
+      );
     const userId = db.refreshTokens.get(refresh);
-    if (!userId) return HttpResponse.json({ code: "INVALID_REFRESH", message: "Invalid refresh token" }, { status: 401 });
+    if (!userId)
+      return HttpResponse.json(
+        { code: "INVALID_REFRESH", message: "Invalid refresh token" },
+        { status: 401 },
+      );
     db.refreshTokens.delete(refresh);
     return authResponse(userId);
   }),
@@ -75,23 +100,33 @@ export const authHandlers = [
 
   http.get("/api/v1/auth/me", ({ request }) => {
     const user = findUserByToken(tokenFromAuthHeader(request.headers.get("authorization")));
-    if (!user) return HttpResponse.json({ code: "UNAUTHORIZED", message: "Not signed in" }, { status: 401 });
+    if (!user)
+      return HttpResponse.json({ code: "UNAUTHORIZED", message: "Not signed in" }, { status: 401 });
     return HttpResponse.json(user);
   }),
 
   http.post("/api/v1/auth/change-password", async ({ request }) => {
     const user = findUserByToken(tokenFromAuthHeader(request.headers.get("authorization")));
-    if (!user) return HttpResponse.json({ code: "UNAUTHORIZED", message: "Not signed in" }, { status: 401 });
+    if (!user)
+      return HttpResponse.json({ code: "UNAUTHORIZED", message: "Not signed in" }, { status: 401 });
     const body = (await request.json()) as { currentPassword?: string; newPassword?: string };
     if (db.passwords[user.email] !== body.currentPassword) {
       return HttpResponse.json(
-        { code: "BAD_PASSWORD", message: "Current password is incorrect", fieldErrors: { currentPassword: ["Incorrect"] } },
+        {
+          code: "BAD_PASSWORD",
+          message: "Current password is incorrect",
+          fieldErrors: { currentPassword: ["Incorrect"] },
+        },
         { status: 422 },
       );
     }
     if (!body.newPassword || body.newPassword.length < 8) {
       return HttpResponse.json(
-        { code: "WEAK_PASSWORD", message: "Password too short", fieldErrors: { newPassword: ["At least 8 characters"] } },
+        {
+          code: "WEAK_PASSWORD",
+          message: "Password too short",
+          fieldErrors: { newPassword: ["At least 8 characters"] },
+        },
         { status: 422 },
       );
     }

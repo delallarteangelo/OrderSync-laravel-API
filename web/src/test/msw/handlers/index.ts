@@ -7,6 +7,7 @@ import { messagesHandlers } from "./messages";
 import { usersHandlers } from "./users";
 import { settingsHandlers } from "./settings";
 import { reportsHandlers } from "./reports";
+import { platformHandlers } from "./platform";
 
 export const nonAuthHandlers = [
   ...healthHandlers,
@@ -18,6 +19,7 @@ export const nonAuthHandlers = [
   ...usersHandlers,
   ...settingsHandlers,
   ...reportsHandlers,
+  ...platformHandlers,
 ];
 
 export const handlers = [...authHandlers, ...nonAuthHandlers];

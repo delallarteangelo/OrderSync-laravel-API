@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Enums\BusinessStatus;
 use App\Enums\Role;
 use App\Models\AccessToken;
 use App\Models\Business;
@@ -175,5 +176,9 @@ class TenantIsolationTest extends TestCase
         $this->assertFalse(Gate::forUser($outsider)->allows('view', $businessA));
         $this->assertFalse(Gate::forUser($owner)->allows('view', $businessB));
         $this->assertFalse(Gate::forUser($owner)->allows('delete', $businessA));
+
+        $businessA->update(['status' => BusinessStatus::Suspended]);
+        $this->assertFalse(Gate::forUser($owner)->allows('view', $businessA));
+        $this->assertFalse(Gate::forUser($owner)->allows('update', $businessA));
     }
 }

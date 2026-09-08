@@ -7,20 +7,22 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Label } from "@/shared/components/ui/label";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/shared/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { useSettings, useUpdateSettings } from "@/shared/hooks/useApi";
 import { isApiError } from "@/shared/api/errors";
 import type { BusinessSettings } from "@/shared/types/settings";
+import { useQuery } from "@tanstack/react-query";
+import { getTenantSubscription } from "@/shared/api/platform";
+import { Badge } from "@/shared/components/ui/badge";
 
 export function BusinessSettingsPage() {
   const settingsQ = useSettings();
   const updateM = useUpdateSettings();
   const [draft, setDraft] = React.useState<BusinessSettings | null>(null);
+  const subscriptionQ = useQuery({
+    queryKey: ["tenant", "subscription"],
+    queryFn: getTenantSubscription,
+  });
 
   React.useEffect(() => {
     if (settingsQ.data && !draft) setDraft(settingsQ.data);
@@ -62,6 +64,7 @@ export function BusinessSettingsPage() {
           <TabsTrigger value="tax">Tax &amp; currency</TabsTrigger>
           <TabsTrigger value="receipt">Receipt</TabsTrigger>
           <TabsTrigger value="inventory">Inventory defaults</TabsTrigger>
+          <TabsTrigger value="subscription">Subscription</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -74,7 +77,11 @@ export function BusinessSettingsPage() {
                 <Input value={draft.phone} onChange={(e) => set("phone", e.target.value)} />
               </Field>
               <Field label="Email">
-                <Input type="email" value={draft.email} onChange={(e) => set("email", e.target.value)} />
+                <Input
+                  type="email"
+                  value={draft.email}
+                  onChange={(e) => set("email", e.target.value)}
+                />
               </Field>
               <Field label="Address" className="md:col-span-2">
                 <Textarea
@@ -142,6 +149,56 @@ export function BusinessSettingsPage() {
                   onChange={(e) => set("lowStockDefault", Number(e.target.value))}
                 />
               </Field>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="subscription">
+          <Card>
+            <CardContent className="space-y-4 p-6">
+              {subscriptionQ.isLoading ? (
+                <p className="text-sm text-muted-foreground">Loading subscription…</p>
+              ) : subscriptionQ.data?.subscription ? (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Current plan</p>
+                      <p className="text-xl font-semibold">
+                        {subscriptionQ.data.subscription.plan.name}
+                      </p>
+                    </div>
+                    <Badge>{subscriptionQ.data.subscription.effectiveStatus}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Current period ends{" "}
+                    {new Intl.DateTimeFormat("en-PH", { dateStyle: "long" }).format(
+                      new Date(subscriptionQ.data.subscription.currentPeriodEnd),
+                    )}
+                    .
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {Object.entries(subscriptionQ.data.subscription.plan.entitlements).map(
+                      ([key, value]) => (
+                        <div
+                          key={key}
+                          className="flex justify-between rounded-md border px-3 py-2 text-sm"
+                        >
+                          <span>{key.replaceAll("_", " ")}</span>
+                          <strong>
+                            {typeof value === "boolean"
+                              ? value
+                                ? "Included"
+                                : "Not included"
+                              : value}
+                          </strong>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">No subscription has been assigned.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -6,6 +6,7 @@ import { RequireAuth } from "@/app/router/RequireAuth";
 import { RequireRole } from "@/app/router/RequireRole";
 
 import { LoginPage } from "@/features/auth/pages/LoginPage";
+import { BusinessRegistrationPage } from "@/features/auth/pages/BusinessRegistrationPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { ProductListPage } from "@/features/catalog/pages/ProductListPage";
 import { ProductFormPage } from "@/features/catalog/pages/ProductFormPage";
@@ -51,6 +52,14 @@ export const router = createBrowserRouter([
             <PlatformHomePage />
           </RequireRole>
         </RequireAuth>
+      </Wrap>
+    ),
+  },
+  {
+    path: "/register-business",
+    element: (
+      <Wrap>
+        <BusinessRegistrationPage />
       </Wrap>
     ),
   },

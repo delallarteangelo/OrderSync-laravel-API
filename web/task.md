@@ -8,6 +8,7 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 
 - [x] 2026-09-07 — Phase 1 engineering foundation verified: typed environment flags, clean typecheck/tests/build, PostgreSQL-backed Laravel health contract, and CI baseline. See [`../docs/BUILD_STATUS.md`](../docs/BUILD_STATUS.md).
 - [x] 2026-09-08 — Phase 2 tenant/auth boundary verified: real Laravel login/refresh/logout, complete role vocabulary, business-bound session context, guarded workspace/platform navigation, multi-business selection, and role tests. Later business APIs remain mocked. See [`../docs/AUTH_TENANCY.md`](../docs/AUTH_TENANCY.md).
+- [x] 2026-09-08 — Phase 3 SaaS administration verified: business application/approval, suspension/reactivation, plan entitlements, subscription lifecycle, internal billing, platform metrics, account activation, and owner subscription visibility use real Laravel APIs. See [`../docs/SAAS_ADMINISTRATION.md`](../docs/SAAS_ADMINISTRATION.md).
 
 ## Legend
 
@@ -63,7 +64,7 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 - [ ] Create `src/features/dashboard/pages/DashboardPage.tsx`
 - [ ] Build `KpiCard` shared component (label, value, delta, icon)
 - [ ] Implement tenant dashboard metrics: sales, revenue, open orders, low stock, best sellers, slow movers, inventory, and customer trends
-- [ ] Implement Super Admin metrics: registered businesses, active subscriptions, platform revenue/transactions, users, and system health
+- [x] Implement Super Admin metrics: registered businesses, active subscriptions, platform revenue/transactions, users, and system health
 - [ ] Build a 7-day sales line chart with Recharts
 - [ ] Build a recent-orders table (links to order detail)
 - [ ] Build a low-stock alerts panel for authorized business users
@@ -178,13 +179,13 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 
 ## Phase 11 — Super Admin, business accounts & subscriptions
 
-- [ ] Build Super Admin dashboard for businesses, subscriptions, platform revenue/transactions, users, and system health
-- [ ] Create business registration review, approval, suspension, reactivation, and business-information screens
-- [ ] Create configurable Basic, Standard, and Premium plan management with feature/usage entitlements
-- [ ] Build subscription activation, renewal monitoring, grace-period, suspension, and reactivation workflows
-- [ ] Build billing history and subscription reports
+- [x] Build Super Admin dashboard for businesses, subscriptions, platform revenue/transactions, users, and system health
+- [x] Create business registration review, approval, suspension, reactivation, and business-information screens
+- [x] Create configurable Basic, Standard, and Premium plan management with feature/usage entitlements
+- [x] Build subscription activation, renewal monitoring, grace-period, suspension, and reactivation workflows
+- [x] Build billing history and subscription reports
 - [ ] Add Super Admin user management: owners, password resets, suspension, activity viewer, and role management
-- [ ] Audit every platform administration and subscription change
+- [x] Audit every platform administration and subscription change
 - [ ] E2E: approve a business, activate a plan, suspend access, then reactivate without data loss
 
 ---

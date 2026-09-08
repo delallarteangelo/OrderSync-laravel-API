@@ -2,6 +2,16 @@ import type { User } from "@/shared/types/auth";
 
 export const mockUsers: User[] = [
   {
+    id: "u-super-1",
+    email: "superadmin@ordersync.local",
+    fullName: "OrderSync Super Admin",
+    role: "SUPER_ADMIN",
+    isActive: true,
+    createdAt: "2024-01-01T08:00:00.000Z",
+    business: null,
+    memberships: [],
+  },
+  {
     id: "u-admin-1",
     email: "tonette@minimart.ph",
     fullName: "Tonette Reyes",
@@ -71,5 +81,6 @@ export const mockUsers: User[] = [
   },
 ];
 
-export const adminUser = mockUsers[0];
-export const cashierUser = mockUsers[1];
+export const superAdminUser = mockUsers[0];
+export const adminUser = mockUsers[1];
+export const cashierUser = mockUsers[2];

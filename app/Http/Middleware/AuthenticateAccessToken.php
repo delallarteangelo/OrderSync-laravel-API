@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\BusinessStatus;
 use App\Enums\Role;
 use App\Models\AccessToken;
 use App\Models\Membership;
@@ -43,7 +44,7 @@ class AuthenticateAccessToken
                 ->where('is_active', true)
                 ->first();
 
-            if (! $membership) {
+            if (! $membership || $accessToken->business?->status !== BusinessStatus::Active) {
                 return $this->unauthorized();
             }
 

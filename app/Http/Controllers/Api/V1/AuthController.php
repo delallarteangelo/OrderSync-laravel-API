@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\BusinessStatus;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\AccessToken;
@@ -52,6 +53,7 @@ class AuthController extends Controller
             $memberships = $user->memberships()
                 ->with('business')
                 ->where('is_active', true)
+                ->whereHas('business', fn ($query) => $query->where('status', BusinessStatus::Active->value))
                 ->get();
 
             if (array_key_exists('businessId', $validated) && $validated['businessId'] !== null) {
@@ -141,6 +143,7 @@ class AuthController extends Controller
         $memberships = $request->user()->memberships()
             ->with('business')
             ->where('is_active', true)
+            ->whereHas('business', fn ($query) => $query->where('status', BusinessStatus::Active->value))
             ->get();
 
         return response()->json(['businesses' => $this->membershipSummaries($memberships)]);
@@ -154,6 +157,7 @@ class AuthController extends Controller
             ->with('business')
             ->where('business_id', $validated['businessId'])
             ->where('is_active', true)
+            ->whereHas('business', fn ($query) => $query->where('status', BusinessStatus::Active->value))
             ->first();
 
         if (! $membership) {
@@ -250,7 +254,11 @@ class AuthController extends Controller
      */
     private function userPayload(User $user, ?Membership $membership): array
     {
-        $memberships = $user->memberships()->with('business')->where('is_active', true)->get();
+        $memberships = $user->memberships()
+            ->with('business')
+            ->where('is_active', true)
+            ->whereHas('business', fn ($query) => $query->where('status', BusinessStatus::Active->value))
+            ->get();
         $role = $membership?->role ?? $user->platform_role;
 
         return [
