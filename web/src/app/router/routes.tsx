@@ -25,6 +25,9 @@ import { UserFormPage } from "@/features/users/pages/UserFormPage";
 import { BusinessSettingsPage } from "@/features/settings/pages/BusinessSettingsPage";
 import { NotFoundPage } from "@/features/misc/NotFoundPage";
 import { ForbiddenPage } from "@/features/misc/ForbiddenPage";
+import { PlatformHomePage } from "@/features/platform/pages/PlatformHomePage";
+
+const businessWorkspaceRoles = ["BUSINESS_OWNER", "STAFF", "CASHIER"] as const;
 
 function Wrap({ children }: { children: React.ReactNode }) {
   return <AuthProvider>{children}</AuthProvider>;
@@ -40,11 +43,35 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/platform",
+    element: (
+      <Wrap>
+        <RequireAuth>
+          <RequireRole allow="SUPER_ADMIN">
+            <PlatformHomePage />
+          </RequireRole>
+        </RequireAuth>
+      </Wrap>
+    ),
+  },
+  {
+    path: "/403",
+    element: (
+      <Wrap>
+        <RequireAuth>
+          <ForbiddenPage />
+        </RequireAuth>
+      </Wrap>
+    ),
+  },
+  {
     path: "/pos",
     element: (
       <Wrap>
         <RequireAuth>
-          <PosPage />
+          <RequireRole allow={[...businessWorkspaceRoles]}>
+            <PosPage />
+          </RequireRole>
         </RequireAuth>
       </Wrap>
     ),
@@ -54,7 +81,9 @@ export const router = createBrowserRouter([
     element: (
       <Wrap>
         <RequireAuth>
-          <AppShell />
+          <RequireRole allow={[...businessWorkspaceRoles]}>
+            <AppShell />
+          </RequireRole>
         </RequireAuth>
       </Wrap>
     ),
@@ -76,7 +105,7 @@ export const router = createBrowserRouter([
       {
         path: "catalog",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <ProductListPage />
           </RequireRole>
         ),
@@ -84,7 +113,7 @@ export const router = createBrowserRouter([
       {
         path: "catalog/new",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <ProductFormPage />
           </RequireRole>
         ),
@@ -92,7 +121,7 @@ export const router = createBrowserRouter([
       {
         path: "catalog/:id/edit",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <ProductFormPage />
           </RequireRole>
         ),
@@ -100,7 +129,7 @@ export const router = createBrowserRouter([
       {
         path: "categories",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <CategoryListPage />
           </RequireRole>
         ),
@@ -108,7 +137,7 @@ export const router = createBrowserRouter([
       {
         path: "reports",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <Navigate to="/reports/sales" replace />
           </RequireRole>
         ),
@@ -116,7 +145,7 @@ export const router = createBrowserRouter([
       {
         path: "reports/sales",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <SalesReportPage />
           </RequireRole>
         ),
@@ -124,7 +153,7 @@ export const router = createBrowserRouter([
       {
         path: "reports/orders",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <OrdersReportPage />
           </RequireRole>
         ),
@@ -132,7 +161,7 @@ export const router = createBrowserRouter([
       {
         path: "reports/inventory",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <InventoryReportPage />
           </RequireRole>
         ),
@@ -140,7 +169,7 @@ export const router = createBrowserRouter([
       {
         path: "users",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <UserListPage />
           </RequireRole>
         ),
@@ -148,7 +177,7 @@ export const router = createBrowserRouter([
       {
         path: "users/new",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <UserFormPage />
           </RequireRole>
         ),
@@ -156,7 +185,7 @@ export const router = createBrowserRouter([
       {
         path: "users/:id/edit",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <UserFormPage />
           </RequireRole>
         ),
@@ -164,13 +193,12 @@ export const router = createBrowserRouter([
       {
         path: "settings",
         element: (
-          <RequireRole allow="ADMIN">
+          <RequireRole allow="BUSINESS_OWNER">
             <BusinessSettingsPage />
           </RequireRole>
         ),
       },
 
-      { path: "403", element: <ForbiddenPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

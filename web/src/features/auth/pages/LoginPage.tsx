@@ -9,6 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuthStore } from "@/app/stores/authStore";
 import { login as apiLogin } from "@/shared/api/auth";
 import { isApiError } from "@/shared/api/errors";
+import { flags } from "@/shared/config/env";
+import type { BusinessMembership } from "@/shared/types/auth";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -18,6 +20,7 @@ import { Separator } from "@/shared/components/ui/separator";
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
+  businessId: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -27,21 +30,39 @@ export function LoginPage() {
   const user = useAuthStore((s) => s.user);
   const bootstrapped = useAuthStore((s) => s.bootstrapped);
   const setSession = useAuthStore((s) => s.setSession);
+  const [businessChoices, setBusinessChoices] = React.useState<BusinessMembership[]>([]);
   const from = (location.state as { from?: string } | null)?.from ?? "/dashboard";
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "tonette@minimart.ph", password: "password" },
+    defaultValues: {
+      email: flags.useMockAuth ? "tonette@minimart.ph" : "",
+      password: flags.useMockAuth ? "password" : "",
+      businessId: undefined,
+    },
   });
 
   const loginMutation = useMutation({
-    mutationFn: apiLogin,
+    mutationFn: (values: FormValues) =>
+      apiLogin({
+        email: values.email,
+        password: values.password,
+        businessId: values.businessId ? Number(values.businessId) : undefined,
+      }),
     onSuccess: (res) => {
       setSession({ accessToken: res.accessToken, user: res.user });
       toast.success(`Welcome, ${res.user.fullName}`);
-      navigate(from, { replace: true });
+      navigate(res.user.role === "SUPER_ADMIN" ? "/platform" : from, { replace: true });
     },
     onError: (err) => {
+      if (isApiError(err) && err.code === "BUSINESS_SELECTION_REQUIRED") {
+        const details = err.details as { businesses?: BusinessMembership[] } | undefined;
+        const choices = details?.businesses ?? [];
+        setBusinessChoices(choices);
+        if (choices[0]) form.setValue("businessId", choices[0].businessId);
+        toast.info("Select a business to continue.");
+        return;
+      }
       if (isApiError(err) && err.fieldErrors) {
         for (const [key, msgs] of Object.entries(err.fieldErrors)) {
           form.setError(key as keyof FormValues, { message: msgs[0] });
@@ -68,8 +89,8 @@ export function LoginPage() {
             <Store className="h-6 w-6" />
           </div>
           <div>
-            <p className="text-lg font-semibold">Tonette's Minimart</p>
-            <p className="text-xs opacity-80">POS & Admin Console</p>
+            <p className="text-lg font-semibold">OrderSync</p>
+            <p className="text-xs opacity-80">Business operations platform</p>
           </div>
         </div>
         <div className="space-y-4">
@@ -123,6 +144,22 @@ export function LoginPage() {
                 <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
               )}
             </div>
+            {businessChoices.length > 0 && (
+              <div className="space-y-1.5">
+                <Label htmlFor="businessId">Business</Label>
+                <select
+                  id="businessId"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  {...form.register("businessId")}
+                >
+                  {businessChoices.map((membership) => (
+                    <option key={membership.businessId} value={membership.businessId}>
+                      {membership.businessName} — {membership.role.replaceAll("_", " ")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" autoComplete="current-password" {...form.register("password")} />
@@ -147,23 +184,27 @@ export function LoginPage() {
               {loginMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
             </Button>
           </form>
-          <div className="relative">
-            <Separator />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-              Quick demo access
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" type="button" disabled={loginMutation.isPending} onClick={() => quickLogin("tonette@minimart.ph")}>
-              Continue as Admin
-            </Button>
-            <Button variant="outline" type="button" disabled={loginMutation.isPending} onClick={() => quickLogin("maria.cashier@minimart.ph")}>
-              Continue as Cashier
-            </Button>
-          </div>
-          <p className="text-center text-xs text-muted-foreground">
-            Demo backend (MSW). Password for seeded users: <code>password</code>.
-          </p>
+          {flags.useMockAuth && (
+            <>
+              <div className="relative">
+                <Separator />
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                  Quick demo access
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" type="button" disabled={loginMutation.isPending} onClick={() => quickLogin("tonette@minimart.ph")}>
+                  Continue as owner
+                </Button>
+                <Button variant="outline" type="button" disabled={loginMutation.isPending} onClick={() => quickLogin("maria.cashier@minimart.ph")}>
+                  Continue as cashier
+                </Button>
+              </div>
+              <p className="text-center text-xs text-muted-foreground">
+                Mock authentication is enabled for this development session.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

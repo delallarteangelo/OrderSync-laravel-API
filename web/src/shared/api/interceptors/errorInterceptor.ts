@@ -1,7 +1,7 @@
 import type { AxiosError, AxiosInstance } from "axios";
 import { ApiError, type FieldErrors } from "../errors";
 
-type ServerError = { code?: string; message?: string; fieldErrors?: FieldErrors };
+type ServerError = { code?: string; message?: string; fieldErrors?: FieldErrors; errors?: FieldErrors };
 
 export function attachErrorInterceptor(http: AxiosInstance) {
   http.interceptors.response.use(
@@ -12,7 +12,8 @@ export function attachErrorInterceptor(http: AxiosInstance) {
         throw new ApiError(body.message ?? error.message ?? "Request failed", {
           code: body.code ?? `HTTP_${error.response.status}`,
           status: error.response.status,
-          fieldErrors: body.fieldErrors,
+          fieldErrors: body.fieldErrors ?? body.errors,
+          details: body,
         });
       }
       if (error.code === "ECONNABORTED") {

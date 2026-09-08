@@ -9,6 +9,7 @@ This tracker covers the customer Android client within the OrderSync multi-tenan
 ## Repository delivery checkpoint
 
 - [x] 2026-09-07 — Phase 1 engineering foundation verified: dependencies resolve, formatting and analysis are clean, the boot widget test passes, and the shared CI baseline is present. See [`../docs/BUILD_STATUS.md`](../docs/BUILD_STATUS.md).
+- [x] 2026-09-08 — Phase 2 mobile auth integration verified: typed roles/session parsing, real customer login, business selection, rotating mobile refresh contract, profile identity, and server logout. Tokens remain memory-only pending approval of encrypted storage. See [`../docs/AUTH_TENANCY.md`](../docs/AUTH_TENANCY.md).
 
 ## Legend
 

@@ -24,9 +24,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   setSession: ({ accessToken, user }) => set({ accessToken, user }),
   clear: () => set({ accessToken: null, user: null }),
   markBootstrapped: () => set({ bootstrapped: true }),
-  signIn: (role) => set({ user: role === "ADMIN" ? adminUser : cashierUser, accessToken: "demo-token" }),
+  signIn: (role) =>
+    set({ user: role === "BUSINESS_OWNER" ? adminUser : cashierUser, accessToken: "demo-token" }),
   signOut: () => set({ user: null, accessToken: null }),
-  switchRole: (role) => set({ user: role === "ADMIN" ? adminUser : cashierUser }),
+  switchRole: (role) => set({ user: role === "BUSINESS_OWNER" ? adminUser : cashierUser }),
 }));
 
 export { mockUsers };

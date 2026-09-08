@@ -35,6 +35,8 @@ The local baseline uses two non-superuser login roles and separate databases:
 
 The Laragon cluster currently permits trusted loopback connections, so the local templates leave `DB_PASSWORD` empty. Hosted, shared, staging, production, and CI environments must use managed secrets and password authentication.
 
+Laravel forces PostgreSQL sessions to UTC with `DB_TIMEZONE=+00:00`; business-facing timezones remain explicit data, beginning with `Asia/Manila` for the pilot tenant.
+
 ## Laravel setup
 
 1. Copy `.env.example` to `.env` if `.env` does not already exist.
@@ -56,6 +58,20 @@ php artisan test
 
 If `.env.testing` already exists, preserve it instead of overwriting it. Never point `migrate:fresh` at `ordersync`, staging, or production.
 
+### Optional local Phase 2 identities
+
+To exercise authentication locally, set a unique local value of at least 12 characters in the untracked `.env` file, then seed:
+
+```dotenv
+ORDERSYNC_DEV_SEED_PASSWORD=choose-a-local-password
+```
+
+```powershell
+php artisan db:seed
+```
+
+This creates local-only owner, cashier, customer, and Super Admin identities under `@ordersync.local`. The seeder refuses to create these identities in production and does nothing when the password is missing or too short.
+
 ## React web setup
 
 ```powershell
@@ -69,6 +85,8 @@ npm run build
 
 MSW remains enabled by default for the existing prototype. Turning it off will not expose business APIs until later phases implement them in Laravel.
 
+Authentication bypasses MSW by default and is proxied to Laravel through `VITE_API_PROXY_TARGET`. Set `VITE_USE_MOCK_AUTH=true` only when deliberately running the legacy mock authentication tests or demo.
+
 ## Flutter setup
 
 ```powershell
@@ -80,6 +98,14 @@ flutter test
 ```
 
 Android release builds additionally require JDK 17. Firebase configuration and signing material are intentionally deferred and must never be committed.
+
+The Phase 2 Android login uses the real mobile auth contract. Override its development API URL when necessary:
+
+```powershell
+flutter run --dart-define=ORDERSYNC_API_BASE_URL=http://10.0.2.2/minigrocery/public/api/v1
+```
+
+The debug Android manifest permits local HTTP traffic for emulator development only. Release traffic retains Android's secure default and must use HTTPS. Phase 2 keeps tokens in memory; encrypted device persistence requires a separately approved dependency in a later client-hardening phase.
 
 ## Health contract
 

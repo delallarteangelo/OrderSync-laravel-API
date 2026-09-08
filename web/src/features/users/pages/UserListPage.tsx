@@ -61,7 +61,7 @@ export function UserListPage() {
         accessorKey: "role",
         header: "Role",
         cell: ({ row }) => (
-          <Badge variant={row.original.role === "ADMIN" ? "info" : "secondary"}>
+          <Badge variant={row.original.role === "BUSINESS_OWNER" ? "info" : "secondary"}>
             {row.original.role}
           </Badge>
         ),
@@ -172,7 +172,8 @@ export function UserListPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All roles</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="BUSINESS_OWNER">Business owner</SelectItem>
+                <SelectItem value="STAFF">Staff</SelectItem>
                 <SelectItem value="CASHIER">Cashier</SelectItem>
               </SelectContent>
             </Select>

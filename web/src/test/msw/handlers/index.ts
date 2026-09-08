@@ -8,8 +8,7 @@ import { usersHandlers } from "./users";
 import { settingsHandlers } from "./settings";
 import { reportsHandlers } from "./reports";
 
-export const handlers = [
-  ...authHandlers,
+export const nonAuthHandlers = [
   ...healthHandlers,
   ...catalogHandlers,
   ...inventoryHandlers,
@@ -20,3 +19,5 @@ export const handlers = [
   ...settingsHandlers,
   ...reportsHandlers,
 ];
+
+export const handlers = [...authHandlers, ...nonAuthHandlers];

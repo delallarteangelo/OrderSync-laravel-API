@@ -56,7 +56,7 @@ function initialsOf(name: string) {
 const pwSchema = z
   .object({
     currentPassword: z.string().min(1, "Required"),
-    newPassword: z.string().min(8, "At least 8 characters"),
+    newPassword: z.string().min(12, "At least 12 characters").regex(/[A-Za-z]/, "Include a letter").regex(/[0-9]/, "Include a number"),
     confirmPassword: z.string().min(1, "Required"),
   })
   .refine((v) => v.newPassword === v.confirmPassword, {
@@ -184,7 +184,7 @@ export function Topbar() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Change password</DialogTitle>
-            <DialogDescription>Pick a new password (8+ characters).</DialogDescription>
+            <DialogDescription>Use at least 12 characters, including a letter and number.</DialogDescription>
           </DialogHeader>
           <form
             id="pw-form"
@@ -201,7 +201,7 @@ export function Topbar() {
             </div>
             <div className="space-y-1">
               <Label>New password</Label>
-              <Input type="password" placeholder="At least 8 characters" {...pwForm.register("newPassword")} />
+              <Input type="password" placeholder="At least 12 characters" {...pwForm.register("newPassword")} />
               {pwForm.formState.errors.newPassword && (
                 <p className="text-xs text-destructive">{pwForm.formState.errors.newPassword.message}</p>
               )}

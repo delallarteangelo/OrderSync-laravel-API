@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { db, randomId, findUserByToken, tokenFromAuthHeader } from "../db";
 
-const REFRESH_COOKIE = "tm_refresh";
+const REFRESH_COOKIE = "ordersync_refresh";
 
 function issueSession(userId: string) {
   const accessToken = randomId("at");
@@ -47,7 +47,7 @@ export const authHandlers = [
     if (!user.isActive) {
       return HttpResponse.json({ code: "INACTIVE", message: "Account is disabled" }, { status: 403 });
     }
-    if (user.role !== "ADMIN" && user.role !== "CASHIER") {
+    if (!["BUSINESS_OWNER", "STAFF", "CASHIER"].includes(user.role)) {
       return HttpResponse.json({ code: "FORBIDDEN_ROLE", message: "This account cannot use the web console" }, { status: 403 });
     }
     return authResponse(user.id);

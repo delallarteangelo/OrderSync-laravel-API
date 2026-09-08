@@ -1,6 +1,7 @@
 // Design.md §5.22 — Profile tab
 import 'package:flutter/material.dart';
 
+import '../../core/auth/auth_session_store.dart';
 import '../../mock/mock_user.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_colors.dart';
@@ -12,6 +13,9 @@ class ProfileTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = AuthScope.of(context);
+    final authenticatedUser = auth.session?.user;
+
     return Scaffold(
       backgroundColor: AppColors.neutralSurface,
       body: SafeArea(
@@ -29,12 +33,12 @@ class ProfileTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    mockUser.name,
+                    authenticatedUser?.fullName ?? mockUser.name,
                     style: AppTypography.textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    mockUser.email,
+                    authenticatedUser?.email ?? mockUser.email,
                     style: AppTypography.textTheme.bodyMedium?.copyWith(
                       color: AppColors.neutralInkSecondary,
                     ),
@@ -79,15 +83,17 @@ class ProfileTab extends StatelessWidget {
             ),
             _tile(context, Icons.help_outline_rounded, 'Help & support', () {}),
             const SizedBox(height: 12),
-            _tile(
-              context,
-              Icons.logout_rounded,
-              'Sign out',
-              () => Navigator.of(
-                context,
-              ).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false),
-              isDestructive: true,
-            ),
+            _tile(context, Icons.logout_rounded, 'Sign out', () async {
+              try {
+                await auth.logout();
+              } finally {
+                if (context.mounted) {
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
+                }
+              }
+            }, isDestructive: true),
           ],
         ),
       ),

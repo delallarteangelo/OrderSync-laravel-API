@@ -2,27 +2,27 @@ import type { Role } from "@/shared/types/auth";
 import type { OrderStatus } from "@/shared/types/orders";
 
 export function isAdmin(role: Role | undefined): boolean {
-  return role === "ADMIN";
+  return role === "SUPER_ADMIN" || role === "BUSINESS_OWNER";
 }
 
 export function canEditCatalog(role: Role | undefined): boolean {
-  return role === "ADMIN";
+  return role === "BUSINESS_OWNER";
 }
 
 export function canManageUsers(role: Role | undefined): boolean {
-  return role === "ADMIN";
+  return role === "BUSINESS_OWNER";
 }
 
 export function canManageSettings(role: Role | undefined): boolean {
-  return role === "ADMIN";
+  return role === "BUSINESS_OWNER";
 }
 
 export function canViewReports(role: Role | undefined): boolean {
-  return role === "ADMIN";
+  return role === "BUSINESS_OWNER";
 }
 
 export function canApplyLineDiscount(role: Role | undefined): boolean {
-  return role === "ADMIN";
+  return role === "BUSINESS_OWNER";
 }
 
 // Order transition matrix — what each role may set from each status.
@@ -50,5 +50,7 @@ export function allowedTransitions(
     REJECTED: [],
     CANCELLED: [],
   };
-  return role === "ADMIN" ? base[status] : cashierMask[status];
+  if (role === "BUSINESS_OWNER") return base[status];
+  if (role === "STAFF" || role === "CASHIER") return cashierMask[status];
+  return [];
 }

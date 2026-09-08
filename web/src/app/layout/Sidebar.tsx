@@ -20,6 +20,7 @@ import {
 import { cn } from "@/shared/lib/cn";
 import { useUiStore } from "@/app/stores/uiStore";
 import { useRole } from "@/shared/hooks/useRole";
+import { useAuthStore } from "@/app/stores/authStore";
 import { Button } from "@/shared/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
 
@@ -65,7 +66,8 @@ const groups: NavGroup[] = [
 export function Sidebar() {
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggle = useUiStore((s) => s.toggleSidebar);
-  const { isAdmin } = useRole();
+  const { canManageBusiness } = useRole();
+  const businessName = useAuthStore((s) => s.user?.business?.name ?? "OrderSync");
 
   return (
     <aside
@@ -80,14 +82,16 @@ export function Sidebar() {
         </div>
         {!collapsed && (
           <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-semibold">Tonette's Minimart</p>
+            <p className="truncate text-sm font-semibold">
+              {businessName}
+            </p>
             <p className="truncate text-xs text-muted-foreground">POS & Admin</p>
           </div>
         )}
       </div>
       <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-4">
         {groups.map((group) => {
-          const visible = group.items.filter((i) => (i.adminOnly ? isAdmin : true));
+          const visible = group.items.filter((i) => (i.adminOnly ? canManageBusiness : true));
           if (visible.length === 0) return null;
           return (
             <div key={group.heading} className="space-y-1">

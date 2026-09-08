@@ -7,6 +7,7 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 ## Repository delivery checkpoint
 
 - [x] 2026-09-07 — Phase 1 engineering foundation verified: typed environment flags, clean typecheck/tests/build, PostgreSQL-backed Laravel health contract, and CI baseline. See [`../docs/BUILD_STATUS.md`](../docs/BUILD_STATUS.md).
+- [x] 2026-09-08 — Phase 2 tenant/auth boundary verified: real Laravel login/refresh/logout, complete role vocabulary, business-bound session context, guarded workspace/platform navigation, multi-business selection, and role tests. Later business APIs remain mocked. See [`../docs/AUTH_TENANCY.md`](../docs/AUTH_TENANCY.md).
 
 ## Legend
 
@@ -39,21 +40,21 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 ## Phase 2 — Authentication, tenancy & role-based access
 
 - [ ] Create `src/shared/types/auth.ts` with `User`, `BusinessMembership`, `Role`, and `AuthSession` zod schemas for `SUPER_ADMIN`, `BUSINESS_OWNER`, `STAFF`/`CASHIER`, and `CUSTOMER`
-- [ ] Create `src/shared/api/axios.ts` (base instance with `withCredentials: true`, timeout, env-driven baseURL)
-- [ ] Create `src/shared/api/auth.ts` with `login`, `logout`, `me`, `refresh`
-- [ ] Implement `src/shared/api/interceptors/authInterceptor.ts` (attach bearer from `AuthStore`)
-- [ ] Implement `src/shared/api/interceptors/refreshInterceptor.ts` with a single-flight mutex and request queue
-- [ ] Implement `src/shared/api/interceptors/errorInterceptor.ts` normalizing to `ApiError`
-- [ ] Create `src/app/providers/AuthProvider.tsx` (Zustand store: `accessToken`, `user`, `bootstrap()`, `setSession()`, `clear()`)
-- [ ] Bootstrap session on cold load via `POST /auth/refresh` (cookie-driven)
-- [ ] Create `src/app/router/RequireAuth.tsx` and `RequireRole.tsx`
-- [ ] Create `src/shared/hooks/useRole.ts`
+- [x] Create `src/shared/api/axios.ts` (base instance with `withCredentials: true`, timeout, env-driven baseURL)
+- [x] Create `src/shared/api/auth.ts` with `login`, `logout`, `me`, `refresh`
+- [x] Implement `src/shared/api/interceptors/authInterceptor.ts` (attach bearer from `AuthStore`)
+- [x] Implement `src/shared/api/interceptors/refreshInterceptor.ts` with a single-flight mutex and request queue
+- [x] Implement `src/shared/api/interceptors/errorInterceptor.ts` normalizing to `ApiError`
+- [x] Create `src/app/providers/AuthProvider.tsx` (Zustand store: `accessToken`, `user`, `bootstrap()`, `setSession()`, `clear()`)
+- [x] Bootstrap session on cold load via `POST /auth/refresh` (cookie-driven)
+- [x] Create `src/app/router/RequireAuth.tsx` and `RequireRole.tsx`
+- [x] Create `src/shared/hooks/useRole.ts`
 - [ ] Create tenant-context and subscription-entitlement guards; include `businessId` in every tenant query key and request
-- [ ] Build `src/features/auth/pages/LoginPage.tsx` (react-hook-form + zod, server error mapping)
+- [x] Build `src/features/auth/pages/LoginPage.tsx` (react-hook-form + zod, server error mapping)
 - [ ] Route each role to its authorized platform, business, or storefront experience and deny cross-tenant access
-- [ ] Implement logout (`POST /auth/logout`, clear store, navigate to `/login`)
+- [x] Implement logout (`POST /auth/logout`, clear store, navigate to `/login`)
 - [ ] Add idle-timeout hook (default 30 minutes, configurable via settings)
-- [ ] Unit test the refresh mutex behavior (only one refresh fires under N parallel 401s)
+- [x] Unit test the refresh mutex behavior (only one refresh fires under N parallel 401s)
 
 ---
 

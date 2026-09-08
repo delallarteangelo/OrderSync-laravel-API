@@ -34,6 +34,7 @@ jobs:
       DB_DATABASE: ordersync_test
       DB_USERNAME: ordersync_test
       DB_PASSWORD: postgres
+      DB_TIMEZONE: "+00:00"
       CACHE_STORE: array
       QUEUE_CONNECTION: sync
       SESSION_DRIVER: array

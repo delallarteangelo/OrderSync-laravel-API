@@ -3,6 +3,9 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Http\Middleware\AuthenticateAccessToken;
+use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\ResolveTenant;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,7 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'auth.access' => AuthenticateAccessToken::class,
+            'role' => EnsureRole::class,
+            'tenant' => ResolveTenant::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

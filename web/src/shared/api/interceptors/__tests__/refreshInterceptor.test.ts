@@ -26,7 +26,16 @@ describe("refresh interceptor", () => {
         return HttpResponse.json({
           accessToken: "fresh",
           accessExpiresAt: new Date().toISOString(),
-          user: { id: "u-1", email: "a@b", fullName: "A", role: "ADMIN", isActive: true, createdAt: "" },
+          user: {
+            id: "u-1",
+            email: "a@b",
+            fullName: "A",
+            role: "BUSINESS_OWNER",
+            isActive: true,
+            createdAt: "",
+            business: { id: "b-1", name: "Business", slug: "business" },
+            memberships: [],
+          },
         });
       }),
       http.get("/api/v1/parallel", ({ request }) => {

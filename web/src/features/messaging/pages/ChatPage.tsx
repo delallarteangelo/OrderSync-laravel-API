@@ -92,7 +92,7 @@ export function ChatPage() {
       threadId: activeId,
       senderId: user.id,
       senderName: user.fullName,
-      senderRole: user.role,
+      senderRole: user.role === "SUPER_ADMIN" ? "STAFF" : user.role,
       body: draft.trim(),
       sentAt: new Date().toISOString(),
       status: "sending",

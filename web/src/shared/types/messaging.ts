@@ -15,7 +15,7 @@ export type Message = {
   threadId: string;
   senderId: string;
   senderName: string;
-  senderRole: "CUSTOMER" | "ADMIN" | "CASHIER" | "SYSTEM";
+  senderRole: "CUSTOMER" | "BUSINESS_OWNER" | "STAFF" | "CASHIER" | "SYSTEM";
   body: string;
   sentAt: string;
   status?: "sending" | "sent" | "read";

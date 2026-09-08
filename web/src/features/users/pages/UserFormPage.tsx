@@ -28,12 +28,11 @@ import { Label } from "@/shared/components/ui/label";
 import { useCreateUser, useUpdateUser, useUser } from "@/shared/hooks/useApi";
 import { isApiError, type FieldErrors } from "@/shared/api/errors";
 import { useAuthStore } from "@/app/stores/authStore";
-import type { Role } from "@/shared/types/auth";
 
 const schema = z.object({
   fullName: z.string().min(2, "Required"),
   email: z.string().email("Invalid email"),
-  role: z.enum(["ADMIN", "CASHIER"]),
+  role: z.enum(["BUSINESS_OWNER", "STAFF", "CASHIER"]),
   isActive: z.boolean(),
 });
 
@@ -54,7 +53,7 @@ export function UserFormPage() {
       form.reset({
         fullName: existing.fullName,
         email: existing.email,
-        role: existing.role,
+        role: existing.role as FormValues["role"],
         isActive: existing.isActive,
       });
     }
@@ -67,10 +66,10 @@ export function UserFormPage() {
       ? {
           fullName: existing.fullName,
           email: existing.email,
-          role: existing.role,
+          role: existing.role as FormValues["role"],
           isActive: existing.isActive,
         }
-      : { fullName: "", email: "", role: "CASHIER" as Role, isActive: true },
+      : { fullName: "", email: "", role: "CASHIER" as const, isActive: true },
   });
 
   const submit = form.handleSubmit((values) => {
@@ -99,7 +98,7 @@ export function UserFormPage() {
     <>
       <PageHeader
         title={existing ? `Edit ${existing.fullName}` : "New user"}
-        description={existing ? "Update user details and access." : "Add a new admin or cashier."}
+        description={existing ? "Update user details and access." : "Add a new staff member or cashier."}
         breadcrumbs={
           <nav className="text-xs text-muted-foreground">
             <a href="/users" className="hover:underline">Users</a>
@@ -151,7 +150,10 @@ export function UserFormPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        {existing?.role === "BUSINESS_OWNER" && (
+                          <SelectItem value="BUSINESS_OWNER">Business owner</SelectItem>
+                        )}
+                        <SelectItem value="STAFF">Staff</SelectItem>
                         <SelectItem value="CASHIER">Cashier</SelectItem>
                       </SelectContent>
                     </Select>

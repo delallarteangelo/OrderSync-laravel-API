@@ -4,7 +4,7 @@ import type { User } from "@/shared/types/auth";
 
 function requireAdmin(request: Request) {
   const u = findUserByToken(tokenFromAuthHeader(request.headers.get("authorization")));
-  return u && u.role === "ADMIN" ? u : null;
+  return u && u.role === "BUSINESS_OWNER" ? u : null;
 }
 
 export const usersHandlers = [
@@ -39,6 +39,8 @@ export const usersHandlers = [
       isActive: body.isActive ?? true,
       createdAt: new Date().toISOString(),
       avatarUrl: body.avatarUrl,
+      business: requireAdmin(request)?.business ?? null,
+      memberships: requireAdmin(request)?.memberships ?? [],
     };
     db.users = [...db.users, user];
     db.passwords[user.email] = body.password ?? "password";
@@ -52,7 +54,7 @@ export const usersHandlers = [
     const idx = db.users.findIndex((u) => u.id === params.id);
     if (idx === -1) return HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 });
     // Cannot demote self
-    if (db.users[idx].id === me.id && body.role && body.role !== "ADMIN") {
+    if (db.users[idx].id === me.id && body.role && body.role !== "BUSINESS_OWNER") {
       return HttpResponse.json({ code: "SELF_DEMOTE", message: "You cannot change your own role" }, { status: 403 });
     }
     db.users[idx] = { ...db.users[idx], ...body };

@@ -1,7 +1,7 @@
 import { http } from "./axios";
-import type { User } from "@/shared/types/auth";
+import type { BusinessMembership, User } from "@/shared/types/auth";
 
-export type LoginPayload = { email: string; password: string };
+export type LoginPayload = { email: string; password: string; businessId?: number };
 export type AuthResponse = { accessToken: string; accessExpiresAt: string; user: User };
 
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
@@ -20,6 +20,16 @@ export async function refresh(): Promise<AuthResponse> {
 
 export async function me(): Promise<User> {
   const { data } = await http.get<User>("/auth/me");
+  return data;
+}
+
+export async function listBusinesses(): Promise<BusinessMembership[]> {
+  const { data } = await http.get<{ businesses: BusinessMembership[] }>("/auth/businesses");
+  return data.businesses;
+}
+
+export async function switchBusiness(businessId: number): Promise<AuthResponse> {
+  const { data } = await http.post<AuthResponse>("/auth/switch-business", { businessId });
   return data;
 }
 

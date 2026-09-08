@@ -8,7 +8,7 @@ function requireUser(request: Request) {
 
 function requireAdmin(request: Request) {
   const u = requireUser(request);
-  return u && u.role === "ADMIN" ? u : null;
+  return u && u.role === "BUSINESS_OWNER" ? u : null;
 }
 
 export const catalogHandlers = [

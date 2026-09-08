@@ -58,6 +58,7 @@ All tenant-owned records must include a business identifier and be protected by 
 ## Development Documentation
 
 - [Local development setup](docs/SETUP.md)
+- [Authentication and tenant boundary](docs/AUTH_TENANCY.md)
 - [Current build status](docs/BUILD_STATUS.md)
 - [Web system overview](web/README.md)
 - [Web implementation plan](web/implementation_plan.md)

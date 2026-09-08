@@ -18,7 +18,7 @@ describe("users api (admin only)", () => {
   it("admin cannot demote self", async () => {
     const data = await loginAsAdmin();
     await expect(
-      updateUser(data.user.id, { role: "CASHIER" }),
+      updateUser(data.user.id, { role: "STAFF" }),
     ).rejects.toSatisfy((e: unknown) => isApiError(e) && e.code === "SELF_DEMOTE");
   });
 

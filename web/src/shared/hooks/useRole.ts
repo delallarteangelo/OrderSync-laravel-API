@@ -4,7 +4,12 @@ export function useRole() {
   const role = useAuthStore((s) => s.user?.role);
   return {
     role,
-    isAdmin: role === "ADMIN",
+    isSuperAdmin: role === "SUPER_ADMIN",
+    isBusinessOwner: role === "BUSINESS_OWNER",
+    canManageBusiness: role === "BUSINESS_OWNER",
+    isAdmin: role === "BUSINESS_OWNER",
+    isStaff: role === "STAFF",
     isCashier: role === "CASHIER",
+    isCustomer: role === "CUSTOMER",
   };
 }

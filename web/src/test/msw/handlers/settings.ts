@@ -4,7 +4,7 @@ import type { BusinessSettings } from "@/shared/types/settings";
 
 function requireAdmin(request: Request) {
   const u = findUserByToken(tokenFromAuthHeader(request.headers.get("authorization")));
-  return u && u.role === "ADMIN" ? u : null;
+  return u && u.role === "BUSINESS_OWNER" ? u : null;
 }
 
 export const settingsHandlers = [
