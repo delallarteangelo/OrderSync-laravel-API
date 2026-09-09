@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Building2, CreditCard, LogOut, ShieldCheck, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/app/stores/authStore";
@@ -459,9 +460,14 @@ export function PlatformHomePage() {
               <p className="text-sm text-muted-foreground">Signed in as {user?.fullName}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={() => void signOut()}>
-            <LogOut className="mr-2 h-4 w-4" /> Sign out
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link to="/platform/payments">Review payment proofs</Link>
+            </Button>
+            <Button variant="outline" onClick={() => void signOut()}>
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
+            </Button>
+          </div>
         </header>
 
         {dashboard.isLoading ? (

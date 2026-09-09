@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'dart:typed_data';
 
 import '../auth/auth_models.dart';
 import '../../mock/models.dart';
@@ -12,6 +13,8 @@ class StorefrontStore extends ChangeNotifier {
   final AuthSession? Function() _sessionProvider;
   StorefrontCatalog? catalog;
   List<CustomerOrder> orders = const [];
+  List<PaymentInstruction> paymentInstructions = const [];
+  Map<String, Uint8List> paymentQrImages = const {};
   final Map<String, int> _quantities = {};
   bool busy = false;
   String? error;
@@ -43,6 +46,23 @@ class StorefrontStore extends ChangeNotifier {
     notifyListeners();
     try {
       catalog = await _gateway.getStorefront(slug);
+      paymentInstructions = await _gateway.listPaymentInstructions(
+        session.accessToken,
+      );
+      final qrImages = <String, Uint8List>{};
+      for (final instruction in paymentInstructions.where(
+        (item) => item.qrAvailable,
+      )) {
+        try {
+          qrImages[instruction.id] = await _gateway.getPaymentInstructionQr(
+            session.accessToken,
+            instruction.id,
+          );
+        } catch (_) {
+          // Account details remain usable if a configured QR cannot be loaded.
+        }
+      }
+      paymentQrImages = qrImages;
       orders = await _gateway.listOrders(session.accessToken);
     } on StorefrontApiException catch (exception) {
       error = exception.message;
@@ -76,6 +96,8 @@ class StorefrontStore extends ChangeNotifier {
   void reset({bool notify = true}) {
     catalog = null;
     orders = const [];
+    paymentInstructions = const [];
+    paymentQrImages = const {};
     _quantities.clear();
     _pendingOrderKey = null;
     busy = false;
@@ -125,6 +147,39 @@ class StorefrontStore extends ChangeNotifier {
           .toList(growable: false);
     } on StorefrontApiException catch (exception) {
       error = exception.message;
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> submitPayment({
+    required CustomerOrder order,
+    required WalletMethod method,
+    required String referenceNumber,
+    required String proofPath,
+  }) async {
+    final session = _sessionProvider();
+    if (session == null) return false;
+    busy = true;
+    error = null;
+    notifyListeners();
+    try {
+      await _gateway.submitOrderPayment(
+        session.accessToken,
+        order.id,
+        method,
+        referenceNumber,
+        proofPath,
+      );
+      orders = await _gateway.listOrders(session.accessToken);
+      return true;
+    } on StorefrontApiException catch (exception) {
+      error = exception.message;
+      return false;
+    } catch (_) {
+      error = 'Unable to upload the payment proof. Please try again.';
+      return false;
     } finally {
       busy = false;
       notifyListeners();

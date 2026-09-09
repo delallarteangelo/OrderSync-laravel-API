@@ -29,6 +29,7 @@ import { NotFoundPage } from "@/features/misc/NotFoundPage";
 import { ForbiddenPage } from "@/features/misc/ForbiddenPage";
 import { PlatformHomePage } from "@/features/platform/pages/PlatformHomePage";
 import { StorefrontPage } from "@/features/storefront/pages/StorefrontPage";
+import { PaymentsPage } from "@/features/payments/pages/PaymentsPage";
 
 const businessWorkspaceRoles = ["BUSINESS_OWNER", "STAFF", "CASHIER"] as const;
 const inventoryManagerRoles = ["BUSINESS_OWNER", "STAFF"] as const;
@@ -61,6 +62,18 @@ export const router = createBrowserRouter([
         <RequireAuth>
           <RequireRole allow="SUPER_ADMIN">
             <PlatformHomePage />
+          </RequireRole>
+        </RequireAuth>
+      </Wrap>
+    ),
+  },
+  {
+    path: "/platform/payments",
+    element: (
+      <Wrap>
+        <RequireAuth>
+          <RequireRole allow="SUPER_ADMIN">
+            <PaymentsPage />
           </RequireRole>
         </RequireAuth>
       </Wrap>
@@ -113,6 +126,14 @@ export const router = createBrowserRouter([
 
       { path: "orders", element: <OrderListPage /> },
       { path: "orders/:id", element: <OrderDetailPage /> },
+      {
+        path: "payments",
+        element: (
+          <RequireRole allow={[...inventoryManagerRoles]}>
+            <PaymentsPage />
+          </RequireRole>
+        ),
+      },
 
       { path: "inventory", element: <InventoryListPage /> },
       {

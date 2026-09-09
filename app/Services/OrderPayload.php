@@ -5,13 +5,14 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\OrderLine;
 use App\Models\OrderStatusEvent;
+use App\Models\RecordedPayment;
 
 class OrderPayload
 {
     /** @return array<string, mixed> */
     public static function order(Order $order): array
     {
-        $order->loadMissing(['business', 'lines', 'statusEvents']);
+        $order->loadMissing(['business', 'lines', 'statusEvents', 'payments.business', 'payments.submitter', 'payments.reviewer', 'payments.reviewEvents']);
 
         return [
             'id' => (string) $order->getKey(),
@@ -46,6 +47,7 @@ class OrderPayload
                 'actorName' => $event->actor_name,
                 'note' => $event->note,
             ])->all(),
+            'payments' => $order->payments->sortByDesc('submitted_at')->values()->map(fn (RecordedPayment $payment): array => RecordedPaymentPayload::payment($payment))->all(),
         ];
     }
 }

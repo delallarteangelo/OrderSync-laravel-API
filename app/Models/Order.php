@@ -42,4 +42,9 @@ class Order extends Model
     {
         return $this->hasMany(OrderStatusEvent::class);
     }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(RecordedPayment::class);
+    }
 }

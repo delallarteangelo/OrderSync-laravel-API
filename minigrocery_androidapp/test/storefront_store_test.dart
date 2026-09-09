@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:typed_data';
 import 'package:minigrocery/core/auth/auth_models.dart';
 import 'package:minigrocery/core/storefront/storefront_api.dart';
 import 'package:minigrocery/core/storefront/storefront_models.dart';
@@ -114,6 +115,17 @@ class _FakeStorefrontGateway implements StorefrontGateway {
   }
 
   @override
+  Future<List<PaymentInstruction>> listPaymentInstructions(
+    String accessToken,
+  ) async => const [];
+
+  @override
+  Future<Uint8List> getPaymentInstructionQr(
+    String accessToken,
+    String instructionId,
+  ) async => Uint8List(0);
+
+  @override
   Future<List<CustomerOrder>> listOrders(String accessToken) async => [
     order('1'),
   ];
@@ -135,6 +147,22 @@ class _FakeStorefrontGateway implements StorefrontGateway {
   @override
   Future<CustomerOrder> cancelOrder(String accessToken, String orderId) async =>
       order(orderId);
+
+  @override
+  Future<RecordedPayment> submitOrderPayment(
+    String accessToken,
+    String orderId,
+    WalletMethod method,
+    String referenceNumber,
+    String proofPath,
+  ) async => RecordedPayment(
+    id: 'payment-1',
+    method: method,
+    referenceNumber: referenceNumber,
+    amount: 58.5,
+    status: RecordedPaymentStatus.submitted,
+    proofAvailable: true,
+  );
 
   @override
   void close() {}

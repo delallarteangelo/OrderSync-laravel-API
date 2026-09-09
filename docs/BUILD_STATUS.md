@@ -15,7 +15,7 @@ This is the repository-level source of truth for implementation status. Client t
 | 4 — Catalog and inventory | Complete | Tenant catalog, product images, transactional stock, immutable movement history, low-stock alerts, and React integration verified. |
 | 5 — Point of sale | Complete | Tenant POS, server-authoritative totals, idempotent finalization, atomic stock deduction, recorded payments, receipts, and history verified. |
 | 6 — Customer storefront and ordering | Complete | Public tenant storefronts, real React/Flutter catalogs, carts, idempotent pickup ordering, status workflow, customer cancellation, and transactional confirmation verified. |
-| 7 — Recorded GCash and Maya payments | Not started | Requires separate approval. |
+| 7 — Recorded GCash and Maya payments | Complete | Private instructions/proofs, duplicate signals, manual order/subscription verification, receipts, retention, audit, and React/Flutter flows verified. |
 | 8 — Messaging, realtime events, notifications | Not started | Requires separate approval. |
 | 9 — Analytics and reports | Not started | Requires separate approval. |
 | 10 — AI customer support | Not started | Requires separate approval and provider evaluation. |
@@ -101,6 +101,20 @@ See [`POINT_OF_SALE.md`](POINT_OF_SALE.md) for data rules, API contracts, idempo
 
 See [`CUSTOMER_ORDERING.md`](CUSTOMER_ORDERING.md) for eligibility, API contracts, pricing, status, stock, client, and deferral rules.
 
+## Phase 7 baseline
+
+- Business Owners manage tenant GCash/Maya account instructions and private QR images; customers receive active instructions only.
+- Customer order and tenant subscription proofs use private local storage, server-owned amounts, and authenticated role/tenant-scoped downloads.
+- Payment status is `SUBMITTED`, `VERIFIED`, or `REJECTED`; review history is append-only and rejection requires a reason.
+- Case-insensitive reference reuse and identical SHA-256 proof content are flagged within a tenant for human review without automatic rejection.
+- A paid order cannot be business-confirmed before manual verification; orders with no payment claim remain pay-at-pickup eligible.
+- Super Admin manual verification of a subscription proof marks the related billing record Paid in the same transaction.
+- Verified receipts state `providerConfirmed: false` and `verification: MANUAL`; no direct GCash/Maya API or provider-confirmation claim exists.
+- Proof retention defaults to 365 days; the purge command deletes only expired private files while preserving payment, review, receipt, duplicate, and audit metadata.
+- React provides customer upload/history, tenant instructions and review queues, subscription proof submission, and platform review. Flutter provides authenticated instructions/QR display, camera/gallery proof upload, and payment status.
+
+See [`RECORDED_PAYMENTS.md`](RECORDED_PAYMENTS.md) for lifecycle, route, privacy, retention, audit, and client contracts.
+
 ## Validation matrix
 
 | Surface | Command/check | Result |
@@ -177,6 +191,20 @@ See [`CUSTOMER_ORDERING.md`](CUSTOMER_ORDERING.md) for eligibility, API contract
 | Flutter | Format, analyze, tests | Passed — 76 files formatted, no analysis issues, 8 tests |
 | Hosted CI | Workflow definition | Not executed — no remote repository or external account was authorized |
 
+## Phase 7 validation matrix
+
+| Surface | Command/check | Result |
+| --- | --- | --- |
+| PostgreSQL | Additive development migration and explicitly isolated test rebuild | Passed — 10 migrations; instruction, payment, review-event, parent-shape, amount, receipt, duplicate-signal, retention, index, and foreign-key constraints created |
+| Development data | Row counts after additive migration | Passed — zero users, businesses, orders, payment instructions, recorded payments, and review events; migration-owned plan/entitlement reference rows retained |
+| Laravel | Pint and complete PHPUnit suite | Passed — formatting clean; 56 tests and 544 assertions |
+| Payment security | Tenant/owner/order scoping, private files, inactive QR, role review, receipt authorization | Passed — foreign resources hidden, unauthorized reviews rejected, and public storage is not used |
+| Payment lifecycle | Server amount, single active proof, reasoned rejection, resubmission, order gate, subscription billing update | Passed |
+| Duplicate and retention behavior | Reference/hash signals and expired-file purge | Passed — flags stay tenant-scoped; purge preserves payment/review/audit history |
+| React | Lint, typecheck, tests, production build | Passed — 0 lint errors (20 existing warnings), clean typecheck, 45 tests, build complete |
+| Flutter | Dependency resolution, format, analyze, tests | Passed — image picker resolved, formatting clean, no analysis issues, 8 tests |
+| Hosted CI | Workflow definition | Not executed — no remote repository or external account was authorized |
+
 ## Known limitations
 
 - React messaging, reports, settings, and remaining non-Phase-6 prototype areas still depend on MSW fixtures.
@@ -185,17 +213,17 @@ See [`CUSTOMER_ORDERING.md`](CUSTOMER_ORDERING.md) for eligibility, API contract
 - Flutter tokens are intentionally memory-only because no encrypted-storage dependency was approved for Phase 2; cold-start restoration remains deferred.
 - Flutter storefront, cart, and last-known orders are memory-only and do not survive a cold app restart because no new persistence dependency was approved for Phase 6.
 - Android release packaging was not part of Phase 1; JDK 17 remains required before release-oriented work.
-- The Flutter lockfile currently has 34 newer package versions outside its existing dependency constraints; no dependency upgrade was authorized in this phase.
+- The Flutter dependency check reports 43 newer package versions outside current constraints; only the Phase 7 image-picker dependency was added, with no broad upgrade.
 - Plan prices are intentionally unconfigured by default and require an approved Super Admin value before bills are created.
 - Subscription status is evaluated on reads; no external scheduler or automatic invoicing service was introduced.
 - Platform user administration currently covers visibility and activation status; self-deactivation and last-Super-Admin lockout are prohibited.
 - Reorder alerts are persisted but external realtime/push notification delivery is deferred to Phase 8.
 - Local product images use Laravel's public disk; production object-storage configuration and image lifecycle operations are deferred to release hardening.
 - POS tax remains zero until tenant tax settings and applicable fiscal requirements receive a separately approved design.
-- POS GCash, Maya, card, and other non-cash references are recorded but not provider-confirmed; proof upload and manual verification remain Phase 7 work.
+- POS GCash, Maya, card, and other non-cash references remain cashier-recorded only; Phase 7 proof verification applies to customer orders and subscription bills, not completed POS sales.
 - Completed sales have no void, return, refund, or correction workflow; direct mutation is intentionally prohibited.
 - Customer orders are pickup-only, placement does not reserve stock, and confirmed orders have no customer cancellation, refund, or automatic restock workflow.
-- No payment-proof verification, notification transport, AI, PWA/offline safety, or deployment implementation exists yet.
+- No direct wallet verification, refund workflow, notification transport, AI, PWA/offline safety, or deployment implementation exists yet.
 - The local `ordersync` development database is migrated but empty; pilot/demo rows were not recreated after the approved decision to leave it empty.
 - The local Laragon PostgreSQL cluster uses trusted loopback authentication; non-local environments must use passwords or managed identity.
 
@@ -216,3 +244,7 @@ See [`CUSTOMER_ORDERING.md`](CUSTOMER_ORDERING.md) for eligibility, API contract
 - Recorded non-cash POS methods never imply GCash, Maya, card-provider, or other external confirmation.
 - Customer order placement is idempotent per business/customer/key; stock is deducted only on the first locked business confirmation.
 - Phase 6 fulfillment is pickup-only. A customer can cancel only while Pending; rejection requires a business reason, and later refund/restock behavior is deferred.
+- GCash and Maya remain manually verified records: server-owned order/bill amounts, private tenant-scoped proof files, reviewer-only decisions, and receipts that never claim wallet-provider confirmation.
+- Payment proof retention is configurable and defaults to 365 days; expiry removes only the private file while durable review and audit metadata remains.
+- Phase 7 duplicate flags are advisory signals for manual reviewers, not proof that a wallet transaction succeeded or that fraud occurred.
+- Private proof storage is local for development; production object storage, malware scanning, and backup/restore policy remain release-hardening work.

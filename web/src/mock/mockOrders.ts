@@ -74,6 +74,7 @@ function makeOrder(idx: number, status: OrderStatus): Order {
     placedAt,
     updatedAt: history[history.length - 1].at,
     statusHistory: history,
+    payments: [],
   };
 }
 

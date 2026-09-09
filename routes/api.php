@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\CustomerOrderController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\PaymentInstructionController;
 use App\Http\Controllers\Api\V1\PlatformBusinessController;
 use App\Http\Controllers\Api\V1\PlatformDashboardController;
 use App\Http\Controllers\Api\V1\PlatformPlanController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\V1\PlatformUserController;
 use App\Http\Controllers\Api\V1\PosSaleController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProductImageController;
+use App\Http\Controllers\Api\V1\RecordedPaymentController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\TenantSubscriptionController;
 use Illuminate\Support\Facades\Route;
@@ -63,10 +65,21 @@ Route::prefix('/v1')->group(function (): void {
         Route::post('/billing-records/{billingRecord}/mark-paid', [PlatformSubscriptionController::class, 'markBillingPaid']);
         Route::get('/users', [PlatformUserController::class, 'index']);
         Route::patch('/users/{user}/status', [PlatformUserController::class, 'updateStatus']);
+        Route::get('/payments', [RecordedPaymentController::class, 'platformIndex']);
+        Route::post('/payments/{payment}/review', [RecordedPaymentController::class, 'platformReview']);
+        Route::get('/payments/{payment}/proof', [RecordedPaymentController::class, 'platformProof']);
+        Route::get('/payments/{payment}/receipt', [RecordedPaymentController::class, 'platformReceipt']);
     });
 
     Route::get('/tenant/subscription', TenantSubscriptionController::class)
         ->middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER']);
+
+    Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER'])->prefix('/tenant')->group(function (): void {
+        Route::get('/billing-records', [RecordedPaymentController::class, 'tenantBillingRecords']);
+        Route::post('/billing-records/{billingRecord}/payments', [RecordedPaymentController::class, 'tenantBillingStore']);
+        Route::get('/payments/{payment}/proof', [RecordedPaymentController::class, 'tenantProof']);
+        Route::get('/payments/{payment}/receipt', [RecordedPaymentController::class, 'tenantReceipt']);
+    });
 
     Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER,STAFF,CASHIER'])->group(function (): void {
         Route::middleware('entitlement:catalog_enabled')->group(function (): void {
@@ -114,6 +127,12 @@ Route::prefix('/v1')->group(function (): void {
             Route::post('/orders', [CustomerOrderController::class, 'store']);
             Route::get('/orders/{order}', [CustomerOrderController::class, 'show']);
             Route::post('/orders/{order}/cancel', [CustomerOrderController::class, 'cancel']);
+            Route::get('/payment-instructions', [PaymentInstructionController::class, 'customerIndex']);
+            Route::get('/payment-instructions/{instruction}/qr', [PaymentInstructionController::class, 'qr']);
+            Route::get('/orders/{order}/payments', [RecordedPaymentController::class, 'customerOrderIndex']);
+            Route::post('/orders/{order}/payments', [RecordedPaymentController::class, 'customerOrderStore']);
+            Route::get('/payments/{payment}/proof', [RecordedPaymentController::class, 'customerProof']);
+            Route::get('/payments/{payment}/receipt', [RecordedPaymentController::class, 'customerReceipt']);
         });
 
     Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER,STAFF,CASHIER', 'entitlement:customer_ordering_enabled'])
@@ -121,5 +140,20 @@ Route::prefix('/v1')->group(function (): void {
             Route::get('/', [OrderController::class, 'index']);
             Route::get('/{order}', [OrderController::class, 'show']);
             Route::post('/{order}/transition', [OrderController::class, 'transition']);
+        });
+
+    Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER,STAFF', 'entitlement:customer_ordering_enabled'])
+        ->prefix('/payments')->group(function (): void {
+            Route::get('/', [RecordedPaymentController::class, 'businessIndex']);
+            Route::post('/{payment}/review', [RecordedPaymentController::class, 'businessReview']);
+            Route::get('/{payment}/proof', [RecordedPaymentController::class, 'businessProof']);
+            Route::get('/{payment}/receipt', [RecordedPaymentController::class, 'businessReceipt']);
+        });
+
+    Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER', 'entitlement:customer_ordering_enabled'])
+        ->prefix('/payment-instructions')->group(function (): void {
+            Route::get('/', [PaymentInstructionController::class, 'index']);
+            Route::post('/{method}', [PaymentInstructionController::class, 'store']);
+            Route::get('/{instruction}/qr', [PaymentInstructionController::class, 'qr']);
         });
 });

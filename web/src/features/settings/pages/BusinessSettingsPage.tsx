@@ -11,9 +11,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui
 import { useSettings, useUpdateSettings } from "@/shared/hooks/useApi";
 import { isApiError } from "@/shared/api/errors";
 import type { BusinessSettings } from "@/shared/types/settings";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getTenantSubscription } from "@/shared/api/platform";
 import { Badge } from "@/shared/components/ui/badge";
+import {
+  getPaymentReceipt,
+  listTenantBillingRecords,
+  openPrivatePaymentFile,
+  submitSubscriptionPayment,
+} from "@/shared/api/payments";
+import type { BillingRecord } from "@/shared/types/platform";
+import type { RecordedPayment, WalletMethod } from "@/shared/types/payments";
 
 export function BusinessSettingsPage() {
   const settingsQ = useSettings();
@@ -199,11 +207,163 @@ export function BusinessSettingsPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">No subscription has been assigned.</p>
               )}
+              <SubscriptionPayments />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+type TenantBill = BillingRecord & { payments: RecordedPayment[] };
+
+function SubscriptionPayments() {
+  const bills = useQuery({
+    queryKey: ["tenant", "billing-records"],
+    queryFn: listTenantBillingRecords,
+  });
+
+  return (
+    <section className="space-y-3 border-t pt-5">
+      <div>
+        <h3 className="font-medium">Subscription payment records</h3>
+        <p className="text-sm text-muted-foreground">
+          Upload a GCash or Maya proof for manual platform review. This does not contact the wallet
+          provider.
+        </p>
+      </div>
+      {bills.isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading billing records…</p>
+      ) : null}
+      {bills.isError ? (
+        <p className="text-sm text-destructive">Unable to load billing records.</p>
+      ) : null}
+      {bills.data?.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No billing records yet.</p>
+      ) : null}
+      {bills.data?.map((bill) => (
+        <SubscriptionBill key={bill.id} bill={bill} />
+      ))}
+    </section>
+  );
+}
+
+function SubscriptionBill({ bill }: { bill: TenantBill }) {
+  const queryClient = useQueryClient();
+  const [method, setMethod] = React.useState<WalletMethod>("GCASH");
+  const [reference, setReference] = React.useState("");
+  const [proof, setProof] = React.useState<File | null>(null);
+  const active = bill.payments.find((payment) => payment.status !== "REJECTED");
+  const submit = useMutation({
+    mutationFn: () => {
+      if (!proof) throw new Error("Choose a proof image or PDF.");
+      return submitSubscriptionPayment(bill.id, method, reference, proof);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tenant", "billing-records"] });
+      setReference("");
+      setProof(null);
+      toast.success("Payment proof submitted for manual review");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const showReceipt = async (payment: RecordedPayment) => {
+    try {
+      const receipt = await getPaymentReceipt(payment, "tenant");
+      toast.success(
+        `Receipt ${receipt.receiptNumber} · ${receipt.method} · ₱${receipt.amount.toFixed(2)}`,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to load receipt");
+    }
+  };
+
+  return (
+    <div className="space-y-3 rounded-lg border p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="font-medium">
+            {new Intl.NumberFormat("en-PH", { style: "currency", currency: bill.currency }).format(
+              bill.amountMinor / 100,
+            )}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Due{" "}
+            {new Intl.DateTimeFormat("en-PH", { dateStyle: "medium" }).format(new Date(bill.dueAt))}
+          </p>
+        </div>
+        <Badge>{bill.status}</Badge>
+      </div>
+
+      {bill.payments.map((payment) => (
+        <div
+          key={payment.id}
+          className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 p-3 text-sm"
+        >
+          <span>
+            {payment.method} · {payment.referenceNumber}
+          </span>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{payment.status}</Badge>
+            {payment.proofAvailable ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  void openPrivatePaymentFile(
+                    `/tenant/payments/${payment.id}/proof`,
+                    `subscription-proof-${payment.id}`,
+                  )
+                }
+              >
+                Proof
+              </Button>
+            ) : null}
+            {payment.status === "VERIFIED" ? (
+              <Button size="sm" variant="ghost" onClick={() => void showReceipt(payment)}>
+                Receipt
+              </Button>
+            ) : null}
+          </div>
+          {payment.rejectionReason ? (
+            <p className="w-full text-xs text-destructive">Rejected: {payment.rejectionReason}</p>
+          ) : null}
+        </div>
+      ))}
+
+      {!active && ["PENDING", "OVERDUE"].includes(bill.status) ? (
+        <div className="grid gap-2 md:grid-cols-[120px_1fr_1fr_auto]">
+          <select
+            className="h-10 rounded-md border bg-background px-3 text-sm"
+            value={method}
+            onChange={(event) => setMethod(event.target.value as WalletMethod)}
+          >
+            <option value="GCASH">GCash</option>
+            <option value="MAYA">Maya</option>
+          </select>
+          <Input
+            aria-label="Subscription payment reference"
+            placeholder="Reference number"
+            value={reference}
+            onChange={(event) => setReference(event.target.value)}
+          />
+          <Input
+            aria-label="Subscription payment proof"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            onChange={(event) => setProof(event.target.files?.[0] ?? null)}
+          />
+          <Button
+            disabled={submit.isPending || !reference.trim() || !proof}
+            onClick={() => submit.mutate()}
+          >
+            {submit.isPending ? "Uploading…" : "Submit proof"}
+          </Button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

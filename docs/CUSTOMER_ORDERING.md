@@ -48,6 +48,6 @@ The React `/shop` directory and `/shop/{slug}` storefront use real Laravel APIs 
 
 Flutter now loads the authenticated customer's real tenant catalog and order history, uses one shared cart with stock caps, places pickup orders with a stable retry key, retains the cart after errors, shows all seven statuses and history, and exposes cancellation only for Pending orders. Catalog, order history, and cart state are cleared at the authentication or tenant boundary. Persistence across a cold app restart remains deferred because no new storage dependency was approved.
 
-## Deferred payment work
+## Recorded payment integration
 
-Phase 6 creates no payment record and does not upload, inspect, or verify GCash or Maya proofs. Business-managed payment instructions, private proof storage, manual verification, payment history, retention, and related audit records remain Phase 7.
+Phase 7 adds business-managed GCash/Maya instructions, private proof storage, manual verification, payment history, retention, and related audit records. An order with a submitted payment cannot be confirmed until that payment is manually verified; orders without a payment record still support pay-at-pickup. See [`RECORDED_PAYMENTS.md`](RECORDED_PAYMENTS.md).

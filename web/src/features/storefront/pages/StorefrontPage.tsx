@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, ShoppingCart, Store, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Minus, Plus, ShoppingCart, Store, Trash2 } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthStore } from "@/app/stores/authStore";
 import { useStorefrontCartStore } from "@/app/stores/storefrontCartStore";
@@ -19,6 +20,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { Badge } from "@/shared/components/ui/badge";
 import { Separator } from "@/shared/components/ui/separator";
 import { fmtDateTime } from "@/shared/lib/dates";
+import {
+  listCustomerPaymentInstructions,
+  openPrivatePaymentFile,
+  submitOrderPayment,
+} from "@/shared/api/payments";
+import type { Order } from "@/shared/types/orders";
+import type { WalletMethod } from "@/shared/types/payments";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
 
 export function StorefrontPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -185,27 +195,31 @@ export function StorefrontPage() {
               )}
               {(orders.data ?? []).map((order) => (
                 <Card key={order.id}>
-                  <CardContent className="flex flex-wrap items-center gap-3 p-4">
-                    <div className="min-w-48 flex-1">
-                      <p className="font-medium">{order.code}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {fmtDateTime(order.placedAt)} · {order.items.length} item(s)
-                      </p>
+                  <CardContent className="space-y-4 p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="min-w-48 flex-1">
+                        <p className="font-medium">{order.code}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {fmtDateTime(order.placedAt)} · {order.items.length} item(s)
+                        </p>
+                      </div>
+                      <Money value={order.total} />
+                      <StatusChip status={order.status} />
+                      {order.status === "PENDING" &&
+                        !order.payments.some((payment) => payment.status === "VERIFIED") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={cancelOrder.isPending}
+                            onClick={() =>
+                              cancelOrder.mutate({ id: order.id, note: "Cancelled by customer" })
+                            }
+                          >
+                            Cancel
+                          </Button>
+                        )}
                     </div>
-                    <Money value={order.total} />
-                    <StatusChip status={order.status} />
-                    {order.status === "PENDING" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={cancelOrder.isPending}
-                        onClick={() =>
-                          cancelOrder.mutate({ id: order.id, note: "Cancelled by customer" })
-                        }
-                      >
-                        Cancel
-                      </Button>
-                    )}
+                    <CustomerPaymentPanel order={order} onChanged={() => orders.refetch()} />
                   </CardContent>
                 </Card>
               ))}
@@ -277,5 +291,123 @@ export function StorefrontPage() {
         </aside>
       </div>
     </main>
+  );
+}
+
+function CustomerPaymentPanel({ order, onChanged }: { order: Order; onChanged: () => void }) {
+  const instructions = useQuery({
+    queryKey: ["customer", "payment-instructions", order.business.id],
+    queryFn: listCustomerPaymentInstructions,
+    enabled: order.status === "PENDING",
+  });
+  const [method, setMethod] = React.useState<WalletMethod>("GCASH");
+  const [reference, setReference] = React.useState("");
+  const [proof, setProof] = React.useState<File>();
+  const submit = useMutation({
+    mutationFn: () => submitOrderPayment(order.id, method, reference.trim(), proof!),
+    onSuccess: (payment) => {
+      toast.success(
+        payment.duplicateProof || payment.duplicateReference
+          ? "Proof submitted with a duplicate-review warning."
+          : "Proof submitted for manual review.",
+      );
+      setReference("");
+      setProof(undefined);
+      onChanged();
+    },
+    onError: (error) => toast.error(isApiError(error) ? error.message : "Unable to submit proof."),
+  });
+  const latest = order.payments[0];
+  const active = order.payments.find(
+    (payment) => payment.status === "SUBMITTED" || payment.status === "VERIFIED",
+  );
+
+  if (latest?.status === "VERIFIED") {
+    return (
+      <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">
+        Manually verified {latest.method} payment · Receipt {latest.receiptNumber}
+      </div>
+    );
+  }
+  if (active?.status === "SUBMITTED") {
+    return (
+      <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+        {active.method} proof is awaiting manual review. This is not provider confirmation.
+      </div>
+    );
+  }
+  if (order.status !== "PENDING" || (instructions.data ?? []).length === 0) {
+    return latest?.status === "REJECTED" ? (
+      <p className="text-sm text-destructive">Payment rejected: {latest.rejectionReason}</p>
+    ) : null;
+  }
+
+  const selected = instructions.data?.find((item) => item.method === method);
+  return (
+    <div className="space-y-3 rounded-md border p-3">
+      {latest?.status === "REJECTED" && (
+        <p className="text-sm text-destructive">
+          Previous proof rejected: {latest.rejectionReason}
+        </p>
+      )}
+      <p className="text-sm font-medium">Pay with GCash or Maya</p>
+      <p className="text-xs text-muted-foreground">
+        Proofs are checked by the store manually. OrderSync does not contact the wallet provider.
+      </p>
+      <div className="flex gap-2">
+        {(instructions.data ?? []).map((instruction) => (
+          <Button
+            key={instruction.id}
+            size="sm"
+            variant={method === instruction.method ? "default" : "outline"}
+            onClick={() => setMethod(instruction.method)}
+          >
+            {instruction.method}
+          </Button>
+        ))}
+      </div>
+      {selected && (
+        <div className="rounded bg-muted p-3 text-sm">
+          <p>{selected.accountName}</p>
+          <p className="font-medium">{selected.accountNumber}</p>
+          {selected.instructions && <p className="text-xs">{selected.instructions}</p>}
+          {selected.qrAvailable && (
+            <Button
+              className="mt-2"
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                openPrivatePaymentFile(
+                  `/customer/payment-instructions/${selected.id}/qr`,
+                  `${selected.method}-QR`,
+                )
+              }
+            >
+              <Download className="mr-1 h-4 w-4" /> Open QR
+            </Button>
+          )}
+        </div>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1">
+          <Label>Wallet reference</Label>
+          <Input value={reference} onChange={(event) => setReference(event.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label>Screenshot or receipt</Label>
+          <Input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,application/pdf"
+            onChange={(event) => setProof(event.target.files?.[0])}
+          />
+        </div>
+      </div>
+      <Button
+        disabled={submit.isPending || !reference.trim() || !proof}
+        onClick={() => submit.mutate()}
+      >
+        {submit.isPending ? "Uploading…" : "Submit for manual review"}
+      </Button>
+    </div>
   );
 }

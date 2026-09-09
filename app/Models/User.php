@@ -52,4 +52,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Order::class, 'customer_user_id');
     }
+
+    public function submittedPayments(): HasMany
+    {
+        return $this->hasMany(RecordedPayment::class, 'submitted_by_user_id');
+    }
 }

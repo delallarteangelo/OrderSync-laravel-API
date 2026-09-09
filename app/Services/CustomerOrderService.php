@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\OrderStatus;
+use App\Enums\RecordedPaymentStatus;
 use App\Exceptions\OrderWorkflowException;
 use App\Models\Business;
 use App\Models\Order;
@@ -129,6 +130,9 @@ class CustomerOrderService
             if ($locked->status !== OrderStatus::Pending) {
                 throw new OrderWorkflowException('CANCELLATION_NOT_ALLOWED', 'Only a pending order can be cancelled.');
             }
+            if ($locked->payments()->where('status', RecordedPaymentStatus::Verified->value)->exists()) {
+                throw new OrderWorkflowException('VERIFIED_PAYMENT_EXISTS', 'A manually verified payment must be resolved by the business before cancellation.');
+            }
 
             return $this->applyStatus($locked, OrderStatus::Cancelled, $customer, $request, $note);
         });
@@ -152,6 +156,11 @@ class CustomerOrderService
                 throw new OrderWorkflowException('REJECTION_NOTE_REQUIRED', 'A rejection reason is required.', 422, ['note' => ['A rejection reason is required.']]);
             }
             if ($next === OrderStatus::Confirmed) {
+                $hasPayments = $locked->payments()->exists();
+                $hasVerifiedPayment = $locked->payments()->where('status', RecordedPaymentStatus::Verified->value)->exists();
+                if ($hasPayments && ! $hasVerifiedPayment) {
+                    throw new OrderWorkflowException('PAYMENT_NOT_VERIFIED', 'The submitted wallet payment must be manually verified before confirming this order.');
+                }
                 $this->inventory->deductForOrder(
                     $locked->business,
                     $actor,

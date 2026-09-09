@@ -63,4 +63,14 @@ class Business extends Model
     {
         return $this->hasMany(Order::class);
     }
+
+    public function paymentInstructions(): HasMany
+    {
+        return $this->hasMany(PaymentInstruction::class);
+    }
+
+    public function recordedPayments(): HasMany
+    {
+        return $this->hasMany(RecordedPayment::class);
+    }
 }

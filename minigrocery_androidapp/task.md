@@ -14,6 +14,7 @@ This tracker covers the customer Android client within the OrderSync multi-tenan
 - [x] 2026-09-08 — Phase 4 backend catalog and inventory contracts verified with no Flutter source change: tenant-safe read APIs now exist, while customer catalog integration remains assigned to the separately approved customer-storefront phase. See [`../docs/CATALOG_INVENTORY.md`](../docs/CATALOG_INVENTORY.md).
 - [x] 2026-09-08 — Phase 5 business POS verified with no Flutter source change: completed tenant sales now deduct stock transactionally, while the customer app's storefront, cart, checkout, and orders remain assigned to Phase 6. See [`../docs/POINT_OF_SALE.md`](../docs/POINT_OF_SALE.md).
 - [x] 2026-09-09 — Phase 6 customer storefront and ordering verified: the authenticated tenant's live catalog, stock-capped cart, retry-safe pickup checkout, real order history/status timeline, pending-only cancellation, and tenant-bound state clearing now use Laravel APIs. See [`../docs/CUSTOMER_ORDERING.md`](../docs/CUSTOMER_ORDERING.md).
+- [x] 2026-09-09 — Phase 7 customer payments verified: authenticated GCash/Maya instructions and private QR images, camera/gallery proof selection, multipart upload, and manual review/receipt status now use Laravel APIs. See [`../docs/RECORDED_PAYMENTS.md`](../docs/RECORDED_PAYMENTS.md).
 
 ## Legend
 

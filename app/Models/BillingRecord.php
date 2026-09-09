@@ -6,6 +6,7 @@ use App\Enums\BillingStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['business_id', 'subscription_id', 'amount_minor', 'currency', 'status', 'period_start', 'period_end', 'due_at', 'paid_at', 'reference', 'notes'])]
 class BillingRecord extends Model
@@ -30,5 +31,10 @@ class BillingRecord extends Model
     public function subscription(): BelongsTo
     {
         return $this->belongsTo(Subscription::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(RecordedPayment::class);
     }
 }

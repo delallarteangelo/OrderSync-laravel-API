@@ -3,9 +3,9 @@ import { db, randomId, findUserByToken, tokenFromAuthHeader } from "../db";
 import type { Order, OrderStatus, OrderStatusEvent } from "@/shared/types/orders";
 
 const LEGAL_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  PENDING: ["CONFIRMED", "REJECTED", "CANCELLED"],
-  CONFIRMED: ["PREPARING", "CANCELLED"],
-  PREPARING: ["READY_FOR_PICKUP", "CANCELLED"],
+  PENDING: ["CONFIRMED", "REJECTED"],
+  CONFIRMED: ["PREPARING"],
+  PREPARING: ["READY_FOR_PICKUP"],
   READY_FOR_PICKUP: ["COMPLETED", "CANCELLED"],
   COMPLETED: [],
   REJECTED: [],
@@ -129,6 +129,7 @@ export const ordersHandlers = [
       placedAt: now,
       updatedAt: now,
       statusHistory: [{ status: "PENDING", at: now, actorName: who.name }],
+      payments: [],
     };
     db.orders = [order, ...db.orders];
     return HttpResponse.json(order, { status: 201 });

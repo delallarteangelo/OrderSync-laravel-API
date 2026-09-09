@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { RecordedPayment } from "@/shared/types/payments";
 
 export const orderStatusSchema = z.enum([
   "PENDING",
@@ -41,6 +42,7 @@ export type Order = {
   placedAt: string;
   updatedAt: string;
   statusHistory: OrderStatusEvent[];
+  payments: RecordedPayment[];
 };
 
 export type StorefrontSummary = {

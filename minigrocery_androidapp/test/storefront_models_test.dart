@@ -59,10 +59,24 @@ void main() {
           'note': 'Packed',
         },
       ],
+      'payments': [
+        {
+          'id': 41,
+          'method': 'GCASH',
+          'referenceNumber': 'REF-100',
+          'amount': 117,
+          'status': 'VERIFIED',
+          'proofAvailable': true,
+          'receiptNumber': 'PAY-000041',
+          'rejectionReason': null,
+        },
+      ],
     });
 
     expect(order.status, OrderStatus.readyForPickup);
     expect(order.items.single.lineTotal, 117);
     expect(order.statusHistory.last.note, 'Packed');
+    expect(order.payments.single.status, RecordedPaymentStatus.verified);
+    expect(order.payments.single.receiptNumber, 'PAY-000041');
   });
 }

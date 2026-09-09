@@ -96,6 +96,80 @@ class CustomerOrderEvent {
   final String? note;
 }
 
+enum WalletMethod { gcash, maya }
+
+enum RecordedPaymentStatus { submitted, verified, rejected }
+
+class PaymentInstruction {
+  const PaymentInstruction({
+    required this.id,
+    required this.method,
+    required this.accountName,
+    required this.accountNumber,
+    required this.instructions,
+    required this.qrAvailable,
+  });
+
+  final String id;
+  final WalletMethod method;
+  final String accountName;
+  final String accountNumber;
+  final String? instructions;
+  final bool qrAvailable;
+
+  factory PaymentInstruction.fromJson(Map<String, dynamic> json) =>
+      PaymentInstruction(
+        id: json['id'].toString(),
+        method: json['method'] == 'MAYA'
+            ? WalletMethod.maya
+            : WalletMethod.gcash,
+        accountName: json['accountName'] as String,
+        accountNumber: json['accountNumber'] as String,
+        instructions: json['instructions'] as String?,
+        qrAvailable: json['qrAvailable'] as bool? ?? false,
+      );
+}
+
+class RecordedPayment {
+  const RecordedPayment({
+    required this.id,
+    required this.method,
+    required this.referenceNumber,
+    required this.amount,
+    required this.status,
+    required this.proofAvailable,
+    this.receiptNumber,
+    this.rejectionReason,
+  });
+
+  final String id;
+  final WalletMethod method;
+  final String referenceNumber;
+  final double amount;
+  final RecordedPaymentStatus status;
+  final bool proofAvailable;
+  final String? receiptNumber;
+  final String? rejectionReason;
+
+  factory RecordedPayment.fromJson(Map<String, dynamic> json) =>
+      RecordedPayment(
+        id: json['id'].toString(),
+        method: json['method'] == 'MAYA'
+            ? WalletMethod.maya
+            : WalletMethod.gcash,
+        referenceNumber: json['referenceNumber'] as String,
+        amount: (json['amount'] as num).toDouble(),
+        status: switch (json['status']) {
+          'VERIFIED' => RecordedPaymentStatus.verified,
+          'REJECTED' => RecordedPaymentStatus.rejected,
+          _ => RecordedPaymentStatus.submitted,
+        },
+        proofAvailable: json['proofAvailable'] as bool? ?? false,
+        receiptNumber: json['receiptNumber'] as String?,
+        rejectionReason: json['rejectionReason'] as String?,
+      );
+}
+
 class CustomerOrder {
   const CustomerOrder({
     required this.id,
@@ -106,6 +180,7 @@ class CustomerOrder {
     required this.status,
     required this.placedAt,
     required this.statusHistory,
+    this.payments = const [],
   });
 
   final String id;
@@ -116,6 +191,7 @@ class CustomerOrder {
   final OrderStatus status;
   final DateTime placedAt;
   final List<CustomerOrderEvent> statusHistory;
+  final List<RecordedPayment> payments;
 
   factory CustomerOrder.fromJson(Map<String, dynamic> json) {
     final business = json['business'] as Map<String, dynamic>;
@@ -141,6 +217,9 @@ class CustomerOrder {
               note: item['note'] as String?,
             ),
           )
+          .toList(growable: false),
+      payments: (json['payments'] as List<dynamic>? ?? const [])
+          .map((item) => RecordedPayment.fromJson(item as Map<String, dynamic>))
           .toList(growable: false),
     );
   }
