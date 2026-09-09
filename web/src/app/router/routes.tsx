@@ -28,6 +28,7 @@ import { BusinessSettingsPage } from "@/features/settings/pages/BusinessSettings
 import { NotFoundPage } from "@/features/misc/NotFoundPage";
 import { ForbiddenPage } from "@/features/misc/ForbiddenPage";
 import { PlatformHomePage } from "@/features/platform/pages/PlatformHomePage";
+import { StorefrontPage } from "@/features/storefront/pages/StorefrontPage";
 
 const businessWorkspaceRoles = ["BUSINESS_OWNER", "STAFF", "CASHIER"] as const;
 const inventoryManagerRoles = ["BUSINESS_OWNER", "STAFF"] as const;
@@ -37,6 +38,14 @@ function Wrap({ children }: { children: React.ReactNode }) {
 }
 
 export const router = createBrowserRouter([
+  {
+    path: "/shop/:slug?",
+    element: (
+      <Wrap>
+        <StorefrontPage />
+      </Wrap>
+    ),
+  },
   {
     path: "/login",
     element: (

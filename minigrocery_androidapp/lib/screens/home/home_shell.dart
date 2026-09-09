@@ -1,7 +1,7 @@
 // Design.md §5.6 — Home shell with bottom navigation
 import 'package:flutter/material.dart';
 
-import '../../mock/mock_cart.dart';
+import '../../core/storefront/storefront_store.dart';
 import '../../widgets/app_bottom_nav_bar.dart';
 import '../cart/cart_tab.dart';
 import '../categories/categories_tab.dart';
@@ -31,10 +31,13 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _index, children: _tabs),
-      bottomNavigationBar: AppBottomNavBar(
-        currentIndex: _index,
-        cartBadge: mockCart.length,
-        onTap: (i) => setState(() => _index = i),
+      bottomNavigationBar: AnimatedBuilder(
+        animation: StorefrontScope.of(context),
+        builder: (context, _) => AppBottomNavBar(
+          currentIndex: _index,
+          cartBadge: StorefrontScope.of(context).cart.length,
+          onTap: (i) => setState(() => _index = i),
+        ),
       ),
     );
   }

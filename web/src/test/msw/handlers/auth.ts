@@ -61,7 +61,7 @@ export const authHandlers = [
         { status: 403 },
       );
     }
-    if (!["SUPER_ADMIN", "BUSINESS_OWNER", "STAFF", "CASHIER"].includes(user.role)) {
+    if (!["SUPER_ADMIN", "BUSINESS_OWNER", "STAFF", "CASHIER", "CUSTOMER"].includes(user.role)) {
       return HttpResponse.json(
         { code: "FORBIDDEN_ROLE", message: "This account cannot use the web console" },
         { status: 403 },

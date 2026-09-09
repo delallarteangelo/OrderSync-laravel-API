@@ -1,7 +1,7 @@
 // Design.md §5.8 — Category browse screen
 import 'package:flutter/material.dart';
 
-import '../../mock/mock_products.dart';
+import '../../core/storefront/storefront_store.dart';
 import '../../mock/models.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_colors.dart';
@@ -14,16 +14,16 @@ class CategoryBrowseScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = mockProducts
+    final store = StorefrontScope.of(context);
+    final items = (store.catalog?.products ?? const <Product>[])
         .where((p) => p.categoryId == category.id)
         .toList(growable: false);
-    final display = items.isEmpty ? mockProducts.take(6).toList() : items;
     return Scaffold(
       backgroundColor: AppColors.neutralSurface,
       appBar: AppPrimaryAppBar(title: category.name, showBack: true),
       body: GridView.builder(
         padding: const EdgeInsets.all(20),
-        itemCount: display.length,
+        itemCount: items.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           mainAxisSpacing: 12,
@@ -31,10 +31,11 @@ class CategoryBrowseScreen extends StatelessWidget {
           childAspectRatio: 170 / 245,
         ),
         itemBuilder: (_, i) => ProductCard(
-          product: display[i],
+          product: items[i],
+          onAdd: () => store.add(items[i]),
           onTap: () => Navigator.of(
             context,
-          ).pushNamed(AppRoutes.productDetail, arguments: display[i]),
+          ).pushNamed(AppRoutes.productDetail, arguments: items[i]),
         ),
       ),
     );

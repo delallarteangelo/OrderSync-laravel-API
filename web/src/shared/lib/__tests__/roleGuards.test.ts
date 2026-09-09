@@ -35,9 +35,10 @@ describe("role guards", () => {
     expect(canManageSettings("SUPER_ADMIN")).toBe(false);
   });
 
-  it("limits cashier order transitions", () => {
-    expect(allowedTransitions("BUSINESS_OWNER", "CONFIRMED")).toContain("CANCELLED");
-    expect(allowedTransitions("CASHIER", "CONFIRMED")).not.toContain("CANCELLED");
+  it("limits business roles to the pickup pipeline", () => {
+    expect(allowedTransitions("BUSINESS_OWNER", "CONFIRMED")).toEqual(["PREPARING"]);
+    expect(allowedTransitions("CASHIER", "CONFIRMED")).toEqual(["PREPARING"]);
+    expect(allowedTransitions("STAFF", "PENDING")).toEqual(["CONFIRMED", "REJECTED"]);
     expect(allowedTransitions("CUSTOMER", "PENDING")).toEqual([]);
   });
 });

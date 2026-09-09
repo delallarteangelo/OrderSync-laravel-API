@@ -31,7 +31,7 @@ export function LoginPage() {
   const bootstrapped = useAuthStore((s) => s.bootstrapped);
   const setSession = useAuthStore((s) => s.setSession);
   const [businessChoices, setBusinessChoices] = React.useState<BusinessMembership[]>([]);
-  const from = (location.state as { from?: string } | null)?.from ?? "/dashboard";
+  const requestedFrom = (location.state as { from?: string } | null)?.from;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -52,7 +52,13 @@ export function LoginPage() {
     onSuccess: (res) => {
       setSession({ accessToken: res.accessToken, user: res.user });
       toast.success(`Welcome, ${res.user.fullName}`);
-      navigate(res.user.role === "SUPER_ADMIN" ? "/platform" : from, { replace: true });
+      const target =
+        res.user.role === "SUPER_ADMIN"
+          ? "/platform"
+          : res.user.role === "CUSTOMER"
+            ? (requestedFrom ?? `/shop/${res.user.business?.slug ?? ""}`)
+            : (requestedFrom ?? "/dashboard");
+      navigate(target, { replace: true });
     },
     onError: (err) => {
       if (isApiError(err) && err.code === "BUSINESS_SELECTION_REQUIRED") {
@@ -73,7 +79,15 @@ export function LoginPage() {
     },
   });
 
-  if (bootstrapped && user) return <Navigate to={from} replace />;
+  if (bootstrapped && user) {
+    const target =
+      user.role === "SUPER_ADMIN"
+        ? "/platform"
+        : user.role === "CUSTOMER"
+          ? (requestedFrom ?? `/shop/${user.business?.slug ?? ""}`)
+          : (requestedFrom ?? "/dashboard");
+    return <Navigate to={target} replace />;
+  }
 
   const quickLogin = (email: string) => {
     form.setValue("email", email);

@@ -1,147 +1,100 @@
-// Design.md §5.17 — Order detail screen
 import 'package:flutter/material.dart';
 
+import '../../core/storefront/storefront_models.dart';
+import '../../core/storefront/storefront_store.dart';
 import '../../mock/models.dart';
-import '../../routes/app_routes.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/app_radii.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_primary_app_bar.dart';
 import '../../widgets/order_status_badge.dart';
-import '../../widgets/primary_button.dart';
 import '../../widgets/secondary_button.dart';
 
 class OrderDetailScreen extends StatelessWidget {
-  final AppOrder order;
   const OrderDetailScreen({super.key, required this.order});
+  final CustomerOrder order;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.neutralSurface,
-      appBar: AppPrimaryAppBar(title: 'Order #${order.id}', showBack: true),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          Row(
+    final store = StorefrontScope.of(context);
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) {
+        final current =
+            store.orders.where((item) => item.id == order.id).firstOrNull ??
+            order;
+        return Scaffold(
+          backgroundColor: AppColors.neutralSurface,
+          appBar: AppPrimaryAppBar(title: current.code, showBack: true),
+          body: ListView(
+            padding: const EdgeInsets.all(20),
             children: [
-              Expanded(
-                child: Text(
-                  order.eta ?? '',
-                  style: AppTypography.textTheme.bodyMedium,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    current.businessName,
+                    style: AppTypography.textTheme.titleLarge,
+                  ),
+                  OrderStatusBadge(status: current.status),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text('Pickup order', style: AppTypography.textTheme.bodySmall),
+              const Divider(height: 28),
+              Text('Items', style: AppTypography.textTheme.titleLarge),
+              ...current.items.map(
+                (item) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(item.productName),
+                  subtitle: Text(
+                    '${item.quantity} × ₱${item.unitPrice.toStringAsFixed(2)}',
+                  ),
+                  trailing: Text('₱${item.lineTotal.toStringAsFixed(2)}'),
                 ),
               ),
-              OrderStatusBadge(status: order.status),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Delivery to', style: AppTypography.textTheme.titleLarge),
-                const SizedBox(height: 6),
-                Text(
-                  order.address.full,
-                  style: AppTypography.textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          _card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Items', style: AppTypography.textTheme.titleLarge),
-                const SizedBox(height: 8),
-                ...order.items.map(
-                  (it) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Text(
-                          '${it.quantity}× ',
-                          style: AppTypography.textTheme.bodyMedium,
-                        ),
-                        Expanded(
-                          child: Text(
-                            it.product.name,
-                            style: AppTypography.textTheme.bodyMedium,
-                          ),
-                        ),
-                        Text(
-                          '₱${it.subtotal.toStringAsFixed(2)}',
-                          style: AppTypography.textTheme.bodyMedium,
-                        ),
-                      ],
+              const Divider(height: 28),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Total', style: AppTypography.textTheme.titleLarge),
+                  Text(
+                    '₱${current.total.toStringAsFixed(2)}',
+                    style: AppTypography.textTheme.titleLarge,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text('Status history', style: AppTypography.textTheme.titleLarge),
+              const SizedBox(height: 8),
+              ...current.statusHistory.map(
+                (event) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: AppColors.brandPrimary,
+                  ),
+                  title: Text(
+                    event.status.name.replaceAll(
+                      'readyForPickup',
+                      'ready for pickup',
                     ),
                   ),
+                  subtitle: Text(
+                    '${event.actorName}${event.note == null ? '' : ' · ${event.note}'}',
+                  ),
+                ),
+              ),
+              if (current.status == OrderStatus.pending) ...[
+                const SizedBox(height: 16),
+                SecondaryButton(
+                  label: 'Cancel pending order',
+                  onPressed: store.busy ? null : () => store.cancel(current),
                 ),
               ],
-            ),
+            ],
           ),
-          const SizedBox(height: 12),
-          _card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Summary', style: AppTypography.textTheme.titleLarge),
-                const SizedBox(height: 8),
-                _kv('Subtotal', '₱${order.subtotal.toStringAsFixed(2)}'),
-                const SizedBox(height: 4),
-                _kv('Delivery fee', '₱${order.deliveryFee.toStringAsFixed(2)}'),
-                const Divider(height: 20),
-                _kv('Total', '₱${order.total.toStringAsFixed(2)}', bold: true),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          PrimaryButton(
-            label: 'Track order',
-            onPressed: () => Navigator.of(
-              context,
-            ).pushNamed(AppRoutes.orderTracking, arguments: order),
-          ),
-          const SizedBox(height: 10),
-          SecondaryButton(
-            label: 'Message store',
-            onPressed: () => Navigator.of(
-              context,
-            ).pushNamed(AppRoutes.chatThread, arguments: order.id),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
-
-  Widget _kv(String k, String v, {bool bold = false}) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(
-        k,
-        style: AppTypography.textTheme.bodyMedium?.copyWith(
-          color: AppColors.neutralInkSecondary,
-        ),
-      ),
-      Text(
-        v,
-        style: bold
-            ? AppTypography.textTheme.titleLarge?.copyWith(
-                color: AppColors.brandPrimary,
-              )
-            : AppTypography.textTheme.bodyMedium,
-      ),
-    ],
-  );
-
-  Widget _card({required Widget child}) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: AppColors.neutralSurface,
-      borderRadius: AppRadii.brLg,
-      border: Border.all(color: AppColors.neutralBorder),
-    ),
-    child: child,
-  );
 }

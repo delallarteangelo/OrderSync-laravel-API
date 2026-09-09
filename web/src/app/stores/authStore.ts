@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { User, Role } from "@/shared/types/auth";
 import { adminUser, cashierUser, mockUsers } from "@/mock/mockUsers";
 import { usePosCartStore } from "./posCartStore";
+import { useStorefrontCartStore } from "./storefrontCartStore";
 
 type AuthState = {
   user: User | null;
@@ -20,6 +21,7 @@ type AuthState = {
 
 function syncCartTenant(user: User | null) {
   usePosCartStore.getState().setBusiness(user?.business?.id ?? null);
+  useStorefrontCartStore.getState().setBusiness(user?.business?.slug ?? null);
 }
 
 export const useAuthStore = create<AuthState>((set) => ({

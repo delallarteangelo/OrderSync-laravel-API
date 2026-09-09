@@ -9,12 +9,14 @@ import '../theme/app_typography.dart';
 class ProductCardListTile extends StatelessWidget {
   final Product product;
   final VoidCallback? onTap;
+  final VoidCallback? onAdd;
   final Widget? trailing;
 
   const ProductCardListTile({
     super.key,
     required this.product,
     this.onTap,
+    this.onAdd,
     this.trailing,
   });
 
@@ -75,7 +77,14 @@ class ProductCardListTile extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailing != null) trailing!,
+            if (trailing != null)
+              trailing!
+            else if (onAdd != null)
+              IconButton(
+                onPressed: onAdd,
+                icon: const Icon(Icons.add_circle_rounded),
+                color: AppColors.brandPrimary,
+              ),
           ],
         ),
       ),

@@ -1,7 +1,7 @@
 // Design.md §5.9 — Search screen
 import 'package:flutter/material.dart';
 
-import '../../mock/mock_products.dart';
+import '../../core/storefront/storefront_store.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -18,21 +18,19 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   String _query = '';
-  static const _recent = ['Saging', 'Bigas', 'Coca-Cola', 'Itlog'];
-  static const _trending = [
-    'Carabao Mango',
-    'Skyflakes',
-    'Nescafé',
-    'Pandesal',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final store = StorefrontScope.of(context);
+    final products = store.catalog?.products ?? const [];
     final results = _query.isEmpty
         ? const []
-        : mockProducts
+        : products
               .where((p) => p.name.toLowerCase().contains(_query.toLowerCase()))
               .toList(growable: false);
+    final suggestions = products
+        .take(8)
+        .map((product) => product.name)
+        .toList();
     return Scaffold(
       backgroundColor: AppColors.neutralSurface,
       appBar: const AppPrimaryAppBar(title: 'Search', showBack: true),
@@ -52,32 +50,14 @@ class _SearchScreenState extends State<SearchScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       children: [
                         Text(
-                          'Recent searches',
+                          'Browse products',
                           style: AppTypography.textTheme.titleLarge,
                         ),
                         const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: _recent
-                              .map(
-                                (q) => CategoryChip(
-                                  label: q,
-                                  onTap: () => setState(() => _query = q),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Trending',
-                          style: AppTypography.textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _trending
+                          children: suggestions
                               .map(
                                 (q) => CategoryChip(
                                   label: q,
@@ -100,6 +80,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (_, i) => ProductCardListTile(
                         product: results[i],
+                        onAdd: () => store.add(results[i]),
                         onTap: () => Navigator.of(context).pushNamed(
                           AppRoutes.productDetail,
                           arguments: results[i],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../mock/models.dart';
+import '../core/storefront/storefront_models.dart';
 import '../screens/auth/forgot_password_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
@@ -96,7 +97,7 @@ class AppRoutes {
       case orderConfirmation:
         return _build(const OrderConfirmationScreen(), settings);
       case orderDetail:
-        final o = settings.arguments as AppOrder;
+        final o = settings.arguments as CustomerOrder;
         return _build(OrderDetailScreen(order: o), settings);
       case orderTracking:
         return _build(const OrderTrackingScreen(), settings);

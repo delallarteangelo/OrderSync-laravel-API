@@ -47,4 +47,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(RefreshToken::class);
     }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'customer_user_id');
+    }
 }

@@ -23,6 +23,7 @@ void main() {
 
     expect(session.user.role, AuthRole.customer);
     expect(session.user.businessId, '7');
+    expect(session.user.businessSlug, 'example-store');
     expect(session.accessToken, 'access-token');
     expect(session.refreshToken, 'refresh-token');
   });

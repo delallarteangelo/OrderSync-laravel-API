@@ -4,8 +4,10 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BusinessRegistrationController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ContextController;
+use App\Http\Controllers\Api\V1\CustomerOrderController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InventoryController;
+use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PlatformBusinessController;
 use App\Http\Controllers\Api\V1\PlatformDashboardController;
 use App\Http\Controllers\Api\V1\PlatformPlanController;
@@ -14,12 +16,15 @@ use App\Http\Controllers\Api\V1\PlatformUserController;
 use App\Http\Controllers\Api\V1\PosSaleController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProductImageController;
+use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\TenantSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/v1/health', HealthController::class)->name('api.health');
 
 Route::prefix('/v1')->group(function (): void {
+    Route::get('/storefronts', [StorefrontController::class, 'index']);
+    Route::get('/storefronts/{slug}', [StorefrontController::class, 'show']);
     Route::post('/business-registrations', [BusinessRegistrationController::class, 'store'])->middleware('throttle:5,1');
 
     Route::prefix('/auth')->group(function (): void {
@@ -101,5 +106,20 @@ Route::prefix('/v1')->group(function (): void {
             Route::get('/sales', [PosSaleController::class, 'index']);
             Route::post('/sales', [PosSaleController::class, 'store']);
             Route::get('/sales/{sale}', [PosSaleController::class, 'show']);
+        });
+
+    Route::middleware(['auth.access', 'tenant', 'role:CUSTOMER', 'entitlement:customer_ordering_enabled'])
+        ->prefix('/customer')->group(function (): void {
+            Route::get('/orders', [CustomerOrderController::class, 'index']);
+            Route::post('/orders', [CustomerOrderController::class, 'store']);
+            Route::get('/orders/{order}', [CustomerOrderController::class, 'show']);
+            Route::post('/orders/{order}/cancel', [CustomerOrderController::class, 'cancel']);
+        });
+
+    Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER,STAFF,CASHIER', 'entitlement:customer_ordering_enabled'])
+        ->prefix('/orders')->group(function (): void {
+            Route::get('/', [OrderController::class, 'index']);
+            Route::get('/{order}', [OrderController::class, 'show']);
+            Route::post('/{order}/transition', [OrderController::class, 'transition']);
         });
 });

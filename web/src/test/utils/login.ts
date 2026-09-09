@@ -19,6 +19,10 @@ export async function loginAsCashier() {
   return loginAs("maria.cashier@minimart.ph");
 }
 
+export async function loginAsCustomer() {
+  return loginAs("customer@ordersync.local");
+}
+
 export function logout() {
   useAuthStore.setState({ accessToken: null, user: null, bootstrapped: false });
 }

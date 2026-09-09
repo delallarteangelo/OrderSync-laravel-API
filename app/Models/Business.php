@@ -58,4 +58,9 @@ class Business extends Model
     {
         return $this->hasMany(Sale::class);
     }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
 }

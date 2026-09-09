@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\InventoryReason;
 use App\Enums\ReorderAlertStatus;
 use App\Exceptions\InsufficientStockException;
+use App\Exceptions\OrderWorkflowException;
 use App\Exceptions\PosSaleException;
 use App\Models\Business;
 use App\Models\InventoryMovement;
@@ -162,6 +163,37 @@ class CatalogInventoryService
 
             return $products;
         });
+    }
+
+    /** @param array<int, array{product_id:int, quantity:int}> $lines */
+    public function deductForOrder(Business $business, User $actor, array $lines, string $orderNumber): void
+    {
+        usort($lines, fn (array $left, array $right): int => $left['product_id'] <=> $right['product_id']);
+        foreach ($lines as $line) {
+            $product = Product::query()->where('business_id', $business->getKey())
+                ->whereKey($line['product_id'])->lockForUpdate()->first();
+            if (! $product || ! $product->is_active) {
+                throw new OrderWorkflowException('PRODUCT_UNAVAILABLE', 'One or more products are unavailable.', 409, [
+                    'items' => ["Product {$line['product_id']} is unavailable."],
+                ]);
+            }
+            $stock = InventoryStock::query()->where('business_id', $business->getKey())
+                ->where('product_id', $product->getKey())->lockForUpdate()->firstOrFail();
+            if ($stock->quantity < $line['quantity']) {
+                throw new OrderWorkflowException('INSUFFICIENT_STOCK', 'One or more items have insufficient stock.', 409, [
+                    'items' => ["{$product->name} has {$stock->quantity} available; {$line['quantity']} requested."],
+                ]);
+            }
+            $this->applyStockChange(
+                $product,
+                $stock,
+                $actor,
+                -$line['quantity'],
+                InventoryReason::OrderConfirmed,
+                "Confirmed order {$orderNumber}",
+                null,
+            );
+        }
     }
 
     private function applyStockChange(

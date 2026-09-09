@@ -1,7 +1,6 @@
-// Design.md §5.11 — Cart tab
 import 'package:flutter/material.dart';
 
-import '../../mock/mock_cart.dart';
+import '../../core/storefront/storefront_store.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -15,94 +14,79 @@ class CartTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.neutralSurface,
-      appBar: const AppPrimaryAppBar(title: 'My Cart'),
-      body: mockCart.isEmpty
-          ? EmptyState(
-              icon: Icons.shopping_cart_outlined,
-              title: 'Your cart is empty',
-              description:
-                  'Browse our store and add fresh items to get started.',
-              actionLabel: 'Start shopping',
-              onAction: () => Navigator.of(
-                context,
-              ).pushNamedAndRemoveUntil(AppRoutes.home, (_) => false),
-            )
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: mockCart.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (_, i) => CartItemRow(line: mockCart[i]),
-                  ),
-                ),
-                Container(
-                  decoration: const BoxDecoration(
-                    color: AppColors.neutralSurface,
-                    border: Border(
-                      top: BorderSide(color: AppColors.neutralBorder),
+    final store = StorefrontScope.of(context);
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) {
+        final cart = store.cart;
+        return Scaffold(
+          backgroundColor: AppColors.neutralSurface,
+          appBar: const AppPrimaryAppBar(title: 'My Cart'),
+          body: cart.isEmpty
+              ? EmptyState(
+                  icon: Icons.shopping_cart_outlined,
+                  title: 'Your cart is empty',
+                  description:
+                      'Browse this store and add products to get started.',
+                )
+              : Column(
+                  children: [
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: cart.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (_, index) {
+                          final line = cart[index];
+                          return CartItemRow(
+                            line: line,
+                            onRemove: () => store.remove(line.product.id),
+                            onQuantityChanged: (value) =>
+                                store.setQuantity(line.product, value),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                  child: SafeArea(
-                    top: false,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _row(
-                          'Subtotal',
-                          '₱${mockCartSubtotal.toStringAsFixed(2)}',
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: AppColors.neutralBorder),
                         ),
-                        const SizedBox(height: 6),
-                        _row(
-                          'Delivery fee',
-                          '₱${mockDeliveryFee.toStringAsFixed(2)}',
-                        ),
-                        const SizedBox(height: 10),
-                        const Divider(height: 1),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      ),
+                      child: SafeArea(
+                        top: false,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text(
-                              'Total',
-                              style: AppTypography.textTheme.titleLarge,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Pickup total',
+                                  style: AppTypography.textTheme.titleLarge,
+                                ),
+                                Text(
+                                  '₱${store.total.toStringAsFixed(2)}',
+                                  style: AppTypography.textTheme.titleLarge
+                                      ?.copyWith(color: AppColors.brandPrimary),
+                                ),
+                              ],
                             ),
-                            Text(
-                              '₱${mockCartTotal.toStringAsFixed(2)}',
-                              style: AppTypography.textTheme.titleLarge
-                                  ?.copyWith(color: AppColors.brandPrimary),
+                            const SizedBox(height: 14),
+                            PrimaryButton(
+                              label: 'Review pickup order',
+                              onPressed: () => Navigator.of(
+                                context,
+                              ).pushNamed(AppRoutes.checkout),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 14),
-                        PrimaryButton(
-                          label: 'Proceed to checkout',
-                          onPressed: () => Navigator.of(
-                            context,
-                          ).pushNamed(AppRoutes.checkout),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+        );
+      },
     );
   }
-
-  Widget _row(String label, String value) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(
-        label,
-        style: AppTypography.textTheme.bodyMedium?.copyWith(
-          color: AppColors.neutralInkSecondary,
-        ),
-      ),
-      Text(value, style: AppTypography.textTheme.bodyMedium),
-    ],
-  );
 }

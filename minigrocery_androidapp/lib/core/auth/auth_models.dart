@@ -46,6 +46,7 @@ class AuthUser {
     required this.role,
     required this.businessId,
     required this.businessName,
+    required this.businessSlug,
   });
 
   final String id;
@@ -54,6 +55,7 @@ class AuthUser {
   final AuthRole role;
   final String? businessId;
   final String? businessName;
+  final String? businessSlug;
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     final business = json['business'] as Map<String, dynamic>?;
@@ -64,6 +66,7 @@ class AuthUser {
       role: AuthRole.fromJson(json['role'] as String),
       businessId: business?['id']?.toString(),
       businessName: business?['name'] as String?,
+      businessSlug: business?['slug'] as String?,
     );
   }
 }

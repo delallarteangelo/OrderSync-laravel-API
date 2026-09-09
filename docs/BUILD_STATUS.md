@@ -1,6 +1,6 @@
 # OrderSync Build Status
 
-Last verified: 2026-09-08
+Last verified: 2026-09-09
 
 This is the repository-level source of truth for implementation status. Client task trackers describe intended client work and are not evidence that backend or cross-client behavior is complete.
 
@@ -14,7 +14,7 @@ This is the repository-level source of truth for implementation status. Client t
 | 3 — SaaS administration and subscriptions | Complete | Business lifecycle, fixed plans/configurable entitlements, subscriptions, internal billing, platform dashboard, and user status administration verified. |
 | 4 — Catalog and inventory | Complete | Tenant catalog, product images, transactional stock, immutable movement history, low-stock alerts, and React integration verified. |
 | 5 — Point of sale | Complete | Tenant POS, server-authoritative totals, idempotent finalization, atomic stock deduction, recorded payments, receipts, and history verified. |
-| 6 — Customer storefront and ordering | Not started | Requires separate approval. |
+| 6 — Customer storefront and ordering | Complete | Public tenant storefronts, real React/Flutter catalogs, carts, idempotent pickup ordering, status workflow, customer cancellation, and transactional confirmation verified. |
 | 7 — Recorded GCash and Maya payments | Not started | Requires separate approval. |
 | 8 — Messaging, realtime events, notifications | Not started | Requires separate approval. |
 | 9 — Analytics and reports | Not started | Requires separate approval. |
@@ -88,6 +88,19 @@ See [`CATALOG_INVENTORY.md`](CATALOG_INVENTORY.md) for schema rules, API contrac
 
 See [`POINT_OF_SALE.md`](POINT_OF_SALE.md) for data rules, API contracts, idempotency, transaction behavior, roles, and payment limitations.
 
+## Phase 6 baseline
+
+- PostgreSQL is authoritative for pickup orders, immutable line snapshots, status history, customer identity snapshots, and tenant/customer-scoped idempotency.
+- Public storefronts expose only Active businesses whose effective subscription includes `customer_ordering_enabled`; public catalog responses omit business-only cost data.
+- Customer APIs return only orders owned by the authenticated customer in the token-bound tenant; business APIs return only the bound tenant's orders.
+- Placement validates current availability and reloads product names, SKUs, and prices from PostgreSQL, but intentionally does not reserve or deduct stock.
+- The first business confirmation transactionally rechecks and deducts stock, increments versions, writes `ORDER_CONFIRMED` movements, synchronizes reorder alerts, appends history, and audits the transition.
+- The pickup workflow is `PENDING → CONFIRMED → PREPARING → READY_FOR_PICKUP → COMPLETED`; Pending may instead be Rejected with a reason or Cancelled by its customer.
+- React provides a public `/shop` directory and storefront, tenant-scoped session cart, retry-stable idempotency, customer history/cancellation, and real business order controls.
+- Flutter uses the same real storefront/order API for catalog, cart, pickup checkout, history, status timeline, and Pending-only cancellation, and clears customer state across auth or tenant boundaries.
+
+See [`CUSTOMER_ORDERING.md`](CUSTOMER_ORDERING.md) for eligibility, API contracts, pricing, status, stock, client, and deferral rules.
+
 ## Validation matrix
 
 | Surface | Command/check | Result |
@@ -151,12 +164,26 @@ See [`POINT_OF_SALE.md`](POINT_OF_SALE.md) for data rules, API contracts, idempo
 | Flutter | Phase 5 scope review | No source change required; customer storefront and ordering remain assigned to Phase 6 |
 | Hosted CI | Workflow definition | Not executed — no remote repository or external account was authorized |
 
+## Phase 6 validation matrix
+
+| Surface | Command/check | Result |
+| --- | --- | --- |
+| PostgreSQL | Additive development migration and explicitly isolated test rebuild | Passed — 9 migrations; order, line, status-event, idempotency, total, index, foreign-key, and check constraints created |
+| Laravel | Pint and complete PHPUnit suite | Passed — formatting clean; 51 tests and 450 assertions |
+| Storefront/order security | Public field filtering, effective subscription, roles, ownership, tenant IDs | Passed — ineligible storefronts hidden; foreign products and orders rejected or hidden; customer/business roles enforced |
+| Transaction safety | Multi-line confirmation, rollback, snapshots, status history, audit | Passed — failing confirmation changes no order, stock, movement, event, or audit state |
+| Idempotency and concurrency | Placement replay/mismatch and 4 simultaneous confirmations | Passed — one confirmation, three illegal repeats, one stock deduction/movement, quantity 8/version 1 |
+| React | Lint, typecheck, tests, production build | Passed — 0 lint errors (20 existing warnings), clean typecheck, 43 tests, build complete |
+| Flutter | Format, analyze, tests | Passed — 76 files formatted, no analysis issues, 8 tests |
+| Hosted CI | Workflow definition | Not executed — no remote repository or external account was authorized |
+
 ## Known limitations
 
-- React business-operational behavior beyond authentication, SaaS administration, catalog, inventory, and POS still depends on MSW fixtures.
+- React messaging, reports, settings, and remaining non-Phase-6 prototype areas still depend on MSW fixtures.
 - React lint retains 20 non-blocking warnings, and the production build reports a 2.81 MB main chunk that should be code-split in a later web phase.
-- Flutter business data remains a static design prototype; only authentication uses the real API contract.
+- Flutter storefront, catalog, cart, checkout, and customer orders use real APIs; messaging, notifications, account editing, and other later-phase screens remain prototype-only.
 - Flutter tokens are intentionally memory-only because no encrypted-storage dependency was approved for Phase 2; cold-start restoration remains deferred.
+- Flutter storefront, cart, and last-known orders are memory-only and do not survive a cold app restart because no new persistence dependency was approved for Phase 6.
 - Android release packaging was not part of Phase 1; JDK 17 remains required before release-oriented work.
 - The Flutter lockfile currently has 34 newer package versions outside its existing dependency constraints; no dependency upgrade was authorized in this phase.
 - Plan prices are intentionally unconfigured by default and require an approved Super Admin value before bills are created.
@@ -167,7 +194,9 @@ See [`POINT_OF_SALE.md`](POINT_OF_SALE.md) for data rules, API contracts, idempo
 - POS tax remains zero until tenant tax settings and applicable fiscal requirements receive a separately approved design.
 - POS GCash, Maya, card, and other non-cash references are recorded but not provider-confirmed; proof upload and manual verification remain Phase 7 work.
 - Completed sales have no void, return, refund, or correction workflow; direct mutation is intentionally prohibited.
-- No real customer ordering, payment-proof verification, notification transport, AI, or deployment implementation exists yet.
+- Customer orders are pickup-only, placement does not reserve stock, and confirmed orders have no customer cancellation, refund, or automatic restock workflow.
+- No payment-proof verification, notification transport, AI, PWA/offline safety, or deployment implementation exists yet.
+- The local `ordersync` development database is migrated but empty; pilot/demo rows were not recreated after the approved decision to leave it empty.
 - The local Laragon PostgreSQL cluster uses trusted loopback authentication; non-local environments must use passwords or managed identity.
 
 ## Current decisions
@@ -185,3 +214,5 @@ See [`POINT_OF_SALE.md`](POINT_OF_SALE.md) for data rules, API contracts, idempo
 - Phase 4 development product images use Laravel's local public disk; no external storage service was introduced.
 - POS totals and product snapshots are server-owned; checkout idempotency is tenant-scoped, and stock plus receipt persistence is one PostgreSQL transaction.
 - Recorded non-cash POS methods never imply GCash, Maya, card-provider, or other external confirmation.
+- Customer order placement is idempotent per business/customer/key; stock is deducted only on the first locked business confirmation.
+- Phase 6 fulfillment is pickup-only. A customer can cancel only while Pending; rejection requires a business reason, and later refund/restock behavior is deferred.

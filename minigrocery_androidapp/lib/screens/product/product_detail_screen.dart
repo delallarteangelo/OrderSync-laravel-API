@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../mock/models.dart';
+import '../../core/storefront/storefront_store.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_radii.dart';
@@ -171,6 +172,7 @@ class ProductDetailScreen extends StatelessWidget {
                         icon: Icons.shopping_cart_outlined,
                         label: 'Add to cart',
                         onPressed: () {
+                          StorefrontScope.of(context).add(product);
                           AppSnackBar.showSuccess(context, 'Added to cart');
                         },
                       ),

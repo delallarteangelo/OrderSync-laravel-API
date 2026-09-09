@@ -79,6 +79,23 @@ export const mockUsers: User[] = [
       },
     ],
   },
+  {
+    id: "u-customer-1",
+    email: "customer@ordersync.local",
+    fullName: "Local Customer",
+    role: "CUSTOMER",
+    isActive: true,
+    createdAt: "2026-09-09T08:00:00.000Z",
+    business: { id: "business-tonette", name: "Tonette's Minimart", slug: "tonettes-minimart" },
+    memberships: [
+      {
+        businessId: "business-tonette",
+        businessName: "Tonette's Minimart",
+        businessSlug: "tonettes-minimart",
+        role: "CUSTOMER",
+      },
+    ],
+  },
 ];
 
 export const superAdminUser = mockUsers[0];

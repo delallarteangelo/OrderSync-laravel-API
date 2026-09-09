@@ -1,5 +1,5 @@
 import { http } from "./axios";
-import type { Order, OrderStatus } from "@/shared/types/orders";
+import type { Order, OrderStatus, Storefront, StorefrontSummary } from "@/shared/types/orders";
 
 export type OrderFilters = {
   status?: OrderStatus;
@@ -23,7 +23,44 @@ export async function getOrder(id: string): Promise<Order> {
   return data;
 }
 
-export async function transitionOrder(id: string, next: OrderStatus, note?: string): Promise<Order> {
+export async function transitionOrder(
+  id: string,
+  next: OrderStatus,
+  note?: string,
+): Promise<Order> {
   const { data } = await http.post<Order>(`/orders/${id}/transition`, { next, note });
+  return data;
+}
+
+export async function listStorefronts(): Promise<StorefrontSummary[]> {
+  const { data } = await http.get<{ items: StorefrontSummary[] }>("/storefronts");
+  return data.items;
+}
+
+export async function getStorefront(slug: string): Promise<Storefront> {
+  const { data } = await http.get<Storefront>(`/storefronts/${encodeURIComponent(slug)}`);
+  return data;
+}
+
+export type PlaceOrderPayload = {
+  items: { productId: string; quantity: number }[];
+  idempotencyKey: string;
+};
+
+export async function placeCustomerOrder(payload: PlaceOrderPayload): Promise<Order> {
+  const { idempotencyKey, ...body } = payload;
+  const { data } = await http.post<Order>("/customer/orders", body, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
+  return data;
+}
+
+export async function listCustomerOrders(): Promise<Order[]> {
+  const { data } = await http.get<{ items: Order[] }>("/customer/orders");
+  return data.items;
+}
+
+export async function cancelCustomerOrder(id: string, note?: string): Promise<Order> {
+  const { data } = await http.post<Order>(`/customer/orders/${id}/cancel`, { note });
   return data;
 }

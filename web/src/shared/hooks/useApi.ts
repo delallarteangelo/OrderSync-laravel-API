@@ -24,7 +24,17 @@ import {
   restock,
   type MovementFilters,
 } from "@/shared/api/inventory";
-import { getOrder, listOrders, transitionOrder, type OrderFilters } from "@/shared/api/orders";
+import {
+  cancelCustomerOrder,
+  getOrder,
+  getStorefront,
+  listCustomerOrders,
+  listOrders,
+  listStorefronts,
+  placeCustomerOrder,
+  transitionOrder,
+  type OrderFilters,
+} from "@/shared/api/orders";
 import { finalizeSale, getSale, listSales } from "@/shared/api/pos";
 import { listMessages, listThreads, markThreadRead, sendMessage } from "@/shared/api/messages";
 import {
@@ -78,6 +88,15 @@ export const tenantQk = {
     ["tenant", businessId, "movements", f ?? {}] as const,
   sales: (businessId: string) => ["tenant", businessId, "pos", "sales"] as const,
   sale: (businessId: string, id: string) => ["tenant", businessId, "pos", "sale", id] as const,
+  orders: (businessId: string, f?: OrderFilters) =>
+    ["tenant", businessId, "orders", f ?? {}] as const,
+  order: (businessId: string, id: string) => ["tenant", businessId, "order", id] as const,
+  customerOrders: (businessId: string) => ["tenant", businessId, "customer", "orders"] as const,
+};
+
+export const storefrontQk = {
+  all: ["storefronts"] as const,
+  detail: (slug: string) => ["storefront", slug] as const,
 };
 
 function useBusinessId(): string {
@@ -238,23 +257,71 @@ export function useUploadProductImage() {
 }
 
 // ---- Orders ----
-export const useOrders = (filters?: OrderFilters) =>
-  useQuery({ queryKey: qk.orders(filters), queryFn: () => listOrders(filters) });
-export const useOrder = (id: string | undefined) =>
-  useQuery({ queryKey: qk.order(id ?? ""), queryFn: () => getOrder(id!), enabled: !!id });
+export const useOrders = (filters?: OrderFilters) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: tenantQk.orders(businessId, filters),
+    queryFn: () => listOrders(filters),
+  });
+};
+export const useOrder = (id: string | undefined) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: tenantQk.order(businessId, id ?? ""),
+    queryFn: () => getOrder(id!),
+    enabled: !!id,
+  });
+};
 
 export function useTransitionOrder() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: (v: { id: string; next: Parameters<typeof transitionOrder>[1]; note?: string }) =>
       transitionOrder(v.id, v.next, v.note),
     onSuccess: (_d, v) => {
-      qc.invalidateQueries({ queryKey: ["orders"] });
-      qc.invalidateQueries({ queryKey: qk.order(v.id) });
+      qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
+      qc.invalidateQueries({ queryKey: tenantQk.order(businessId, v.id) });
       qc.invalidateQueries({ queryKey: qk.dashboard });
-      qc.invalidateQueries({ queryKey: ["movements"] });
-      qc.invalidateQueries({ queryKey: qk.inventory });
     },
+  });
+}
+
+export const useStorefronts = () =>
+  useQuery({ queryKey: storefrontQk.all, queryFn: listStorefronts, staleTime: 60_000 });
+
+export const useStorefront = (slug: string | undefined) =>
+  useQuery({
+    queryKey: storefrontQk.detail(slug ?? ""),
+    queryFn: () => getStorefront(slug!),
+    enabled: !!slug,
+    staleTime: 15_000,
+  });
+
+export const useCustomerOrders = (enabled = true) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: tenantQk.customerOrders(businessId),
+    queryFn: listCustomerOrders,
+    enabled,
+  });
+};
+
+export function usePlaceCustomerOrder() {
+  const qc = useQueryClient();
+  const businessId = useBusinessId();
+  return useMutation({
+    mutationFn: placeCustomerOrder,
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantQk.customerOrders(businessId) }),
+  });
+}
+
+export function useCancelCustomerOrder() {
+  const qc = useQueryClient();
+  const businessId = useBusinessId();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note?: string }) => cancelCustomerOrder(id, note),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantQk.customerOrders(businessId) }),
   });
 }
 

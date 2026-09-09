@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronRight, Phone, User as UserIcon } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, ChevronRight, Mail, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { OrderStatus } from "@/shared/types/orders";
 import { PageHeader } from "@/shared/components/PageHeader";
@@ -35,7 +35,6 @@ const statusActionLabel: Record<OrderStatus, string> = {
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const orderQ = useOrder(id);
   const order = orderQ.data;
   const transitionM = useTransitionOrder();
@@ -62,8 +61,11 @@ export function OrderDetailPage() {
   const transitions = allowedTransitions(user.role, order.status);
 
   const handleTransition = (next: OrderStatus) => {
+    const note =
+      next === "REJECTED" ? window.prompt("Reason for rejecting this order:")?.trim() : undefined;
+    if (next === "REJECTED" && !note) return;
     transitionM.mutate(
-      { id: order.id, next },
+      { id: order.id, next, note },
       {
         onSuccess: () => toast.success(`Order ${order.code} → ${next.replaceAll("_", " ")}`),
         onError: (e) => toast.error(isApiError(e) ? e.message : "Failed to update status"),
@@ -93,9 +95,7 @@ export function OrderDetailPage() {
               transitions.map((next) => (
                 <Button
                   key={next}
-                  variant={
-                    next === "REJECTED" || next === "CANCELLED" ? "destructive" : "default"
-                  }
+                  variant={next === "REJECTED" || next === "CANCELLED" ? "destructive" : "default"}
                   size="sm"
                   onClick={() => handleTransition(next)}
                 >
@@ -168,12 +168,10 @@ export function OrderDetailPage() {
                 <UserIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">{order.customer.name}</span>
               </div>
-              {order.customer.phone && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span>{order.customer.phone}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Mail className="h-4 w-4" />
+                <span>{order.customer.email}</span>
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -203,9 +201,6 @@ export function OrderDetailPage() {
           </Card>
         </div>
       </div>
-
-      {/* navigate suppression */}
-      <span hidden onClick={() => navigate("/orders")} />
     </>
   );
 }

@@ -44,7 +44,10 @@ export function OrderListPage() {
         accessorKey: "code",
         header: "Order #",
         cell: ({ row }) => (
-          <Link to={`/orders/${row.original.id}`} className="font-medium text-primary hover:underline">
+          <Link
+            to={`/orders/${row.original.id}`}
+            className="font-medium text-primary hover:underline"
+          >
             {row.original.code}
           </Link>
         ),
@@ -56,7 +59,7 @@ export function OrderListPage() {
         cell: ({ row }) => (
           <div>
             <p className="text-sm font-medium">{row.original.customer.name}</p>
-            <p className="text-xs text-muted-foreground">{row.original.customer.phone}</p>
+            <p className="text-xs text-muted-foreground">{row.original.customer.email}</p>
           </div>
         ),
       },
@@ -64,15 +67,15 @@ export function OrderListPage() {
         accessorKey: "placedAt",
         header: "Placed",
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">{fmtDateTime(row.original.placedAt)}</span>
+          <span className="text-sm text-muted-foreground">
+            {fmtDateTime(row.original.placedAt)}
+          </span>
         ),
       },
       {
         id: "items",
         header: "Items",
-        cell: ({ row }) => (
-          <span className="text-sm">{row.original.items.length}</span>
-        ),
+        cell: ({ row }) => <span className="text-sm">{row.original.items.length}</span>,
       },
       {
         accessorKey: "total",
@@ -102,10 +105,7 @@ export function OrderListPage() {
 
   return (
     <>
-      <PageHeader
-        title="Orders"
-        description="Pickup orders from customers across all statuses."
-      />
+      <PageHeader title="Orders" description="Pickup orders from customers across all statuses." />
       <DataTable
         columns={columns}
         data={filtered}

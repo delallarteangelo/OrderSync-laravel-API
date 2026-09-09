@@ -38,6 +38,7 @@ class Product {
   final int reviewCount;
   final String description;
   final String? imageAsset;
+  final String? remoteImageUrl;
   const Product({
     required this.id,
     required this.name,
@@ -49,13 +50,14 @@ class Product {
     required this.reviewCount,
     required this.description,
     this.imageAsset,
+    this.remoteImageUrl,
   });
 
   String get imageUrl => 'https://picsum.photos/seed/$id/300/300';
 
   ImageProvider get image => imageAsset != null
       ? AssetImage(imageAsset!) as ImageProvider
-      : NetworkImage(imageUrl);
+      : NetworkImage(remoteImageUrl ?? imageUrl);
 }
 
 class CartLine {

@@ -29,20 +29,10 @@ export function canApplyLineDiscount(role: Role | undefined): boolean {
   return role === "BUSINESS_OWNER";
 }
 
-// Order transition matrix — what each role may set from each status.
-// Both roles can move pipeline forward; admin has more rights for cancel/reject.
+// Business roles may move pickup orders only through the server-approved pipeline.
 export function allowedTransitions(role: Role | undefined, status: OrderStatus): OrderStatus[] {
   if (!role) return [];
   const base: Record<OrderStatus, OrderStatus[]> = {
-    PENDING: ["CONFIRMED", "REJECTED"],
-    CONFIRMED: ["PREPARING", "CANCELLED"],
-    PREPARING: ["READY_FOR_PICKUP", "CANCELLED"],
-    READY_FOR_PICKUP: ["COMPLETED", "CANCELLED"],
-    COMPLETED: [],
-    REJECTED: [],
-    CANCELLED: [],
-  };
-  const cashierMask: Record<OrderStatus, OrderStatus[]> = {
     PENDING: ["CONFIRMED", "REJECTED"],
     CONFIRMED: ["PREPARING"],
     PREPARING: ["READY_FOR_PICKUP"],
@@ -51,7 +41,6 @@ export function allowedTransitions(role: Role | undefined, status: OrderStatus):
     REJECTED: [],
     CANCELLED: [],
   };
-  if (role === "BUSINESS_OWNER") return base[status];
-  if (role === "STAFF" || role === "CASHIER") return cashierMask[status];
+  if (role === "BUSINESS_OWNER" || role === "STAFF" || role === "CASHIER") return base[status];
   return [];
 }

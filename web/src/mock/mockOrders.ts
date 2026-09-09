@@ -3,12 +3,12 @@ import { mockProducts } from "./mockProducts";
 import { isoDaysAgo, isoHoursAgo, isoMinutesAgo } from "@/shared/lib/dates";
 
 const customers = [
-  { id: "c-1", name: "Aling Nena Sari-Sari Store", phone: "+63 917 555 0101" },
-  { id: "c-2", name: "Mang Berto's Carinderia", phone: "+63 917 555 0102" },
-  { id: "c-3", name: "Cely Mini-Store", phone: "+63 917 555 0103" },
-  { id: "c-4", name: "Tindahan ni Aleng Rosa", phone: "+63 917 555 0104" },
-  { id: "c-5", name: "JB Variety Shop", phone: "+63 917 555 0105" },
-  { id: "c-6", name: "Salud General Store", phone: "+63 917 555 0106" },
+  { id: "c-1", name: "Aling Nena Sari-Sari Store", email: "nena@example.test" },
+  { id: "c-2", name: "Mang Berto's Carinderia", email: "berto@example.test" },
+  { id: "c-3", name: "Cely Mini-Store", email: "cely@example.test" },
+  { id: "c-4", name: "Tindahan ni Aleng Rosa", email: "rosa@example.test" },
+  { id: "c-5", name: "JB Variety Shop", email: "jb@example.test" },
+  { id: "c-6", name: "Salud General Store", email: "salud@example.test" },
 ];
 
 const statusOrder: OrderStatus[] = [
@@ -30,6 +30,7 @@ function makeOrder(idx: number, status: OrderStatus): Order {
     const quantity = 1 + ((idx + i) % 4) * 2;
     return {
       productId: p.id,
+      sku: p.sku,
       productName: p.name,
       quantity,
       unitPrice: p.price,
@@ -64,9 +65,11 @@ function makeOrder(idx: number, status: OrderStatus): Order {
     id: `o-${1000 + idx}`,
     code: `ORD-${(2026000 + idx).toString()}`,
     customer: cust,
+    business: { id: "business-tonette", name: "Tonette's Minimart", slug: "tonettes-minimart" },
     items,
     subtotal,
     total: subtotal,
+    fulfillmentMethod: "PICKUP",
     status,
     placedAt,
     updatedAt: history[history.length - 1].at,

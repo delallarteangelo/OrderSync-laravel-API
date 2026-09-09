@@ -10,7 +10,13 @@ import 'quantity_stepper.dart';
 class CartItemRow extends StatelessWidget {
   final CartLine line;
   final VoidCallback? onRemove;
-  const CartItemRow({super.key, required this.line, this.onRemove});
+  final ValueChanged<int>? onQuantityChanged;
+  const CartItemRow({
+    super.key,
+    required this.line,
+    this.onRemove,
+    this.onQuantityChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +77,12 @@ class CartItemRow extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Remove',
               ),
-              QuantityStepper(initial: line.quantity, min: 1),
+              QuantityStepper(
+                initial: line.quantity,
+                min: 1,
+                max: line.product.stock,
+                onChanged: onQuantityChanged,
+              ),
             ],
           ),
         ],
