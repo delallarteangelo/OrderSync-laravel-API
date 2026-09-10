@@ -27,6 +27,33 @@ export type InventoryReportRow = {
   stockOnHand: number;
   threshold: number;
   status: "OK" | "LOW" | "OUT";
+  unitsSold: number;
+  unitsRestocked: number;
+  netMovement: number;
+  retailValue: number;
+  costValue: number;
+};
+
+export type ProductPerformanceRow = {
+  productId: string;
+  productName: string;
+  quantitySold: number;
+  transactionCount: number;
+  revenue: number;
+};
+
+export type CustomerTrendRow = {
+  customerId: string | null;
+  customerName: string;
+  customerEmail: string;
+  orderCount: number;
+  revenue: number;
+};
+
+export type AnalyticsOverview = {
+  bestSellingProducts: ProductPerformanceRow[];
+  slowMovingProducts: ProductPerformanceRow[];
+  customerTrends: CustomerTrendRow[];
 };
 
 export type LowStockAlert = {

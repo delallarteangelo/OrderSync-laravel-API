@@ -1,19 +1,11 @@
 import * as React from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Download, FileText } from "lucide-react";
 import { format } from "date-fns";
 import type { ReportBucket } from "@/shared/types/reports";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { BucketSelector } from "@/shared/components/BucketSelector";
-import { DateRangePicker } from "@/shared/components/DateRangePicker";
+import { DateRangePicker, type DateRange } from "@/shared/components/DateRangePicker";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -25,13 +17,21 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { Money } from "@/shared/components/Money";
-import { useSalesReport } from "@/shared/hooks/useApi";
+import { useAnalyticsOverview, useSalesReport } from "@/shared/hooks/useApi";
 import { exportRowsCsv } from "@/shared/lib/csv";
 import { downloadReportPdf } from "@/shared/lib/pdf";
+import { useAuthStore } from "@/app/stores/authStore";
 
 export function SalesReportPage() {
+  const businessName = useAuthStore((state) => state.user?.business?.name ?? "OrderSync");
   const [bucket, setBucket] = React.useState<ReportBucket>("day");
-  const data = useSalesReport({ bucket }).data ?? [];
+  const [dateRange, setDateRange] = React.useState<DateRange>();
+  const range = {
+    from: dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
+    to: dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
+  };
+  const data = useSalesReport({ bucket, ...range }).data ?? [];
+  const overview = useAnalyticsOverview(range).data;
 
   const totalGross = data.reduce((a, r) => a + r.grossTotal, 0);
   const totalDiscount = data.reduce((a, r) => a + r.discountTotal, 0);
@@ -43,8 +43,8 @@ export function SalesReportPage() {
       bucket === "day"
         ? format(new Date(r.bucket), "MMM d")
         : bucket === "week"
-        ? r.bucket
-        : format(new Date(r.bucket + "-01"), "MMM yyyy"),
+          ? r.bucket
+          : format(new Date(r.bucket + "-01"), "MMM yyyy"),
     Net: r.netTotal,
   }));
 
@@ -63,6 +63,7 @@ export function SalesReportPage() {
   const exportPdf = () =>
     downloadReportPdf(`sales-${bucket}`, {
       title: "Sales report",
+      businessName,
       subtitle: `Bucket: ${bucket}`,
       columns: [
         { key: "bucket", header: "Bucket" },
@@ -98,7 +99,7 @@ export function SalesReportPage() {
       />
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <BucketSelector value={bucket} onChange={setBucket} />
-        <DateRangePicker onChange={() => {}} />
+        <DateRangePicker value={dateRange} onChange={setDateRange} />
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
         <Kpi label="Sales" value={totalSales.toLocaleString()} />
@@ -121,6 +122,41 @@ export function SalesReportPage() {
           </div>
         </CardContent>
       </Card>
+      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+        <PerformanceTable
+          title="Best-selling products"
+          rows={overview?.bestSellingProducts ?? []}
+        />
+        <PerformanceTable title="Slow-moving products" rows={overview?.slowMovingProducts ?? []} />
+        <Card>
+          <CardContent className="p-0">
+            <h2 className="border-b px-4 py-3 text-sm font-semibold">Customer purchase trends</h2>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead className="text-right">Orders</TableHead>
+                  <TableHead className="text-right">Revenue</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(overview?.customerTrends ?? []).map((row) => (
+                  <TableRow key={`${row.customerId ?? "guest"}-${row.customerEmail}`}>
+                    <TableCell>
+                      <p className="font-medium">{row.customerName}</p>
+                      <p className="text-xs text-muted-foreground">{row.customerEmail}</p>
+                    </TableCell>
+                    <TableCell className="text-right">{row.orderCount}</TableCell>
+                    <TableCell className="text-right">
+                      <Money value={row.revenue} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
       <Card className="mt-4">
         <CardContent className="p-0">
           <Table>
@@ -138,9 +174,15 @@ export function SalesReportPage() {
                 <TableRow key={r.bucket}>
                   <TableCell className="font-medium">{r.bucket}</TableCell>
                   <TableCell className="text-right">{r.salesCount}</TableCell>
-                  <TableCell className="text-right"><Money value={r.grossTotal} /></TableCell>
-                  <TableCell className="text-right"><Money value={r.discountTotal} /></TableCell>
-                  <TableCell className="text-right font-medium"><Money value={r.netTotal} /></TableCell>
+                  <TableCell className="text-right">
+                    <Money value={r.grossTotal} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Money value={r.discountTotal} />
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    <Money value={r.netTotal} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -148,6 +190,42 @@ export function SalesReportPage() {
         </CardContent>
       </Card>
     </>
+  );
+}
+
+function PerformanceTable({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: Array<{ productId: string; productName: string; quantitySold: number; revenue: number }>;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <h2 className="border-b px-4 py-3 text-sm font-semibold">{title}</h2>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Product</TableHead>
+              <TableHead className="text-right">Units</TableHead>
+              <TableHead className="text-right">Revenue</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.productId}>
+                <TableCell className="font-medium">{row.productName}</TableCell>
+                <TableCell className="text-right">{row.quantitySold}</TableCell>
+                <TableCell className="text-right">
+                  <Money value={row.revenue} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -164,13 +242,7 @@ function Kpi({
     <Card>
       <CardContent className="p-4">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p
-          className={`mt-1 text-2xl font-semibold ${
-            highlight ? "text-primary" : ""
-          }`}
-        >
-          {value}
-        </p>
+        <p className={`mt-1 text-2xl font-semibold ${highlight ? "text-primary" : ""}`}>{value}</p>
       </CardContent>
     </Card>
   );

@@ -44,13 +44,21 @@ export type PdfColumn = {
 
 export type PdfReportProps = {
   title: string;
+  businessName?: string;
   subtitle?: string;
   columns: PdfColumn[];
   rows: Array<Record<string, unknown>>;
   totals?: Array<{ label: string; value: string }>;
 };
 
-function ReportDoc({ title, subtitle, columns, rows, totals }: PdfReportProps) {
+function ReportDoc({
+  title,
+  businessName = "OrderSync",
+  subtitle,
+  columns,
+  rows,
+  totals,
+}: PdfReportProps) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -60,7 +68,7 @@ function ReportDoc({ title, subtitle, columns, rows, totals }: PdfReportProps) {
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
           <View>
-            <Text style={styles.subtitle}>Tonette's Minimart</Text>
+            <Text style={styles.subtitle}>{businessName}</Text>
             <Text style={styles.subtitle}>Generated {new Date().toLocaleString("en-PH")}</Text>
           </View>
         </View>
@@ -102,10 +110,8 @@ function ReportDoc({ title, subtitle, columns, rows, totals }: PdfReportProps) {
         ) : null}
 
         <View style={styles.footer} fixed>
-          <Text>Tonette's Minimart — confidential</Text>
-          <Text
-            render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-          />
+          <Text>{businessName} — confidential</Text>
+          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>
     </Document>

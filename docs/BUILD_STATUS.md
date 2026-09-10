@@ -17,7 +17,7 @@ This is the repository-level source of truth for implementation status. Client t
 | 6 — Customer storefront and ordering | Complete | Public tenant storefronts, real React/Flutter catalogs, carts, idempotent pickup ordering, status workflow, customer cancellation, and transactional confirmation verified. |
 | 7 — Recorded GCash and Maya payments | Complete | Private instructions/proofs, duplicate signals, manual order/subscription verification, receipts, retention, audit, and React/Flutter flows verified. |
 | 8 — Messaging, realtime events, notifications | Complete | Tenant-safe conversations, activity messages, unread state, preferences, durable polling, and foreground web/Android delivery verified without an external provider. |
-| 9 — Analytics and reports | Not started | Requires separate approval. |
+| 9 — Analytics and reports | Complete | Tenant dashboards, reconciled sales/order/inventory analytics, product/customer trends, platform metrics, and tenant-branded filtered exports verified. |
 | 10 — AI customer support | Not started | Requires separate approval and provider evaluation. |
 | 11 — Progressive Web App and offline safety | Not started | Requires separate approval. |
 | 12 — Hardening, migration, release readiness | Not started | Production deployment remains separately approved. |
@@ -128,6 +128,19 @@ See [`RECORDED_PAYMENTS.md`](RECORDED_PAYMENTS.md) for lifecycle, route, privacy
 
 See [`MESSAGING_NOTIFICATIONS.md`](MESSAGING_NOTIFICATIONS.md) for records, routes, delivery behavior, security boundaries, and explicit deferrals.
 
+## Phase 9 baseline
+
+- PostgreSQL calculates tenant sales/revenue, order-status, inventory/movement, product-performance, and customer-trend results; no analytics warehouse, copied reporting store, or schema migration was introduced.
+- Realized sales combine completed POS sales and completed customer orders. Order-volume reports instead group all placed orders by their current status.
+- Every date boundary and day/week/month bucket uses the business timezone while stored timestamps and database connections remain UTC.
+- Business Owners with `analytics_enabled` can access reports. Business Owners, Staff, and Cashiers receive role-appropriate tenant dashboard data.
+- Best and slow product rankings combine POS lines and completed-order lines; customer trends use completed customer orders because POS does not identify customers.
+- React report and tenant-dashboard data now comes from Laravel in normal development with business-scoped query keys. Platform subscription/revenue cards use the existing Super Admin API.
+- CSV and PDF exports mirror the current server-filtered report rows. CSV formula prefixes are escaped and PDF headers/footers use the authenticated business name.
+- The approved phase required no Android client change, external service, system installation, deployment, or development data.
+
+See [`ANALYTICS_REPORTS.md`](ANALYTICS_REPORTS.md) for metric definitions, date behavior, APIs, roles, exports, verification, and explicit deferrals.
+
 ## Validation matrix
 
 | Surface | Command/check | Result |
@@ -231,10 +244,23 @@ See [`MESSAGING_NOTIFICATIONS.md`](MESSAGING_NOTIFICATIONS.md) for records, rout
 | Flutter | Format, analyze, tests | Passed — 80 files formatted, no analysis issues, 11 tests |
 | Hosted/background delivery | External provider execution | Not executed — no external account, Firebase project, device registration, or paid service was authorized |
 
+## Phase 9 validation matrix
+
+| Surface | Command/check | Result |
+| --- | --- | --- |
+| PostgreSQL | Explicitly isolated test rebuild and development row-count audit | Passed — `ordersync_test` rebuilt with all 11 migrations; `ordersync` retains all 11 migrations and zero operational/business rows |
+| Laravel | Pint and complete PHPUnit suite | Passed — formatting clean; 61 tests and 643 assertions |
+| Analytics reconciliation | Exact POS/order totals, business timezone boundary, status/movement/value/product/customer aggregates | Passed — realized net, gross, discount, counts, and tenant exclusion match PostgreSQL records |
+| Report security | Tenant IDs, roles, analytics entitlement, ranges, and query-cache isolation | Passed — cross-tenant records are excluded; Cashier/Customer report access and Basic-plan analytics are rejected |
+| React | Lint, typecheck, tests, production build | Passed — 0 lint errors (19 warnings), clean typecheck, 55 tests, build complete |
+| Exports | Filter parity, tenant PDF branding, CSV formula neutralization | Passed — browser exports use returned report rows; unsafe spreadsheet prefixes are escaped |
+| Flutter | Phase 9 scope review | No source change required; customer Android analytics was not included in the approved phase |
+| External/deployment services | Scope review | Not used — no warehouse, scheduled report service, paid account, system installation, or deployment introduced |
+
 ## Known limitations
 
-- React reports, settings, and remaining later-phase prototype areas still depend on MSW fixtures; Phase 8 messaging uses Laravel in normal development.
-- React lint retains 20 non-blocking warnings, and the production build reports a 2.81 MB main chunk that should be code-split in a later web phase.
+- React reports, dashboards, and messaging use Laravel in normal development; settings and remaining later-phase prototype areas still depend on MSW fixtures.
+- React lint retains 19 non-blocking warnings, and the production build reports a 2.84 MB main chunk that should be code-split in a later web phase.
 - Flutter storefront, catalog, cart, checkout, customer orders, messaging, and foreground notifications use real APIs; account editing and other later-phase screens remain prototype-only.
 - Flutter tokens are intentionally memory-only because no encrypted-storage dependency was approved for Phase 2; cold-start restoration remains deferred.
 - Flutter storefront, cart, and last-known orders are memory-only and do not survive a cold app restart because no new persistence dependency was approved for Phase 6.
@@ -250,6 +276,8 @@ See [`MESSAGING_NOTIFICATIONS.md`](MESSAGING_NOTIFICATIONS.md) for records, rout
 - Completed sales have no void, return, refund, or correction workflow; direct mutation is intentionally prohibited.
 - Customer orders are pickup-only, placement does not reserve stock, and confirmed orders have no customer cancellation, refund, or automatic restock workflow.
 - No direct wallet verification, refund workflow, external background push, AI, PWA/offline safety, or deployment implementation exists yet.
+- Phase 9 reports are synchronous and browser-exported with a maximum 732-day range; scheduled/email delivery, persisted exports, custom builders, warehouse analytics, cohort/category drill-down, and Android report screens remain deferred.
+- Customer purchase trends cover completed customer orders only because POS sales do not capture customer identity; returns/refunds cannot be reflected until those workflows exist.
 - The local `ordersync` development database is migrated but empty; pilot/demo rows were not recreated after the approved decision to leave it empty.
 - The local Laragon PostgreSQL cluster uses trusted loopback authentication; non-local environments must use passwords or managed identity.
 
@@ -275,3 +303,5 @@ See [`MESSAGING_NOTIFICATIONS.md`](MESSAGING_NOTIFICATIONS.md) for records, rout
 - Phase 7 duplicate flags are advisory signals for manual reviewers, not proof that a wallet transaction succeeded or that fraud occurred.
 - Private proof storage is local for development; production object storage, malware scanning, and backup/restore policy remain release-hardening work.
 - Phase 8 uses local foreground polling and durable PostgreSQL events; Firebase/device tokens, WebSockets, background/terminated delivery, and external notification providers require separate approval.
+- Phase 9 realized revenue combines completed POS sales with completed customer orders; all tenant report boundaries use the business timezone and all server queries remain bound to the authenticated business.
+- Phase 9 exports are generated on demand in the browser from server-filtered rows; they are not stored, scheduled, or sent to an external service.

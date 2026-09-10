@@ -14,6 +14,7 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 - [x] 2026-09-09 — Phase 6 customer storefront and ordering verified: public tenant storefronts, live catalogs, tenant-scoped carts, retry-safe checkout, customer history/cancellation, business approval and pickup statuses, and real Laravel APIs replace the corresponding web mocks. See [`../docs/CUSTOMER_ORDERING.md`](../docs/CUSTOMER_ORDERING.md).
 - [x] 2026-09-09 — Phase 7 recorded GCash/Maya payments verified: owner-managed instructions and private QR files, customer order proofs, business review queues, subscription billing proofs, Super Admin review, duplicate signals, receipts, history, and manual-only provider language use real Laravel APIs. See [`../docs/RECORDED_PAYMENTS.md`](../docs/RECORDED_PAYMENTS.md).
 - [x] 2026-09-10 — Phase 8 messaging and foreground notifications verified: tenant/customer-safe support and order threads, immutable human/system activity, unread state, notification inbox/preferences, durable polling records, and real Laravel-backed web screens replace normal-development messaging mocks. See [`../docs/MESSAGING_NOTIFICATIONS.md`](../docs/MESSAGING_NOTIFICATIONS.md).
+- [x] 2026-09-10 — Phase 9 analytics and reports verified: PostgreSQL-reconciled tenant dashboards, sales/revenue, order status, inventory/movement, product performance, customer trends, platform subscription metrics, and filtered tenant-branded CSV/PDF exports now use real Laravel APIs. See [`../docs/ANALYTICS_REPORTS.md`](../docs/ANALYTICS_REPORTS.md).
 
 ## Legend
 
@@ -156,16 +157,16 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 
 ## Phase 9 — Analytics, reports & exports
 
-- [ ] Create `src/shared/types/reports.ts` (`SalesReportRow`, `OrdersReportRow`, `InventoryReportRow`)
-- [ ] Extend `src/shared/api/reports.ts` (`getSalesReport`, `getOrdersReport`, `getInventoryReport` with `bucket: 'day' | 'week' | 'month'`)
-- [ ] Build `features/reports/pages/SalesReportPage.tsx` (bar chart + table)
-- [ ] Build `features/reports/pages/OrdersReportPage.tsx` (stacked-by-status bar chart + table)
-- [ ] Build `features/reports/pages/InventoryReportPage.tsx` (on-hand snapshot + movement summary)
-- [ ] Add revenue monitoring, best-selling products, slow-moving products, and customer purchase trends
-- [ ] Build shared `DateRangePicker` and `BucketSelector` components
-- [ ] Implement CSV export per report via `papaparse` (mirrors current filtered rows)
-- [ ] Implement PDF export via `@react-pdf/renderer` (header, footer, pagination)
-- [ ] Component test: changing bucket re-queries with the new param
+- [x] Create `src/shared/types/reports.ts` (`SalesReportRow`, `OrdersReportRow`, `InventoryReportRow`)
+- [x] Extend `src/shared/api/reports.ts` (`getSalesReport`, `getOrdersReport`, `getInventoryReport` with supported report range parameters)
+- [x] Build `features/reports/pages/SalesReportPage.tsx` (bar chart + table)
+- [x] Build `features/reports/pages/OrdersReportPage.tsx` (stacked-by-status bar chart + table)
+- [x] Build `features/reports/pages/InventoryReportPage.tsx` (on-hand snapshot + movement summary)
+- [x] Add revenue monitoring, best-selling products, slow-moving products, and customer purchase trends
+- [x] Build shared `DateRangePicker` and `BucketSelector` components
+- [x] Implement CSV export per report via `papaparse` (mirrors current filtered rows)
+- [x] Implement PDF export via `@react-pdf/renderer` (tenant header, footer, pagination)
+- [x] Component test: changing bucket re-queries with the new param
 
 ---
 

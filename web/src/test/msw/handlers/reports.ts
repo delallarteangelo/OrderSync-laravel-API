@@ -1,7 +1,12 @@
 import { http, HttpResponse } from "msw";
 import { db, findUserByToken, tokenFromAuthHeader } from "../db";
 import { format, parseISO, subDays, startOfWeek, startOfMonth } from "date-fns";
-import type { ReportBucket, SalesReportRow, OrdersReportRow, InventoryReportRow } from "@/shared/types/reports";
+import type {
+  ReportBucket,
+  SalesReportRow,
+  OrdersReportRow,
+  InventoryReportRow,
+} from "@/shared/types/reports";
 
 function requireUser(request: Request) {
   return findUserByToken(tokenFromAuthHeader(request.headers.get("authorization")));
@@ -21,11 +26,22 @@ export const reportsHandlers = [
     const today = format(new Date(), "yyyy-MM-dd");
     const todaySales = db.posSales.filter((s) => s.completedAt.startsWith(today));
     const todayTotal = todaySales.reduce((a, b) => a + b.grandTotal, 0);
-    const itemsSoldToday = todaySales.reduce((a, s) => a + s.lines.reduce((b, l) => b + l.quantity, 0), 0);
-    const openOrders = db.orders.filter((o) => ["PENDING", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP"].includes(o.status));
+    const itemsSoldToday = todaySales.reduce(
+      (a, s) => a + s.lines.reduce((b, l) => b + l.quantity, 0),
+      0,
+    );
+    const openOrders = db.orders.filter((o) =>
+      ["PENDING", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP"].includes(o.status),
+    );
     const lowStock = db.products
       .filter((p) => p.isActive && p.stockOnHand <= p.lowStockThreshold)
-      .map((p) => ({ productId: p.id, productName: p.name, sku: p.sku, stockOnHand: p.stockOnHand, threshold: p.lowStockThreshold }));
+      .map((p) => ({
+        productId: p.id,
+        productName: p.name,
+        sku: p.sku,
+        stockOnHand: p.stockOnHand,
+        threshold: p.lowStockThreshold,
+      }));
     const sevenDay: SalesReportRow[] = Array.from({ length: 7 }).map((_, i) => {
       const d = subDays(new Date(), 6 - i);
       const key = format(d, "yyyy-MM-dd");
@@ -40,9 +56,15 @@ export const reportsHandlers = [
         netTotal: rows.reduce((a, b) => a + b.grandTotal, 0),
       };
     });
-    const recentOrders = [...db.orders].sort((a, b) => b.placedAt.localeCompare(a.placedAt)).slice(0, 6);
-    const recentMovements = [...db.movements].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, 6);
-    const mySales = db.posSales.filter((s) => s.completedAt.startsWith(today) && s.cashierId === user.id);
+    const recentOrders = [...db.orders]
+      .sort((a, b) => b.placedAt.localeCompare(a.placedAt))
+      .slice(0, 6);
+    const recentMovements = [...db.movements]
+      .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+      .slice(0, 6);
+    const mySales = db.posSales.filter(
+      (s) => s.completedAt.startsWith(today) && s.cashierId === user.id,
+    );
     return HttpResponse.json({
       today: { total: todayTotal, count: todaySales.length, itemsSold: itemsSoldToday },
       openOrdersCount: openOrders.length,
@@ -68,7 +90,13 @@ export const reportsHandlers = [
     const map = new Map<string, SalesReportRow>();
     for (const s of sales) {
       const k = bucketKey(s.completedAt, bucket);
-      const cur = map.get(k) ?? { bucket: k, salesCount: 0, grossTotal: 0, discountTotal: 0, netTotal: 0 };
+      const cur = map.get(k) ?? {
+        bucket: k,
+        salesCount: 0,
+        grossTotal: 0,
+        discountTotal: 0,
+        netTotal: 0,
+      };
       cur.salesCount += 1;
       cur.grossTotal += s.subtotal;
       cur.discountTotal += s.discountTotal;
@@ -88,7 +116,17 @@ export const reportsHandlers = [
       const k = bucketKey(o.placedAt, bucket);
       const cur =
         map.get(k) ??
-        ({ bucket: k, pending: 0, confirmed: 0, preparing: 0, readyForPickup: 0, completed: 0, rejected: 0, cancelled: 0, total: 0 } as OrdersReportRow);
+        ({
+          bucket: k,
+          pending: 0,
+          confirmed: 0,
+          preparing: 0,
+          readyForPickup: 0,
+          completed: 0,
+          rejected: 0,
+          cancelled: 0,
+          total: 0,
+        } as OrdersReportRow);
       cur.total += 1;
       switch (o.status) {
         case "PENDING":
@@ -123,7 +161,8 @@ export const reportsHandlers = [
     if (!requireUser(request)) return HttpResponse.json({ code: "UNAUTH" }, { status: 401 });
     const items: InventoryReportRow[] = db.products.map((p) => {
       const cat = db.categories.find((c) => c.id === p.categoryId);
-      const status = p.stockOnHand === 0 ? "OUT" : p.stockOnHand <= p.lowStockThreshold ? "LOW" : "OK";
+      const status =
+        p.stockOnHand === 0 ? "OUT" : p.stockOnHand <= p.lowStockThreshold ? "LOW" : "OK";
       return {
         productId: p.id,
         productName: p.name,
@@ -131,8 +170,51 @@ export const reportsHandlers = [
         stockOnHand: p.stockOnHand,
         threshold: p.lowStockThreshold,
         status,
+        unitsSold: db.movements
+          .filter((movement) => movement.productId === p.id && movement.delta < 0)
+          .reduce((total, movement) => total - movement.delta, 0),
+        unitsRestocked: db.movements
+          .filter((movement) => movement.productId === p.id && movement.reason === "RESTOCK")
+          .reduce((total, movement) => total + movement.delta, 0),
+        netMovement: db.movements
+          .filter((movement) => movement.productId === p.id)
+          .reduce((total, movement) => total + movement.delta, 0),
+        retailValue: p.stockOnHand * p.price,
+        costValue: p.stockOnHand * (p.costPrice ?? 0),
       };
     });
     return HttpResponse.json({ items });
+  }),
+
+  http.get("/api/v1/reports/overview", ({ request }) => {
+    if (!requireUser(request)) return HttpResponse.json({ code: "UNAUTH" }, { status: 401 });
+    const performance = db.products.map((product) => {
+      const lines = db.posSales
+        .flatMap((sale) => sale.lines)
+        .filter((line) => line.productId === product.id);
+      return {
+        productId: product.id,
+        productName: product.name,
+        quantitySold: lines.reduce((total, line) => total + line.quantity, 0),
+        transactionCount: lines.length,
+        revenue: lines.reduce((total, line) => total + (line.lineTotal ?? 0), 0),
+      };
+    });
+    const bestSellingProducts = [...performance]
+      .sort((a, b) => b.quantitySold - a.quantitySold)
+      .slice(0, 10);
+    const slowMovingProducts = [...performance]
+      .sort((a, b) => a.quantitySold - b.quantitySold)
+      .slice(0, 10);
+    const customerTrends = db.orders
+      .filter((order) => order.status === "COMPLETED")
+      .map((order) => ({
+        customerId: order.customer.id,
+        customerName: order.customer.name,
+        customerEmail: order.customer.email,
+        orderCount: 1,
+        revenue: order.total,
+      }));
+    return HttpResponse.json({ bestSellingProducts, slowMovingProducts, customerTrends });
   }),
 ];

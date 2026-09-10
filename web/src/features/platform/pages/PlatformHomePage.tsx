@@ -500,6 +500,16 @@ export function PlatformHomePage() {
               icon={<CreditCard className="h-5 w-5" />}
             />
             <KpiCard
+              label="Subscriptions in grace"
+              value={dashboard.data.subscriptions.grace}
+              icon={<CreditCard className="h-5 w-5" />}
+            />
+            <KpiCard
+              label="Expired subscriptions"
+              value={dashboard.data.subscriptions.expired}
+              icon={<CreditCard className="h-5 w-5" />}
+            />
+            <KpiCard
               label="Platform users"
               value={dashboard.data.users.total}
               icon={<Users className="h-5 w-5" />}
@@ -507,6 +517,11 @@ export function PlatformHomePage() {
             <KpiCard
               label="Recorded revenue"
               value={money(dashboard.data.billing.paidAmountMinor)}
+              icon={<CreditCard className="h-5 w-5" />}
+            />
+            <KpiCard
+              label="Paid billing records"
+              value={dashboard.data.billing.paidRecords}
               icon={<CreditCard className="h-5 w-5" />}
             />
             <KpiCard

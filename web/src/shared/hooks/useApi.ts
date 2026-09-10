@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getDashboard } from "@/shared/api/reports";
+import { getAnalyticsOverview, getDashboard } from "@/shared/api/reports";
 import {
   createCategory,
   createProduct,
@@ -66,7 +66,7 @@ import {
 
 // ---- query keys ----
 export const qk = {
-  dashboard: ["dashboard"] as const,
+  dashboard: (businessId: string) => ["tenant", businessId, "dashboard"] as const,
   products: (f?: ProductFilters) => ["products", f ?? {}] as const,
   product: (id: string) => ["product", id] as const,
   productByBarcode: (code: string) => ["product", "barcode", code] as const,
@@ -86,9 +86,14 @@ export const qk = {
   users: ["users"] as const,
   user: (id: string) => ["user", id] as const,
   settings: ["settings"] as const,
-  reportSales: (r?: ReportRange) => ["reports", "sales", r ?? {}] as const,
-  reportOrders: (r?: ReportRange) => ["reports", "orders", r ?? {}] as const,
-  reportInventory: ["reports", "inventory"] as const,
+  reportSales: (businessId: string, r?: ReportRange) =>
+    ["tenant", businessId, "reports", "sales", r ?? {}] as const,
+  reportOrders: (businessId: string, r?: ReportRange) =>
+    ["tenant", businessId, "reports", "orders", r ?? {}] as const,
+  reportInventory: (businessId: string, r?: Omit<ReportRange, "bucket">) =>
+    ["tenant", businessId, "reports", "inventory", r ?? {}] as const,
+  reportOverview: (businessId: string, r?: Omit<ReportRange, "bucket">) =>
+    ["tenant", businessId, "reports", "overview", r ?? {}] as const,
 };
 
 export const tenantQk = {
@@ -119,8 +124,10 @@ function useBusinessId(): string {
 }
 
 // ---- Dashboard ----
-export const useDashboard = () =>
-  useQuery({ queryKey: qk.dashboard, queryFn: getDashboard, staleTime: 15_000 });
+export const useDashboard = () => {
+  const businessId = useBusinessId();
+  return useQuery({ queryKey: qk.dashboard(businessId), queryFn: getDashboard, staleTime: 15_000 });
+};
 
 // ---- Catalog ----
 export const useProducts = (filters?: ProductFilters) => {
@@ -154,7 +161,7 @@ export function useCreateProduct() {
     mutationFn: createProduct,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
-      qc.invalidateQueries({ queryKey: qk.dashboard });
+      qc.invalidateQueries({ queryKey: qk.dashboard(businessId) });
     },
   });
 }
@@ -167,7 +174,7 @@ export function useUpdateProduct() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
       qc.invalidateQueries({ queryKey: tenantQk.product(businessId, vars.id) });
-      qc.invalidateQueries({ queryKey: qk.dashboard });
+      qc.invalidateQueries({ queryKey: qk.dashboard(businessId) });
     },
   });
 }
@@ -241,7 +248,7 @@ export function useAdjustStock() {
     mutationFn: adjustStock,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
-      qc.invalidateQueries({ queryKey: qk.dashboard });
+      qc.invalidateQueries({ queryKey: qk.dashboard(businessId) });
     },
   });
 }
@@ -253,7 +260,7 @@ export function useRestock() {
     mutationFn: restock,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
-      qc.invalidateQueries({ queryKey: qk.dashboard });
+      qc.invalidateQueries({ queryKey: qk.dashboard(businessId) });
     },
   });
 }
@@ -297,7 +304,7 @@ export function useTransitionOrder() {
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
       qc.invalidateQueries({ queryKey: tenantQk.order(businessId, v.id) });
-      qc.invalidateQueries({ queryKey: qk.dashboard });
+      qc.invalidateQueries({ queryKey: qk.dashboard(businessId) });
     },
   });
 }
@@ -360,7 +367,7 @@ export function useFinalizeSale() {
     mutationFn: finalizeSale,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantQk.root(businessId) });
-      qc.invalidateQueries({ queryKey: qk.dashboard });
+      qc.invalidateQueries({ queryKey: qk.dashboard(businessId) });
     },
   });
 }
@@ -496,9 +503,31 @@ export function useUpdateSettings() {
 }
 
 // ---- Reports ----
-export const useSalesReport = (range?: ReportRange) =>
-  useQuery({ queryKey: qk.reportSales(range), queryFn: () => getSalesReport(range) });
-export const useOrdersReport = (range?: ReportRange) =>
-  useQuery({ queryKey: qk.reportOrders(range), queryFn: () => getOrdersReport(range) });
-export const useInventoryReport = () =>
-  useQuery({ queryKey: qk.reportInventory, queryFn: getInventoryReport });
+export const useSalesReport = (range?: ReportRange) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: qk.reportSales(businessId, range),
+    queryFn: () => getSalesReport(range),
+  });
+};
+export const useOrdersReport = (range?: ReportRange) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: qk.reportOrders(businessId, range),
+    queryFn: () => getOrdersReport(range),
+  });
+};
+export const useInventoryReport = (range?: Omit<ReportRange, "bucket">) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: qk.reportInventory(businessId, range),
+    queryFn: () => getInventoryReport(range),
+  });
+};
+export const useAnalyticsOverview = (range?: Omit<ReportRange, "bucket">) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: qk.reportOverview(businessId, range),
+    queryFn: () => getAnalyticsOverview(range),
+  });
+};

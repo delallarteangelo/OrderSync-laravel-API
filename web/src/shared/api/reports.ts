@@ -1,5 +1,6 @@
 import { http } from "./axios";
 import type {
+  AnalyticsOverview,
   InventoryReportRow,
   OrdersReportRow,
   ReportBucket,
@@ -35,11 +36,24 @@ export async function getSalesReport(range: ReportRange = {}): Promise<SalesRepo
 }
 
 export async function getOrdersReport(range: ReportRange = {}): Promise<OrdersReportRow[]> {
-  const { data } = await http.get<{ items: OrdersReportRow[] }>("/reports/orders", { params: range });
+  const { data } = await http.get<{ items: OrdersReportRow[] }>("/reports/orders", {
+    params: range,
+  });
   return data.items;
 }
 
-export async function getInventoryReport(): Promise<InventoryReportRow[]> {
-  const { data } = await http.get<{ items: InventoryReportRow[] }>("/reports/inventory");
+export async function getInventoryReport(
+  range: Omit<ReportRange, "bucket"> = {},
+): Promise<InventoryReportRow[]> {
+  const { data } = await http.get<{ items: InventoryReportRow[] }>("/reports/inventory", {
+    params: range,
+  });
   return data.items;
+}
+
+export async function getAnalyticsOverview(
+  range: Omit<ReportRange, "bucket"> = {},
+): Promise<AnalyticsOverview> {
+  const { data } = await http.get<AnalyticsOverview>("/reports/overview", { params: range });
+  return data;
 }

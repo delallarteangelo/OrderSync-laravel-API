@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { loginAsAdmin, logout } from "@/test/utils/login";
 import {
   getDashboard,
+  getAnalyticsOverview,
   getInventoryReport,
   getOrdersReport,
   getSalesReport,
@@ -36,7 +37,13 @@ describe("reports api", () => {
     const rows = await getOrdersReport({ bucket: "day" });
     for (const r of rows) {
       const sum =
-        r.pending + r.confirmed + r.preparing + r.readyForPickup + r.completed + r.rejected + r.cancelled;
+        r.pending +
+        r.confirmed +
+        r.preparing +
+        r.readyForPickup +
+        r.completed +
+        r.rejected +
+        r.cancelled;
       expect(sum).toBe(r.total);
     }
   });
@@ -45,9 +52,17 @@ describe("reports api", () => {
     await loginAsAdmin();
     const rows = await getInventoryReport();
     for (const r of rows) {
-      const expected =
-        r.stockOnHand === 0 ? "OUT" : r.stockOnHand <= r.threshold ? "LOW" : "OK";
+      const expected = r.stockOnHand === 0 ? "OUT" : r.stockOnHand <= r.threshold ? "LOW" : "OK";
       expect(r.status).toBe(expected);
+      expect(r.retailValue).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it("returns product performance and customer purchase trends", async () => {
+    await loginAsAdmin();
+    const overview = await getAnalyticsOverview();
+    expect(Array.isArray(overview.bestSellingProducts)).toBe(true);
+    expect(Array.isArray(overview.slowMovingProducts)).toBe(true);
+    expect(Array.isArray(overview.customerTrends)).toBe(true);
   });
 });

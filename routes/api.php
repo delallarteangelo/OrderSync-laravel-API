@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\PosSaleController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProductImageController;
 use App\Http\Controllers\Api\V1\RecordedPaymentController;
+use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\TenantSubscriptionController;
 use Illuminate\Support\Facades\Route;
@@ -121,6 +122,17 @@ Route::prefix('/v1')->group(function (): void {
             Route::get('/sales', [PosSaleController::class, 'index']);
             Route::post('/sales', [PosSaleController::class, 'store']);
             Route::get('/sales/{sale}', [PosSaleController::class, 'show']);
+        });
+
+    Route::get('/dashboard', [ReportController::class, 'dashboard'])
+        ->middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER,STAFF,CASHIER']);
+
+    Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER', 'entitlement:analytics_enabled'])
+        ->prefix('/reports')->group(function (): void {
+            Route::get('/sales', [ReportController::class, 'sales']);
+            Route::get('/orders', [ReportController::class, 'orders']);
+            Route::get('/inventory', [ReportController::class, 'inventory']);
+            Route::get('/overview', [ReportController::class, 'overview']);
         });
 
     Route::middleware(['auth.access', 'tenant', 'role:CUSTOMER', 'entitlement:customer_ordering_enabled'])
