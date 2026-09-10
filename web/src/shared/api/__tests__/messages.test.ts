@@ -11,6 +11,12 @@ import {
   sendMessage,
   updateNotificationPreferences,
 } from "@/shared/api/messages";
+import {
+  askAiAssistant,
+  getAiSupportSettings,
+  getAiUsage,
+  listAiKnowledge,
+} from "@/shared/api/aiSupport";
 
 beforeEach(() => {
   logout();
@@ -57,5 +63,21 @@ describe("messaging api", () => {
 
     await markAllNotificationsRead();
     expect((await listNotifications()).unreadCount).toBe(0);
+  });
+
+  it("uses typed local-grounded AI support contracts without an external provider", async () => {
+    await loginAsAdmin();
+
+    expect((await listAiKnowledge())[0].type).toBe("FAQ");
+    expect((await getAiSupportSettings()).externalProviderConfigured).toBe(false);
+    expect((await getAiUsage()).estimatedCostMinor).toBe(0);
+
+    const thread = (await listThreads())[0];
+    const result = await askAiAssistant(thread.id, "When is pickup?");
+    expect(result.response).toMatchObject({ kind: "AI", senderRole: "AI" });
+    expect(result.run).toMatchObject({
+      provider: "LOCAL_GROUNDED",
+      toolsUsed: ["tenant_knowledge"],
+    });
   });
 });

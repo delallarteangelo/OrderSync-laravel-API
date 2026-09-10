@@ -16,6 +16,7 @@ import {
   ReceiptText,
   WalletCards,
   Store,
+  Bot,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -63,6 +64,7 @@ const groups: NavGroup[] = [
       { to: "/catalog", label: "Catalog", icon: Boxes },
       { to: "/categories", label: "Categories", icon: Tags, managerOnly: true },
       { to: "/reports", label: "Reports", icon: BarChart3, adminOnly: true },
+      { to: "/ai-support", label: "AI support", icon: Bot, adminOnly: true },
       { to: "/users", label: "Users", icon: Users, adminOnly: true },
       { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
     ],

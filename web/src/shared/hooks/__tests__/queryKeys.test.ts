@@ -13,5 +13,9 @@ describe("tenant query keys", () => {
     expect(qk.reportOrders("business-a")).not.toEqual(qk.reportOrders("business-b"));
     expect(qk.reportInventory("business-a")).not.toEqual(qk.reportInventory("business-b"));
     expect(qk.reportOverview("business-a")).not.toEqual(qk.reportOverview("business-b"));
+    expect(qk.aiKnowledge("business-a")).not.toEqual(qk.aiKnowledge("business-b"));
+    expect(qk.aiSettings("business-a")).not.toEqual(qk.aiSettings("business-b"));
+    expect(qk.aiUsage("business-a")).not.toEqual(qk.aiUsage("business-b"));
+    expect(qk.aiHandoffs("business-a")).not.toEqual(qk.aiHandoffs("business-b"));
   });
 });

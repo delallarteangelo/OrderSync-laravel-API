@@ -8,12 +8,14 @@ class MessagingThread {
     required this.unreadCount,
     this.orderId,
     this.orderCode,
+    this.handoffStatus,
   });
 
   final String id;
   final String kind;
   final String? orderId;
   final String? orderCode;
+  final String? handoffStatus;
   final String customerName;
   final String lastMessage;
   final DateTime? lastMessageAt;
@@ -26,6 +28,7 @@ class MessagingThread {
       kind: json['kind'] as String,
       orderId: json['orderId']?.toString(),
       orderCode: json['orderCode'] as String?,
+      handoffStatus: json['handoffStatus'] as String?,
       customerName: customer['name'] as String,
       lastMessage: json['lastMessage'] as String? ?? '',
       lastMessageAt: json['lastMessageAt'] == null
@@ -34,6 +37,31 @@ class MessagingThread {
       unreadCount: json['unreadCount'] as int,
     );
   }
+}
+
+class PublishedAiKnowledge {
+  const PublishedAiKnowledge({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.content,
+    this.question,
+  });
+
+  final String id;
+  final String type;
+  final String title;
+  final String? question;
+  final String content;
+
+  factory PublishedAiKnowledge.fromJson(Map<String, dynamic> json) =>
+      PublishedAiKnowledge(
+        id: json['id'].toString(),
+        type: json['type'] as String,
+        title: json['title'] as String,
+        question: json['question'] as String?,
+        content: json['content'] as String,
+      );
 }
 
 class MessagingMessage {

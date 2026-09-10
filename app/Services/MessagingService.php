@@ -99,6 +99,28 @@ class MessagingService
         return $message;
     }
 
+    public function notifyBusinessSupport(ConversationThread $thread, string $title, string $body): void
+    {
+        $support = $thread->business->memberships()
+            ->where('is_active', true)
+            ->whereIn('role', [Role::BusinessOwner->value, Role::Staff->value, Role::Cashier->value])
+            ->with('user')->get()->pluck('user')->filter(fn (User $user) => $user->is_active);
+        foreach ($support->unique('id') as $recipient) {
+            $this->notifyUser($thread->business, $recipient, UserNotificationType::Message, $title, $body, 'THREAD', (string) $thread->getKey());
+        }
+    }
+
+    public function notifyCustomer(ConversationThread $thread, string $title, string $body): void
+    {
+        if (! $thread->customer_user_id) {
+            return;
+        }
+        $customer = User::query()->whereKey($thread->customer_user_id)->where('is_active', true)->first();
+        if ($customer) {
+            $this->notifyUser($thread->business, $customer, UserNotificationType::Message, $title, $body, 'THREAD', (string) $thread->getKey());
+        }
+    }
+
     private function notifyCounterpart(ConversationThread $thread, ?int $actorUserId, UserNotificationType $type, string $title, string $body): void
     {
         $recipients = collect();

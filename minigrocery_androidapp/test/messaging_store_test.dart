@@ -45,6 +45,17 @@ void main() {
     expect(store.unreadNotifications, 0);
     expect(gateway.markedAllRead, isTrue);
   });
+
+  test('asks the labeled assistant and requests human handoff', () async {
+    await store.refresh();
+    final answered = await store.askAssistant('thread-1', 'When is pickup?');
+    final handedOff = await store.requestHumanHandoff('thread-1');
+
+    expect(answered, isTrue);
+    expect(store.messages['thread-1']?.last.kind, 'AI');
+    expect(handedOff, isTrue);
+    expect(gateway.handoffThreads, ['thread-1']);
+  });
 }
 
 final _session = AuthSession(
@@ -68,6 +79,7 @@ final _expiry = DateTime.utc(2027);
 class _FakeMessagingGateway implements MessagingGateway {
   final sentBodies = <String>[];
   final readThreads = <String>[];
+  final handoffThreads = <String>[];
   bool markedAllRead = false;
   NotificationPreferences preferences = const NotificationPreferences(
     messagesEnabled: true,
@@ -100,6 +112,27 @@ class _FakeMessagingGateway implements MessagingGateway {
   Future<MessagingThread> createGeneralThread(String token) async => thread;
 
   @override
+  Future<MessagingMessage> askAssistant(
+    String token,
+    String threadId,
+    String body,
+  ) async {
+    final message = MessagingMessage(
+      id: 'ai-${messages.length + 1}',
+      threadId: threadId,
+      senderName: 'OrderSync AI',
+      senderRole: 'AI',
+      kind: 'AI',
+      body: 'Pickup is available from 9 AM to 6 PM.',
+      sentAt: DateTime.utc(2026, 9, 10, 1),
+      status: 'sent',
+      mine: false,
+    );
+    messages = [...messages, message];
+    return message;
+  }
+
+  @override
   Future<NotificationPreferences> getPreferences(String token) async =>
       preferences;
 
@@ -115,6 +148,19 @@ class _FakeMessagingGateway implements MessagingGateway {
 
   @override
   Future<List<MessagingThread>> listThreads(String token) async => [thread];
+
+  @override
+  Future<List<PublishedAiKnowledge>> listPublishedAiKnowledge(
+    String token,
+  ) async => const [
+    PublishedAiKnowledge(
+      id: 'faq-1',
+      type: 'FAQ',
+      title: 'Pickup hours',
+      question: 'When is pickup?',
+      content: '9 AM to 6 PM',
+    ),
+  ];
 
   @override
   Future<void> markAllNotificationsRead(String token) async {
@@ -144,6 +190,11 @@ class _FakeMessagingGateway implements MessagingGateway {
   @override
   Future<void> markThreadRead(String token, String threadId) async {
     readThreads.add(threadId);
+  }
+
+  @override
+  Future<void> requestHumanHandoff(String token, String threadId) async {
+    handoffThreads.add(threadId);
   }
 
   @override

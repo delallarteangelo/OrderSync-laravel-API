@@ -22,7 +22,7 @@ class ConversationController extends Controller
         $query = ConversationThread::query()
             ->where('business_id', $this->business($request)->getKey())
             ->when($this->role($request) === Role::Customer, fn ($builder) => $builder->where('customer_user_id', $user->getKey()))
-            ->with(['order', 'messages' => fn ($builder) => $builder->latest('id')->limit(1)])
+            ->with(['order', 'messages' => fn ($builder) => $builder->latest('id')->limit(1), 'supportHandoffs'])
             ->orderByDesc('last_message_at')->orderByDesc('id')->limit(100)->get();
 
         $items = $query->map(fn (ConversationThread $thread): array => MessagingPayload::thread($thread, $user));

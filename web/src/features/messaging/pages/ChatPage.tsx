@@ -152,6 +152,11 @@ export function ChatPage() {
                           Order thread
                         </Badge>
                       )}
+                      {t.handoffStatus === "OPEN" && (
+                        <Badge variant="warning" className="ml-1 mt-1 text-[10px]">
+                          Human handoff
+                        </Badge>
+                      )}
                     </div>
                   </button>
                 </li>
@@ -190,6 +195,19 @@ export function ChatPage() {
                         <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
                           {m.body} · {fmtDateTime(m.sentAt)}
                         </span>
+                      </div>
+                    );
+                  }
+                  if (m.kind === "AI") {
+                    return (
+                      <div key={m.id} className="flex justify-start">
+                        <div className="max-w-[70%] rounded-2xl rounded-bl-sm border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-950 shadow-sm">
+                          <Badge variant="info" className="mb-1 text-[10px]">
+                            AI · grounded assistant
+                          </Badge>
+                          <p className="whitespace-pre-wrap">{m.body}</p>
+                          <p className="mt-1 text-[10px] text-blue-700">{fmtDateTime(m.sentAt)}</p>
+                        </div>
                       </div>
                     );
                   }

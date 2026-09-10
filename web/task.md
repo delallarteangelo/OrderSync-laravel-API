@@ -15,6 +15,7 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 - [x] 2026-09-09 — Phase 7 recorded GCash/Maya payments verified: owner-managed instructions and private QR files, customer order proofs, business review queues, subscription billing proofs, Super Admin review, duplicate signals, receipts, history, and manual-only provider language use real Laravel APIs. See [`../docs/RECORDED_PAYMENTS.md`](../docs/RECORDED_PAYMENTS.md).
 - [x] 2026-09-10 — Phase 8 messaging and foreground notifications verified: tenant/customer-safe support and order threads, immutable human/system activity, unread state, notification inbox/preferences, durable polling records, and real Laravel-backed web screens replace normal-development messaging mocks. See [`../docs/MESSAGING_NOTIFICATIONS.md`](../docs/MESSAGING_NOTIFICATIONS.md).
 - [x] 2026-09-10 — Phase 9 analytics and reports verified: PostgreSQL-reconciled tenant dashboards, sales/revenue, order status, inventory/movement, product performance, customer trends, platform subscription metrics, and filtered tenant-branded CSV/PDF exports now use real Laravel APIs. See [`../docs/ANALYTICS_REPORTS.md`](../docs/ANALYTICS_REPORTS.md).
+- [x] 2026-09-10 — Phase 10 local-grounded AI customer support verified: tenant FAQs/announcements, provider-neutral backend contract, product/stock and customer-owned order tools, explicit AI labels, prompt defenses, limits/cost metrics, audit, and human handoffs use real Laravel APIs without an external provider. See [`../docs/AI_CUSTOMER_SUPPORT.md`](../docs/AI_CUSTOMER_SUPPORT.md).
 
 ## Legend
 
@@ -211,13 +212,13 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 
 ## Phase 13 — AI chatbot & knowledge management
 
-- [ ] Create a provider-neutral backend contract for OpenAI, Claude, or another configured provider
-- [ ] Build tenant FAQ, business announcement, product, stock, and order-status retrieval tools
-- [ ] Add customer AI-support thread with visible AI labeling and human handoff
-- [ ] Authorize every AI tool call against the active business and customer's own order
-- [ ] Build Super Admin knowledge-base, FAQ response, provider settings, rate limits, and usage analytics screens
-- [ ] Add refusal/fallback rules, prompt-injection defenses, audit events, and cost/latency metrics
-- [ ] Test that AI cannot retrieve another business's data or another customer's order
+- [x] Create a provider-neutral backend contract without selecting an external provider
+- [x] Build tenant FAQ, business announcement, product, stock, and order-status retrieval tools
+- [x] Add customer AI-support threads with visible AI labeling and human handoff across Laravel/Android, plus the React business conversation view
+- [x] Authorize every AI tool call against the active business and customer's own order
+- [ ] Build Super Admin provider configuration — tenant-owner knowledge, rate-limit, usage, and zero-cost monitoring are complete; external-provider selection remains unapproved
+- [x] Add refusal/fallback rules, prompt-injection defenses, audit events, and cost/latency metrics
+- [x] Test that AI cannot retrieve another business's data or another customer's order
 
 ---
 

@@ -19,6 +19,13 @@ abstract class MessagingGateway {
     String threadId,
     String body,
   );
+  Future<MessagingMessage> askAssistant(
+    String token,
+    String threadId,
+    String body,
+  );
+  Future<void> requestHumanHandoff(String token, String threadId);
+  Future<List<PublishedAiKnowledge>> listPublishedAiKnowledge(String token);
   Future<void> markThreadRead(String token, String threadId);
   Future<List<AppUserNotification>> listNotifications(String token);
   Future<void> markNotificationRead(String token, String notificationId);
@@ -78,6 +85,40 @@ class MessagingApi implements MessagingGateway {
       'body': body,
     }),
   );
+
+  @override
+  Future<MessagingMessage> askAssistant(
+    String token,
+    String threadId,
+    String body,
+  ) async {
+    final result = await _request(
+      'POST',
+      '/threads/$threadId/assistant',
+      token,
+      {'body': body},
+    );
+    return MessagingMessage.fromJson(
+      result['response'] as Map<String, dynamic>,
+    );
+  }
+
+  @override
+  Future<void> requestHumanHandoff(String token, String threadId) async {
+    await _request('POST', '/threads/$threadId/handoff', token, {});
+  }
+
+  @override
+  Future<List<PublishedAiKnowledge>> listPublishedAiKnowledge(
+    String token,
+  ) async {
+    final body = await _request('GET', '/ai/published', token);
+    return (body['items'] as List<dynamic>)
+        .map(
+          (item) => PublishedAiKnowledge.fromJson(item as Map<String, dynamic>),
+        )
+        .toList(growable: false);
+  }
 
   @override
   Future<void> markThreadRead(String token, String threadId) async {

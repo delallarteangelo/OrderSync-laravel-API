@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\SupportHandoffStatus;
 use App\Models\ConversationMessage;
 use App\Models\ConversationThread;
 use App\Models\NotificationPreference;
@@ -13,7 +14,7 @@ class MessagingPayload
 {
     public static function thread(ConversationThread $thread, User $viewer): array
     {
-        $thread->loadMissing(['order', 'messages' => fn ($query) => $query->latest('id')->limit(1)]);
+        $thread->loadMissing(['order', 'messages' => fn ($query) => $query->latest('id')->limit(1), 'supportHandoffs']);
         $last = $thread->messages->first();
         $read = $thread->readStates()->where('user_id', $viewer->getKey())->first();
         $unread = $thread->messages()
@@ -30,6 +31,7 @@ class MessagingPayload
             'lastMessage' => $last?->body ?? '',
             'lastMessageAt' => $thread->last_message_at?->toIso8601String(),
             'unreadCount' => $unread,
+            'handoffStatus' => $thread->supportHandoffs->contains(fn ($handoff): bool => $handoff->status === SupportHandoffStatus::Open) ? 'OPEN' : null,
         ];
     }
 
@@ -45,7 +47,7 @@ class MessagingPayload
             'id' => (string) $message->getKey(),
             'threadId' => (string) $message->conversation_thread_id,
             'senderId' => $message->sender_user_id === null ? 'system' : (string) $message->sender_user_id,
-            'senderName' => $message->sender?->name ?? 'OrderSync',
+            'senderName' => $message->sender?->name ?? ($message->kind->value === 'AI' ? 'OrderSync AI' : 'OrderSync'),
             'senderRole' => $message->sender_role,
             'kind' => $message->kind->value,
             'body' => $message->body,

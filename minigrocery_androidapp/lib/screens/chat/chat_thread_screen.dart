@@ -16,12 +16,15 @@ class ChatThreadScreen extends StatefulWidget {
 
 class _ChatThreadScreenState extends State<ChatThreadScreen> {
   final _controller = TextEditingController();
+  bool _askAi = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      MessagingScope.of(context).loadThread(widget.threadId);
+      final store = MessagingScope.of(context);
+      store.loadThread(widget.threadId);
+      store.loadPublishedAiKnowledge();
     });
   }
 
@@ -83,6 +86,36 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
                         ),
                 ),
               ),
+              if (store.aiKnowledge.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                  color: AppColors.neutralSurface,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: store.aiKnowledge.take(4).map((entry) {
+                        final suggestion = entry.question ?? entry.title;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: ActionChip(
+                            avatar: Icon(
+                              entry.type == 'ANNOUNCEMENT'
+                                  ? Icons.campaign_outlined
+                                  : Icons.help_outline,
+                              size: 16,
+                            ),
+                            label: Text(suggestion),
+                            onPressed: () {
+                              _controller.text = suggestion;
+                              setState(() => _askAi = true);
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
               Container(
                 decoration: const BoxDecoration(
                   color: AppColors.neutralSurface,
@@ -91,45 +124,85 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
                   ),
                 ),
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                child: Row(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 4,
+                    Row(
+                      children: [
+                        FilterChip(
+                          avatar: const Icon(Icons.auto_awesome, size: 16),
+                          label: const Text('Ask AI'),
+                          selected: _askAi,
+                          onSelected: (value) => setState(() => _askAi = value),
                         ),
-                        decoration: BoxDecoration(
-                          color: AppColors.neutralSurfaceAlt,
-                          borderRadius: AppRadii.brPill,
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: store.busy
+                              ? null
+                              : () async {
+                                  final requested = await store
+                                      .requestHumanHandoff(widget.threadId);
+                                  if (requested && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'A store team member has been requested.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                          icon: const Icon(Icons.support_agent, size: 18),
+                          label: const Text('Human support'),
                         ),
-                        child: TextField(
-                          controller: _controller,
-                          minLines: 1,
-                          maxLines: 4,
-                          maxLength: 4000,
-                          decoration: const InputDecoration(
-                            hintText: 'Type a message…',
-                            border: InputBorder.none,
-                            counterText: '',
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.neutralSurfaceAlt,
+                              borderRadius: AppRadii.brPill,
+                            ),
+                            child: TextField(
+                              controller: _controller,
+                              minLines: 1,
+                              maxLines: 4,
+                              maxLength: _askAi ? 1000 : 4000,
+                              decoration: InputDecoration(
+                                hintText: _askAi
+                                    ? 'Ask about products, stock, orders, or FAQs…'
+                                    : 'Type a message to the store…',
+                                border: InputBorder.none,
+                                counterText: '',
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton.filled(
-                      onPressed: store.busy
-                          ? null
-                          : () async {
-                              final text = _controller.text.trim();
-                              if (text.isEmpty) return;
-                              final sent = await store.send(
-                                widget.threadId,
-                                text,
-                              );
-                              if (sent) _controller.clear();
-                            },
-                      icon: const Icon(Icons.send_rounded),
+                        const SizedBox(width: 4),
+                        IconButton.filled(
+                          onPressed: store.busy
+                              ? null
+                              : () async {
+                                  final text = _controller.text.trim();
+                                  if (text.isEmpty) return;
+                                  final sent = _askAi
+                                      ? await store.askAssistant(
+                                          widget.threadId,
+                                          text,
+                                        )
+                                      : await store.send(widget.threadId, text);
+                                  if (sent) _controller.clear();
+                                },
+                          icon: Icon(
+                            _askAi ? Icons.auto_awesome : Icons.send_rounded,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

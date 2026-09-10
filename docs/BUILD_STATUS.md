@@ -18,7 +18,7 @@ This is the repository-level source of truth for implementation status. Client t
 | 7 — Recorded GCash and Maya payments | Complete | Private instructions/proofs, duplicate signals, manual order/subscription verification, receipts, retention, audit, and React/Flutter flows verified. |
 | 8 — Messaging, realtime events, notifications | Complete | Tenant-safe conversations, activity messages, unread state, preferences, durable polling, and foreground web/Android delivery verified without an external provider. |
 | 9 — Analytics and reports | Complete | Tenant dashboards, reconciled sales/order/inventory analytics, product/customer trends, platform metrics, and tenant-branded filtered exports verified. |
-| 10 — AI customer support | Not started | Requires separate approval and provider evaluation. |
+| 10 — AI customer support | Complete | Provider-neutral local-grounded answers, tenant knowledge/tools, explicit AI labels, usage/cost controls, prompt defenses, audit, and human handoff verified without an external provider. |
 | 11 — Progressive Web App and offline safety | Not started | Requires separate approval. |
 | 12 — Hardening, migration, release readiness | Not started | Production deployment remains separately approved. |
 
@@ -141,6 +141,19 @@ See [`MESSAGING_NOTIFICATIONS.md`](MESSAGING_NOTIFICATIONS.md) for records, rout
 
 See [`ANALYTICS_REPORTS.md`](ANALYTICS_REPORTS.md) for metric definitions, date behavior, APIs, roles, exports, verification, and explicit deferrals.
 
+## Phase 10 baseline
+
+- Laravel resolves a server-only `AiSupportProvider` contract. The active `LOCAL_GROUNDED` adapter is deterministic, has no model or credentials, makes no network call, and records zero provider cost.
+- Business Owners publish tenant FAQs and announcements and configure assistant enablement, daily customer limits, monthly tenant limits, and maximum question length.
+- Grounding tools can read only published tenant knowledge, active tenant product/stock/price data, and orders matching both the authenticated tenant and customer.
+- AI answers are immutable conversation messages with an explicit `AI` kind and sender role; they cannot be presented as a person or generic system event.
+- Unsafe, ungrounded, or unavailable questions refuse to guess and open a durable human handoff. Customers can also request a handoff directly; business support roles resolve it without losing conversation history.
+- Immutable support runs record provider/tool/status, character totals, latency, reason, and estimated cost. Audit metadata intentionally excludes question, answer, and knowledge content.
+- React provides tenant-owner knowledge, limit, usage/cost, and handoff management plus labeled business conversations. Flutter provides explicit Ask AI, published suggestions, AI labels, and one-tap handoff while keeping human messaging the default.
+- No external AI provider, key, account, SDK, embeddings service, vector database, paid service, or deployment was introduced.
+
+See [`AI_CUSTOMER_SUPPORT.md`](AI_CUSTOMER_SUPPORT.md) for provider boundaries, data records, grounding tools, APIs, roles, client behavior, safeguards, and deferrals.
+
 ## Validation matrix
 
 | Surface | Command/check | Result |
@@ -257,10 +270,23 @@ See [`ANALYTICS_REPORTS.md`](ANALYTICS_REPORTS.md) for metric definitions, date 
 | Flutter | Phase 9 scope review | No source change required; customer Android analytics was not included in the approved phase |
 | External/deployment services | Scope review | Not used — no warehouse, scheduled report service, paid account, system installation, or deployment introduced |
 
+## Phase 10 validation matrix
+
+| Surface | Command/check | Result |
+| --- | --- | --- |
+| PostgreSQL | Isolated test rebuild, additive development migration, and row-count audit | Passed — `ordersync_test` rebuilt with all 12 migrations; `ordersync` has all 12 migrations and zero Phase 10 or operational/business rows |
+| Laravel | Pint and complete PHPUnit suite | Passed — formatting clean; 64 tests and 716 assertions |
+| AI security | Knowledge/product/order tenant scope, customer ownership, entitlement, injection guard, limit, immutable run, content-minimized audit | Passed — foreign tenant/customer records are never returned and unsafe requests hand off without revealing protected data |
+| Provider/cost boundary | Adapter, settings, usage, secrets, and outbound-service review | Passed — `LOCAL_GROUNDED`, no model/key/network/provider account, and recorded cost remains zero |
+| React | Lint, typecheck, tests, production build | Passed — 0 lint errors (19 warnings), clean typecheck, 56 tests, build complete |
+| Flutter | Format, analyze, tests | Passed — formatting clean, no analysis issues, 12 tests |
+| Human handoff | Automatic/manual opening, one-open-per-thread constraint, business resolution, customer conversation event | Passed |
+| External/deployment services | Scope review | Not used — no external AI, embeddings/vector service, paid resource, system installation, or deployment introduced |
+
 ## Known limitations
 
-- React reports, dashboards, and messaging use Laravel in normal development; settings and remaining later-phase prototype areas still depend on MSW fixtures.
-- React lint retains 19 non-blocking warnings, and the production build reports a 2.84 MB main chunk that should be code-split in a later web phase.
+- React reports, dashboards, messaging, and AI support use Laravel in normal development; settings and remaining later-phase prototype areas still depend on MSW fixtures.
+- React lint retains 19 non-blocking warnings, and the production build reports a 2.85 MB main chunk that should be code-split in a later web phase.
 - Flutter storefront, catalog, cart, checkout, customer orders, messaging, and foreground notifications use real APIs; account editing and other later-phase screens remain prototype-only.
 - Flutter tokens are intentionally memory-only because no encrypted-storage dependency was approved for Phase 2; cold-start restoration remains deferred.
 - Flutter storefront, cart, and last-known orders are memory-only and do not survive a cold app restart because no new persistence dependency was approved for Phase 6.
@@ -275,7 +301,9 @@ See [`ANALYTICS_REPORTS.md`](ANALYTICS_REPORTS.md) for metric definitions, date 
 - POS GCash, Maya, card, and other non-cash references remain cashier-recorded only; Phase 7 proof verification applies to customer orders and subscription bills, not completed POS sales.
 - Completed sales have no void, return, refund, or correction workflow; direct mutation is intentionally prohibited.
 - Customer orders are pickup-only, placement does not reserve stock, and confirmed orders have no customer cancellation, refund, or automatic restock workflow.
-- No direct wallet verification, refund workflow, external background push, AI, PWA/offline safety, or deployment implementation exists yet.
+- No direct wallet verification, refund workflow, external background push, network-backed generative AI, PWA/offline safety, or deployment implementation exists yet.
+- Phase 10 uses lexical tenant knowledge retrieval and deterministic formatting, not semantic embeddings or a generative model; it intentionally hands unsupported questions to people instead of improvising.
+- AI limits are enforced against completed immutable runs and HTTP throttles; provider-grade reservation accounting and a cost ceiling must be designed with any future paid provider.
 - Phase 9 reports are synchronous and browser-exported with a maximum 732-day range; scheduled/email delivery, persisted exports, custom builders, warehouse analytics, cohort/category drill-down, and Android report screens remain deferred.
 - Customer purchase trends cover completed customer orders only because POS sales do not capture customer identity; returns/refunds cannot be reflected until those workflows exist.
 - The local `ordersync` development database is migrated but empty; pilot/demo rows were not recreated after the approved decision to leave it empty.
@@ -305,3 +333,5 @@ See [`ANALYTICS_REPORTS.md`](ANALYTICS_REPORTS.md) for metric definitions, date 
 - Phase 8 uses local foreground polling and durable PostgreSQL events; Firebase/device tokens, WebSockets, background/terminated delivery, and external notification providers require separate approval.
 - Phase 9 realized revenue combines completed POS sales with completed customer orders; all tenant report boundaries use the business timezone and all server queries remain bound to the authenticated business.
 - Phase 9 exports are generated on demand in the browser from server-filtered rows; they are not stored, scheduled, or sent to an external service.
+- Phase 10 uses the server-side provider contract with `LOCAL_GROUNDED` only. Selecting an external provider requires a separate options, pricing, privacy, retention, and cost-ceiling proposal.
+- Phase 10 tool access is server-owned and tenant/customer constrained; clients submit questions but cannot supply tool results, tenant IDs, order ownership, prompts, models, or provider credentials.

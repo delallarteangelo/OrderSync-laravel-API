@@ -17,6 +17,18 @@ import {
 } from "@/shared/api/catalog";
 import { useAuthStore } from "@/app/stores/authStore";
 import {
+  createAiKnowledge,
+  deactivateAiKnowledge,
+  getAiSupportSettings,
+  getAiUsage,
+  listAiKnowledge,
+  listSupportHandoffs,
+  resolveSupportHandoff,
+  updateAiSupportSettings,
+  type KnowledgeInput,
+} from "@/shared/api/aiSupport";
+import type { AiSupportSettings } from "@/shared/types/aiSupport";
+import {
   adjustStock,
   listInventory,
   listLowStock,
@@ -83,6 +95,10 @@ export const qk = {
   notifications: (businessId: string) => ["tenant", businessId, "notifications"] as const,
   notificationPreferences: (businessId: string) =>
     ["tenant", businessId, "notification-preferences"] as const,
+  aiKnowledge: (businessId: string) => ["tenant", businessId, "ai", "knowledge"] as const,
+  aiSettings: (businessId: string) => ["tenant", businessId, "ai", "settings"] as const,
+  aiUsage: (businessId: string) => ["tenant", businessId, "ai", "usage"] as const,
+  aiHandoffs: (businessId: string) => ["tenant", businessId, "ai", "handoffs"] as const,
   users: ["users"] as const,
   user: (id: string) => ["user", id] as const,
   settings: ["settings"] as const,
@@ -456,6 +472,74 @@ export function useUpdateNotificationPreferences() {
       updateNotificationPreferences(preferences),
     onSuccess: (preferences) =>
       qc.setQueryData(qk.notificationPreferences(businessId), preferences),
+  });
+}
+
+// ---- AI support ----
+export function useAiKnowledge() {
+  const businessId = useBusinessId();
+  return useQuery({ queryKey: qk.aiKnowledge(businessId), queryFn: listAiKnowledge });
+}
+
+export function useCreateAiKnowledge() {
+  const businessId = useBusinessId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: KnowledgeInput) => createAiKnowledge(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.aiKnowledge(businessId) }),
+  });
+}
+
+export function useDeactivateAiKnowledge() {
+  const businessId = useBusinessId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deactivateAiKnowledge,
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.aiKnowledge(businessId) }),
+  });
+}
+
+export function useAiSupportSettings() {
+  const businessId = useBusinessId();
+  return useQuery({ queryKey: qk.aiSettings(businessId), queryFn: getAiSupportSettings });
+}
+
+export function useUpdateAiSupportSettings() {
+  const businessId = useBusinessId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (
+      settings: Pick<
+        AiSupportSettings,
+        | "assistantEnabled"
+        | "dailyCustomerRequestLimit"
+        | "monthlyBusinessRequestLimit"
+        | "maximumQuestionCharacters"
+      >,
+    ) => updateAiSupportSettings(settings),
+    onSuccess: (settings) => qc.setQueryData(qk.aiSettings(businessId), settings),
+  });
+}
+
+export function useAiUsage() {
+  const businessId = useBusinessId();
+  return useQuery({ queryKey: qk.aiUsage(businessId), queryFn: getAiUsage });
+}
+
+export function useSupportHandoffs() {
+  const businessId = useBusinessId();
+  return useQuery({ queryKey: qk.aiHandoffs(businessId), queryFn: listSupportHandoffs });
+}
+
+export function useResolveSupportHandoff() {
+  const businessId = useBusinessId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: resolveSupportHandoff,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.aiHandoffs(businessId) });
+      qc.invalidateQueries({ queryKey: qk.threads(businessId) });
+    },
   });
 }
 

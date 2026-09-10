@@ -34,6 +34,51 @@ class ChatBubble extends StatelessWidget {
       );
     }
 
+    if (message.kind == 'AI') {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.82,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF3FF),
+                border: Border.all(color: const Color(0xFFB8D6FF)),
+                borderRadius: const BorderRadius.all(AppRadii.lg),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome, size: 15),
+                      SizedBox(width: 4),
+                      Text(
+                        'AI · grounded assistant',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(message.body),
+                  const SizedBox(height: 4),
+                  Text(
+                    _hhmm(message.sentAt),
+                    style: AppTypography.textTheme.labelSmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final isSent = message.mine;
     final bg = isSent ? AppColors.brandPrimary : AppColors.neutralSurfaceAlt;
     final fg = isSent ? AppColors.onBrand : AppColors.neutralInkBlack;

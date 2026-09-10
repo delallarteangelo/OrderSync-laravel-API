@@ -15,6 +15,7 @@ class MessagingStore extends ChangeNotifier {
   Map<String, List<MessagingMessage>> messages = const {};
   List<AppUserNotification> notifications = const [];
   NotificationPreferences? preferences;
+  List<PublishedAiKnowledge> aiKnowledge = const [];
   bool busy = false;
   String? error;
   String? foregroundNotice;
@@ -145,6 +146,56 @@ class MessagingStore extends ChangeNotifier {
     }
   }
 
+  Future<bool> askAssistant(String threadId, String body) async {
+    final session = _sessionProvider();
+    if (session == null || body.trim().isEmpty) return false;
+    busy = true;
+    notifyListeners();
+    try {
+      await _gateway.askAssistant(session.accessToken, threadId, body.trim());
+      await loadThread(threadId);
+      return true;
+    } on MessagingApiException catch (exception) {
+      error = exception.message;
+      return false;
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> requestHumanHandoff(String threadId) async {
+    final session = _sessionProvider();
+    if (session == null) return false;
+    busy = true;
+    notifyListeners();
+    try {
+      await _gateway.requestHumanHandoff(session.accessToken, threadId);
+      await loadThread(threadId);
+      return true;
+    } on MessagingApiException catch (exception) {
+      error = exception.message;
+      return false;
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadPublishedAiKnowledge() async {
+    final session = _sessionProvider();
+    if (session == null) return;
+    try {
+      aiKnowledge = await _gateway.listPublishedAiKnowledge(
+        session.accessToken,
+      );
+      notifyListeners();
+    } on MessagingApiException {
+      aiKnowledge = const [];
+      notifyListeners();
+    }
+  }
+
   Future<void> markNotificationRead(AppUserNotification notification) async {
     final session = _sessionProvider();
     if (session == null || notification.readAt != null) return;
@@ -195,6 +246,7 @@ class MessagingStore extends ChangeNotifier {
     messages = const {};
     notifications = const [];
     preferences = null;
+    aiKnowledge = const [];
     error = null;
     foregroundNotice = null;
     _knownNotificationIds = null;

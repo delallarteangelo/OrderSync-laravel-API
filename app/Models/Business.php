@@ -78,4 +78,19 @@ class Business extends Model
     {
         return $this->hasMany(ConversationThread::class);
     }
+
+    public function aiKnowledgeEntries(): HasMany
+    {
+        return $this->hasMany(AiKnowledgeEntry::class);
+    }
+
+    public function aiSupportRuns(): HasMany
+    {
+        return $this->hasMany(AiSupportRun::class);
+    }
+
+    public function supportHandoffs(): HasMany
+    {
+        return $this->hasMany(SupportHandoff::class);
+    }
 }

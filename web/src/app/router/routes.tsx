@@ -30,6 +30,7 @@ import { ForbiddenPage } from "@/features/misc/ForbiddenPage";
 import { PlatformHomePage } from "@/features/platform/pages/PlatformHomePage";
 import { StorefrontPage } from "@/features/storefront/pages/StorefrontPage";
 import { PaymentsPage } from "@/features/payments/pages/PaymentsPage";
+import { AiSupportPage } from "@/features/ai-support/pages/AiSupportPage";
 
 const businessWorkspaceRoles = ["BUSINESS_OWNER", "STAFF", "CASHIER"] as const;
 const inventoryManagerRoles = ["BUSINESS_OWNER", "STAFF"] as const;
@@ -211,6 +212,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireRole allow="BUSINESS_OWNER">
             <InventoryReportPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: "ai-support",
+        element: (
+          <RequireRole allow="BUSINESS_OWNER">
+            <AiSupportPage />
           </RequireRole>
         ),
       },

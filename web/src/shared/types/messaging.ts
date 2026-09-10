@@ -9,6 +9,7 @@ export type ChatThread = {
   lastMessage: string;
   lastMessageAt: string | null;
   unreadCount: number;
+  handoffStatus?: "OPEN" | null;
 };
 
 export type Message = {
@@ -16,8 +17,8 @@ export type Message = {
   threadId: string;
   senderId: string;
   senderName: string;
-  senderRole: "CUSTOMER" | "BUSINESS_OWNER" | "STAFF" | "CASHIER" | "SYSTEM";
-  kind?: "HUMAN" | "SYSTEM";
+  senderRole: "CUSTOMER" | "BUSINESS_OWNER" | "STAFF" | "CASHIER" | "SYSTEM" | "AI";
+  kind?: "HUMAN" | "SYSTEM" | "AI";
   body: string;
   sentAt: string;
   status: "sending" | "sent" | "read";

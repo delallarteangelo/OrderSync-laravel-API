@@ -17,6 +17,7 @@ This tracker covers the customer Android client within the OrderSync multi-tenan
 - [x] 2026-09-09 — Phase 7 customer payments verified: authenticated GCash/Maya instructions and private QR images, camera/gallery proof selection, multipart upload, and manual review/receipt status now use Laravel APIs. See [`../docs/RECORDED_PAYMENTS.md`](../docs/RECORDED_PAYMENTS.md).
 - [x] 2026-09-10 — Phase 8 customer messaging and foreground notifications verified: real general/order threads, immutable history, unread state, notification inbox/preferences, durable five-second polling, and in-app foreground banners now use Laravel APIs. External background push remains separately deferred. See [`../docs/MESSAGING_NOTIFICATIONS.md`](../docs/MESSAGING_NOTIFICATIONS.md).
 - [x] 2026-09-10 — Phase 9 backend/web analytics verified with no Android source change: tenant dashboards, PostgreSQL-reconciled reports, and browser CSV/PDF exports are business-workspace capabilities; customer mobile reporting was not included in the approved scope. See [`../docs/ANALYTICS_REPORTS.md`](../docs/ANALYTICS_REPORTS.md).
+- [x] 2026-09-10 — Phase 10 customer AI support verified: explicit Ask AI mode, published tenant FAQ/announcement suggestions, provider-free grounded answers, visible AI labels, safe error fallback, preserved conversations, and one-tap human handoff use real Laravel APIs. See [`../docs/AI_CUSTOMER_SUPPORT.md`](../docs/AI_CUSTOMER_SUPPORT.md).
 
 ## Legend
 
@@ -167,13 +168,13 @@ This tracker covers the customer Android client within the OrderSync multi-tenan
 
 ## Phase 9 — AI-assisted customer support
 
-- [ ] Add `AiSupportApi` and message models without embedding any provider API key in the app
-- [ ] Build AI-support entry point with visible AI label and suggested product/stock/order/FAQ questions
-- [ ] Pass only the selected business and authorized order context to backend tools
-- [ ] Display business announcements and tenant-published FAQ answers
-- [ ] Add uncertainty/error fallback and one-tap human handoff to the business chat
-- [ ] Preserve the conversation when handoff occurs and distinguish AI from human messages
-- [ ] Test prompt-injection attempts, cross-tenant queries, and attempts to read another customer's order
+- [x] Add `AiSupportApi` and message models without embedding any provider API key in the app
+- [x] Build AI-support entry point with visible AI label and suggested product/stock/order/FAQ questions
+- [x] Pass only the selected business and authorized order context to backend tools
+- [x] Display business announcements and tenant-published FAQ answers
+- [x] Add uncertainty/error fallback and one-tap human handoff to the business chat
+- [x] Preserve the conversation when handoff occurs and distinguish AI from human messages
+- [x] Test prompt-injection attempts, cross-tenant queries, and attempts to read another customer's order
 
 ---
 

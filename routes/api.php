@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AiAdministrationController;
+use App\Http\Controllers\Api\V1\AiSupportController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BusinessRegistrationController;
 use App\Http\Controllers\Api\V1\CategoryController;
@@ -183,5 +185,28 @@ Route::prefix('/v1')->group(function (): void {
         Route::get('/notification-preferences', [NotificationController::class, 'preferences']);
         Route::put('/notification-preferences', [NotificationController::class, 'updatePreferences']);
         Route::get('/events', [NotificationController::class, 'events']);
+    });
+
+    Route::middleware(['auth.access', 'tenant', 'entitlement:messaging_enabled', 'entitlement:ai_support_enabled'])->group(function (): void {
+        Route::middleware('role:CUSTOMER')->group(function (): void {
+            Route::get('/ai/published', [AiAdministrationController::class, 'published']);
+            Route::post('/threads/{thread}/assistant', [AiSupportController::class, 'respond'])->middleware('throttle:30,1');
+            Route::post('/threads/{thread}/handoff', [AiSupportController::class, 'requestHandoff'])->middleware('throttle:10,1');
+        });
+
+        Route::middleware('role:BUSINESS_OWNER')->prefix('/ai')->group(function (): void {
+            Route::get('/knowledge', [AiAdministrationController::class, 'knowledge']);
+            Route::post('/knowledge', [AiAdministrationController::class, 'store']);
+            Route::put('/knowledge/{knowledge}', [AiAdministrationController::class, 'update']);
+            Route::post('/knowledge/{knowledge}/deactivate', [AiAdministrationController::class, 'deactivate']);
+            Route::get('/settings', [AiAdministrationController::class, 'settings']);
+            Route::put('/settings', [AiAdministrationController::class, 'updateSettings']);
+            Route::get('/usage', [AiAdministrationController::class, 'usage']);
+        });
+
+        Route::middleware('role:BUSINESS_OWNER,STAFF,CASHIER')->prefix('/ai')->group(function (): void {
+            Route::get('/handoffs', [AiSupportController::class, 'handoffs']);
+            Route::post('/handoffs/{handoff}/resolve', [AiSupportController::class, 'resolve']);
+        });
     });
 });
