@@ -57,4 +57,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(RecordedPayment::class, 'submitted_by_user_id');
     }
+
+    public function conversationThreads(): HasMany
+    {
+        return $this->hasMany(ConversationThread::class, 'customer_user_id');
+    }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
+    }
 }

@@ -1,6 +1,16 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { loginAsAdmin, logout } from "@/test/utils/login";
-import { listMessages, listThreads, markThreadRead, sendMessage } from "@/shared/api/messages";
+import {
+  getNotificationPreferences,
+  listMessages,
+  listNotifications,
+  listThreads,
+  markAllNotificationsRead,
+  markThreadRead,
+  pollEvents,
+  sendMessage,
+  updateNotificationPreferences,
+} from "@/shared/api/messages";
 
 beforeEach(() => {
   logout();
@@ -30,5 +40,22 @@ describe("messaging api", () => {
     await markThreadRead(tid);
     const after = await listThreads();
     expect(after.find((t) => t.id === tid)!.unreadCount).toBe(0);
+  });
+
+  it("reads notifications, durable events, and persists preferences", async () => {
+    await loginAsAdmin();
+
+    expect((await listNotifications()).unreadCount).toBe(1);
+    expect((await pollEvents("0")).items).toHaveLength(1);
+
+    const preferences = await getNotificationPreferences();
+    const updated = await updateNotificationPreferences({
+      ...preferences,
+      messagesEnabled: false,
+    });
+    expect(updated.messagesEnabled).toBe(false);
+
+    await markAllNotificationsRead();
+    expect((await listNotifications()).unreadCount).toBe(0);
   });
 });

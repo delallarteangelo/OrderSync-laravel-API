@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\OrderStatus;
 use App\Enums\RecordedPaymentStatus;
+use App\Enums\UserNotificationType;
 use App\Exceptions\OrderWorkflowException;
 use App\Models\Business;
 use App\Models\Order;
@@ -18,6 +19,7 @@ class CustomerOrderService
     public function __construct(
         private readonly CatalogInventoryService $inventory,
         private readonly AuditLogger $audit,
+        private readonly MessagingService $messaging,
     ) {}
 
     /**
@@ -115,6 +117,13 @@ class CustomerOrderService
                 'total_minor' => $subtotalMinor,
                 'line_count' => count($rows),
             ]);
+            $this->messaging->appendOrderActivity(
+                $order,
+                "Order {$order->order_number} was placed for pickup.",
+                UserNotificationType::Order,
+                "New order {$order->order_number}",
+                $customer->getKey(),
+            );
 
             return ['order' => $order->fresh(['business', 'lines', 'statusEvents']), 'replayed' => false];
         });
@@ -193,6 +202,14 @@ class CustomerOrderService
             'from_status' => $from->value,
             'to_status' => $status->value,
         ]);
+        $label = mb_strtolower(str_replace('_', ' ', $status->value));
+        $this->messaging->appendOrderActivity(
+            $order,
+            "Order {$order->order_number} is now {$label}.",
+            UserNotificationType::Order,
+            "Order {$order->order_number} updated",
+            $actor->getKey(),
+        );
 
         return $order->fresh(['business', 'lines', 'statusEvents']);
     }

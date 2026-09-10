@@ -36,7 +36,18 @@ import {
   type OrderFilters,
 } from "@/shared/api/orders";
 import { finalizeSale, getSale, listSales } from "@/shared/api/pos";
-import { listMessages, listThreads, markThreadRead, sendMessage } from "@/shared/api/messages";
+import {
+  getNotificationPreferences,
+  listMessages,
+  listNotifications,
+  listThreads,
+  markAllNotificationsRead,
+  markNotificationRead,
+  markThreadRead,
+  sendMessage,
+  updateNotificationPreferences,
+} from "@/shared/api/messages";
+import type { NotificationPreferences } from "@/shared/types/messaging";
 import {
   createUser,
   deactivateUser,
@@ -66,8 +77,12 @@ export const qk = {
   orders: (f?: OrderFilters) => ["orders", f ?? {}] as const,
   order: (id: string) => ["order", id] as const,
   sales: ["pos", "sales"] as const,
-  threads: ["threads"] as const,
-  messages: (threadId: string) => ["messages", threadId] as const,
+  threads: (businessId: string) => ["tenant", businessId, "threads"] as const,
+  messages: (businessId: string, threadId: string) =>
+    ["tenant", businessId, "threads", threadId, "messages"] as const,
+  notifications: (businessId: string) => ["tenant", businessId, "notifications"] as const,
+  notificationPreferences: (businessId: string) =>
+    ["tenant", businessId, "notification-preferences"] as const,
   users: ["users"] as const,
   user: (id: string) => ["user", id] as const,
   settings: ["settings"] as const,
@@ -351,28 +366,89 @@ export function useFinalizeSale() {
 }
 
 // ---- Messages ----
-export const useThreads = () => useQuery({ queryKey: qk.threads, queryFn: listThreads });
-export const useMessages = (threadId: string | undefined) =>
-  useQuery({
-    queryKey: qk.messages(threadId ?? ""),
+export const useThreads = () => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: qk.threads(businessId),
+    queryFn: listThreads,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
+  });
+};
+export const useMessages = (threadId: string | undefined) => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: qk.messages(businessId, threadId ?? ""),
     queryFn: () => listMessages(threadId!),
     enabled: !!threadId,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
+};
 export function useSendMessage(threadId: string) {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: (body: string) => sendMessage(threadId, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.messages(threadId) });
-      qc.invalidateQueries({ queryKey: qk.threads });
+      qc.invalidateQueries({ queryKey: qk.messages(businessId, threadId) });
+      qc.invalidateQueries({ queryKey: qk.threads(businessId) });
     },
   });
 }
 export function useMarkThreadRead() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: markThreadRead,
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.threads }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.threads(businessId) }),
+  });
+}
+
+export function useNotifications() {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: qk.notifications(businessId),
+    queryFn: listNotifications,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const businessId = useBusinessId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: markNotificationRead,
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.notifications(businessId) }),
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const businessId = useBusinessId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: markAllNotificationsRead,
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.notifications(businessId) }),
+  });
+}
+
+export function useNotificationPreferences() {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: qk.notificationPreferences(businessId),
+    queryFn: getNotificationPreferences,
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const businessId = useBusinessId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (preferences: NotificationPreferences) =>
+      updateNotificationPreferences(preferences),
+    onSuccess: (preferences) =>
+      qc.setQueryData(qk.notificationPreferences(businessId), preferences),
   });
 }
 

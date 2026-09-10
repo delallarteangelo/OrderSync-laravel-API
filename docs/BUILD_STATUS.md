@@ -1,6 +1,6 @@
 # OrderSync Build Status
 
-Last verified: 2026-09-09
+Last verified: 2026-09-10
 
 This is the repository-level source of truth for implementation status. Client task trackers describe intended client work and are not evidence that backend or cross-client behavior is complete.
 
@@ -16,7 +16,7 @@ This is the repository-level source of truth for implementation status. Client t
 | 5 — Point of sale | Complete | Tenant POS, server-authoritative totals, idempotent finalization, atomic stock deduction, recorded payments, receipts, and history verified. |
 | 6 — Customer storefront and ordering | Complete | Public tenant storefronts, real React/Flutter catalogs, carts, idempotent pickup ordering, status workflow, customer cancellation, and transactional confirmation verified. |
 | 7 — Recorded GCash and Maya payments | Complete | Private instructions/proofs, duplicate signals, manual order/subscription verification, receipts, retention, audit, and React/Flutter flows verified. |
-| 8 — Messaging, realtime events, notifications | Not started | Requires separate approval. |
+| 8 — Messaging, realtime events, notifications | Complete | Tenant-safe conversations, activity messages, unread state, preferences, durable polling, and foreground web/Android delivery verified without an external provider. |
 | 9 — Analytics and reports | Not started | Requires separate approval. |
 | 10 — AI customer support | Not started | Requires separate approval and provider evaluation. |
 | 11 — Progressive Web App and offline safety | Not started | Requires separate approval. |
@@ -70,7 +70,7 @@ See [`SAAS_ADMINISTRATION.md`](SAAS_ADMINISTRATION.md) for lifecycle rules, API 
 - Effective subscription state and the `catalog_enabled` or `inventory_enabled` entitlement gate every module route.
 - Local JPEG, PNG, and WebP product images use Laravel's public disk with a 4 MB limit and tenant-specific paths.
 - React catalog and inventory calls use real Laravel APIs in normal development, and tenant query keys include the authenticated business ID.
-- Reorder-alert records are ready for later notification delivery; Phase 8 remains responsible for realtime and push transport.
+- Reorder-alert records remain authoritative inventory state; converting them into user notifications is a separately deferred enhancement.
 
 See [`CATALOG_INVENTORY.md`](CATALOG_INVENTORY.md) for schema rules, API contracts, permissions, transaction behavior, and image handling.
 
@@ -114,6 +114,19 @@ See [`CUSTOMER_ORDERING.md`](CUSTOMER_ORDERING.md) for eligibility, API contract
 - React provides customer upload/history, tenant instructions and review queues, subscription proof submission, and platform review. Flutter provides authenticated instructions/QR display, camera/gallery proof upload, and payment status.
 
 See [`RECORDED_PAYMENTS.md`](RECORDED_PAYMENTS.md) for lifecycle, route, privacy, retention, audit, and client contracts.
+
+## Phase 8 baseline
+
+- PostgreSQL is authoritative for tenant/customer conversations, immutable human/system messages, per-user read state, notification preferences, notification inbox records, and durable polling events.
+- Customers can create one general tenant support thread and order-owned threads; Business Owners, Staff, and Cashiers can respond only inside the token-bound tenant.
+- Order placement/status and customer-order payment activity append system messages and target counterpart notifications.
+- User preferences independently control message, order, and payment notification/event creation without hiding authoritative conversation or activity history.
+- Cursor-based event polling is user- and tenant-scoped. React and Android refresh every five seconds only while their clients are in the foreground.
+- React messaging and notification UI uses Laravel in normal development; Android uses the same API for threads, messages, unread/read state, preferences, and foreground banners.
+- Message-send audit events exclude message content and retain only thread/type/character-count metadata.
+- External Firebase/device-token/background push delivery was intentionally not introduced under the approved local-only Phase 8 boundary.
+
+See [`MESSAGING_NOTIFICATIONS.md`](MESSAGING_NOTIFICATIONS.md) for records, routes, delivery behavior, security boundaries, and explicit deferrals.
 
 ## Validation matrix
 
@@ -205,11 +218,24 @@ See [`RECORDED_PAYMENTS.md`](RECORDED_PAYMENTS.md) for lifecycle, route, privacy
 | Flutter | Dependency resolution, format, analyze, tests | Passed — image picker resolved, formatting clean, no analysis issues, 8 tests |
 | Hosted CI | Workflow definition | Not executed — no remote repository or external account was authorized |
 
+## Phase 8 validation matrix
+
+| Surface | Command/check | Result |
+| --- | --- | --- |
+| PostgreSQL | Additive development migration and explicitly isolated test rebuild | Passed — 11 migrations; thread/message/read-state/preference/notification/event constraints and indexes created |
+| Development data | Row counts after additive migration | Passed — all operational/business tables, including all six Phase 8 tables, remain at zero rows; migration-owned plan/entitlement reference rows retained |
+| Laravel | Pint and complete PHPUnit suite | Passed — formatting clean; 59 tests and 600 assertions |
+| Messaging security | Tenant/customer ownership, roles, entitlement, immutable history, content-minimized audit | Passed — foreign tenant threads are hidden and unauthorized records cannot be read or changed |
+| Activity and delivery state | Order/payment system messages, recipient targeting, unread/read, preferences, cursor polling | Passed |
+| React | Lint, typecheck, tests, production build | Passed — 0 lint errors (20 existing warnings), clean typecheck, 46 tests, build complete |
+| Flutter | Format, analyze, tests | Passed — 80 files formatted, no analysis issues, 11 tests |
+| Hosted/background delivery | External provider execution | Not executed — no external account, Firebase project, device registration, or paid service was authorized |
+
 ## Known limitations
 
-- React messaging, reports, settings, and remaining non-Phase-6 prototype areas still depend on MSW fixtures.
+- React reports, settings, and remaining later-phase prototype areas still depend on MSW fixtures; Phase 8 messaging uses Laravel in normal development.
 - React lint retains 20 non-blocking warnings, and the production build reports a 2.81 MB main chunk that should be code-split in a later web phase.
-- Flutter storefront, catalog, cart, checkout, and customer orders use real APIs; messaging, notifications, account editing, and other later-phase screens remain prototype-only.
+- Flutter storefront, catalog, cart, checkout, customer orders, messaging, and foreground notifications use real APIs; account editing and other later-phase screens remain prototype-only.
 - Flutter tokens are intentionally memory-only because no encrypted-storage dependency was approved for Phase 2; cold-start restoration remains deferred.
 - Flutter storefront, cart, and last-known orders are memory-only and do not survive a cold app restart because no new persistence dependency was approved for Phase 6.
 - Android release packaging was not part of Phase 1; JDK 17 remains required before release-oriented work.
@@ -217,13 +243,13 @@ See [`RECORDED_PAYMENTS.md`](RECORDED_PAYMENTS.md) for lifecycle, route, privacy
 - Plan prices are intentionally unconfigured by default and require an approved Super Admin value before bills are created.
 - Subscription status is evaluated on reads; no external scheduler or automatic invoicing service was introduced.
 - Platform user administration currently covers visibility and activation status; self-deactivation and last-Super-Admin lockout are prohibited.
-- Reorder alerts are persisted but external realtime/push notification delivery is deferred to Phase 8.
+- Reorder alerts remain persisted but are not yet converted into Phase 8 user notifications.
 - Local product images use Laravel's public disk; production object-storage configuration and image lifecycle operations are deferred to release hardening.
 - POS tax remains zero until tenant tax settings and applicable fiscal requirements receive a separately approved design.
 - POS GCash, Maya, card, and other non-cash references remain cashier-recorded only; Phase 7 proof verification applies to customer orders and subscription bills, not completed POS sales.
 - Completed sales have no void, return, refund, or correction workflow; direct mutation is intentionally prohibited.
 - Customer orders are pickup-only, placement does not reserve stock, and confirmed orders have no customer cancellation, refund, or automatic restock workflow.
-- No direct wallet verification, refund workflow, notification transport, AI, PWA/offline safety, or deployment implementation exists yet.
+- No direct wallet verification, refund workflow, external background push, AI, PWA/offline safety, or deployment implementation exists yet.
 - The local `ordersync` development database is migrated but empty; pilot/demo rows were not recreated after the approved decision to leave it empty.
 - The local Laragon PostgreSQL cluster uses trusted loopback authentication; non-local environments must use passwords or managed identity.
 
@@ -248,3 +274,4 @@ See [`RECORDED_PAYMENTS.md`](RECORDED_PAYMENTS.md) for lifecycle, route, privacy
 - Payment proof retention is configurable and defaults to 365 days; expiry removes only the private file while durable review and audit metadata remains.
 - Phase 7 duplicate flags are advisory signals for manual reviewers, not proof that a wallet transaction succeeded or that fraud occurred.
 - Private proof storage is local for development; production object storage, malware scanning, and backup/restore policy remain release-hardening work.
+- Phase 8 uses local foreground polling and durable PostgreSQL events; Firebase/device tokens, WebSockets, background/terminated delivery, and external notification providers require separate approval.

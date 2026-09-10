@@ -25,6 +25,7 @@ import { useRole } from "@/shared/hooks/useRole";
 import { useAuthStore } from "@/app/stores/authStore";
 import { Button } from "@/shared/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
+import { useThreads } from "@/shared/hooks/useApi";
 
 type NavItem = {
   to: string;
@@ -73,6 +74,8 @@ export function Sidebar() {
   const toggle = useUiStore((s) => s.toggleSidebar);
   const { canManageBusiness, canManageInventory } = useRole();
   const businessName = useAuthStore((s) => s.user?.business?.name ?? "OrderSync");
+  const threads = useThreads();
+  const unreadMessages = (threads.data ?? []).reduce((sum, thread) => sum + thread.unreadCount, 0);
 
   return (
     <aside
@@ -122,6 +125,16 @@ export function Sidebar() {
                   >
                     <item.icon className="h-4 w-4" />
                     {!collapsed && <span>{item.label}</span>}
+                    {item.to === "/messages" && unreadMessages > 0 && (
+                      <span
+                        className={cn(
+                          "rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground",
+                          !collapsed && "ml-auto",
+                        )}
+                      >
+                        {unreadMessages}
+                      </span>
+                    )}
                   </NavLink>
                 );
                 return collapsed ? (

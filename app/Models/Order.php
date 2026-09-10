@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['business_id', 'customer_user_id', 'customer_name', 'customer_email', 'order_number', 'status', 'fulfillment_method', 'subtotal_minor', 'total_minor', 'idempotency_key', 'request_fingerprint', 'placed_at', 'confirmed_at', 'completed_at'])]
 class Order extends Model
@@ -46,5 +47,10 @@ class Order extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(RecordedPayment::class);
+    }
+
+    public function conversationThread(): HasOne
+    {
+        return $this->hasOne(ConversationThread::class);
     }
 }

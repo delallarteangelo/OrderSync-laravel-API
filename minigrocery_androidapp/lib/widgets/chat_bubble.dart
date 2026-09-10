@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../mock/models.dart';
+import '../core/messaging/messaging_models.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radii.dart';
 import '../theme/app_typography.dart';
 
 /// ChatBubble — Design.md §4.11.
 class ChatBubble extends StatelessWidget {
-  final ChatMessage message;
+  final MessagingMessage message;
   const ChatBubble({super.key, required this.message});
 
   String _hhmm(DateTime t) {
@@ -18,12 +18,12 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (message.direction == MessageDirection.system) {
+    if (message.kind == 'SYSTEM') {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Center(
           child: Text(
-            message.text,
+            message.body,
             textAlign: TextAlign.center,
             style: AppTypography.textTheme.bodySmall?.copyWith(
               fontStyle: FontStyle.italic,
@@ -34,7 +34,7 @@ class ChatBubble extends StatelessWidget {
       );
     }
 
-    final isSent = message.direction == MessageDirection.sent;
+    final isSent = message.mine;
     final bg = isSent ? AppColors.brandPrimary : AppColors.neutralSurfaceAlt;
     final fg = isSent ? AppColors.onBrand : AppColors.neutralInkBlack;
     final radius = isSent
@@ -69,7 +69,7 @@ class ChatBubble extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(color: bg, borderRadius: radius),
                 child: Text(
-                  message.text,
+                  message.body,
                   style: AppTypography.textTheme.bodyMedium?.copyWith(
                     color: fg,
                   ),

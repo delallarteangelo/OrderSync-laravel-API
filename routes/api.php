@@ -4,9 +4,11 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BusinessRegistrationController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ContextController;
+use App\Http\Controllers\Api\V1\ConversationController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InventoryController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentInstructionController;
 use App\Http\Controllers\Api\V1\PlatformBusinessController;
@@ -156,4 +158,18 @@ Route::prefix('/v1')->group(function (): void {
             Route::post('/{method}', [PaymentInstructionController::class, 'store']);
             Route::get('/{instruction}/qr', [PaymentInstructionController::class, 'qr']);
         });
+
+    Route::middleware(['auth.access', 'tenant', 'role:BUSINESS_OWNER,STAFF,CASHIER,CUSTOMER', 'entitlement:messaging_enabled'])->group(function (): void {
+        Route::get('/threads', [ConversationController::class, 'index']);
+        Route::post('/threads', [ConversationController::class, 'store']);
+        Route::get('/threads/{thread}/messages', [ConversationController::class, 'messages']);
+        Route::post('/threads/{thread}/messages', [ConversationController::class, 'send']);
+        Route::post('/threads/{thread}/read', [ConversationController::class, 'read']);
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
+        Route::post('/notifications/{notification}/read', [NotificationController::class, 'read']);
+        Route::get('/notification-preferences', [NotificationController::class, 'preferences']);
+        Route::put('/notification-preferences', [NotificationController::class, 'updatePreferences']);
+        Route::get('/events', [NotificationController::class, 'events']);
+    });
 });

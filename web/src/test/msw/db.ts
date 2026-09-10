@@ -13,7 +13,13 @@ import type { User } from "@/shared/types/auth";
 import type { InventoryMovement } from "@/shared/types/inventory";
 import type { BusinessSettings } from "@/shared/types/settings";
 import type { PosSale } from "@/shared/types/pos";
-import type { ChatThread, Message } from "@/shared/types/messaging";
+import type {
+  ChatThread,
+  Message,
+  NotificationPreferences,
+  RealtimeEvent,
+  UserNotification,
+} from "@/shared/types/messaging";
 
 export type DbSession = { token: string; userId: string; issuedAt: number };
 
@@ -27,6 +33,9 @@ export type Db = {
   posSales: PosSale[];
   threads: ChatThread[];
   messages: Record<string, Message[]>;
+  notifications: UserNotification[];
+  notificationPreferences: NotificationPreferences;
+  realtimeEvents: RealtimeEvent[];
   /** email -> bcrypt-ish (plain in dev) */
   passwords: Record<string, string>;
   sessions: Map<string, DbSession>; // accessToken -> session
@@ -46,6 +55,33 @@ function seed(): Db {
     posSales: structuredClone(mockPosSales),
     threads: structuredClone(mockThreads),
     messages: structuredClone(mockMessages),
+    notifications: [
+      {
+        id: "notification-1",
+        type: "MESSAGE",
+        title: "New customer message",
+        body: "Is my order ready?",
+        resourceType: "THREAD",
+        resourceId: mockThreads[0]?.id ?? null,
+        readAt: null,
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    notificationPreferences: {
+      messagesEnabled: true,
+      ordersEnabled: true,
+      paymentsEnabled: true,
+    },
+    realtimeEvents: [
+      {
+        id: "1",
+        type: "NOTIFICATION_CREATED",
+        resourceType: "NOTIFICATION",
+        resourceId: "notification-1",
+        data: { notificationType: "MESSAGE" },
+        occurredAt: new Date().toISOString(),
+      },
+    ],
     passwords: Object.fromEntries(mockUsers.map((u) => [u.email, DEMO_PASSWORD])),
     sessions: new Map(),
     refreshTokens: new Map(),

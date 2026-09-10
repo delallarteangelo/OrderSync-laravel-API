@@ -28,9 +28,4 @@ export const handlers = [...authHandlers, ...nonAuthHandlers];
 
 // Implemented modules use Laravel in normal development. Future-phase modules
 // remain mocked until their backend work is approved.
-export const browserHandlers = [
-  ...messagesHandlers,
-  ...usersHandlers,
-  ...settingsHandlers,
-  ...reportsHandlers,
-];
+export const browserHandlers = [...usersHandlers, ...settingsHandlers, ...reportsHandlers];

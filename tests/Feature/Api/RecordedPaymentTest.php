@@ -112,6 +112,7 @@ class RecordedPaymentTest extends TestCase
         $this->assertDatabaseCount('inventory_movements', 1);
         $this->assertDatabaseHas('audit_logs', ['action' => 'payment.proof_submitted']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'payment.manually_verified']);
+        $this->assertDatabaseHas('user_notifications', ['business_id' => $business->getKey(), 'user_id' => $customer->getKey(), 'type' => 'PAYMENT']);
     }
 
     public function test_duplicate_signals_rejection_resubmission_and_tenant_boundaries_are_enforced(): void

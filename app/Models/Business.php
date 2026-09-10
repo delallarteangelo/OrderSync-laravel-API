@@ -73,4 +73,9 @@ class Business extends Model
     {
         return $this->hasMany(RecordedPayment::class);
     }
+
+    public function conversationThreads(): HasMany
+    {
+        return $this->hasMany(ConversationThread::class);
+    }
 }

@@ -13,6 +13,7 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 - [x] 2026-09-08 — Phase 5 transactional POS verified: tenant sales and receipt snapshots, server pricing, idempotent checkout, atomic stock deduction, recorded payment references, Cashier access, sales history, and tenant-scoped caches use real Laravel APIs. See [`../docs/POINT_OF_SALE.md`](../docs/POINT_OF_SALE.md).
 - [x] 2026-09-09 — Phase 6 customer storefront and ordering verified: public tenant storefronts, live catalogs, tenant-scoped carts, retry-safe checkout, customer history/cancellation, business approval and pickup statuses, and real Laravel APIs replace the corresponding web mocks. See [`../docs/CUSTOMER_ORDERING.md`](../docs/CUSTOMER_ORDERING.md).
 - [x] 2026-09-09 — Phase 7 recorded GCash/Maya payments verified: owner-managed instructions and private QR files, customer order proofs, business review queues, subscription billing proofs, Super Admin review, duplicate signals, receipts, history, and manual-only provider language use real Laravel APIs. See [`../docs/RECORDED_PAYMENTS.md`](../docs/RECORDED_PAYMENTS.md).
+- [x] 2026-09-10 — Phase 8 messaging and foreground notifications verified: tenant/customer-safe support and order threads, immutable human/system activity, unread state, notification inbox/preferences, durable polling records, and real Laravel-backed web screens replace normal-development messaging mocks. See [`../docs/MESSAGING_NOTIFICATIONS.md`](../docs/MESSAGING_NOTIFICATIONS.md).
 
 ## Legend
 

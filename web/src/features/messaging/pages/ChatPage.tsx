@@ -1,15 +1,6 @@
 import * as React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  CheckCheck,
-  Loader2,
-  MessageSquare,
-  Search,
-  Send,
-  WifiOff,
-} from "lucide-react";
-import { mockThreads } from "@/mock/mockMessages"; // fallback when empty
+import { ArrowLeft, CheckCheck, Loader2, MessageSquare, Search, Send } from "lucide-react";
 import type { Message } from "@/shared/types/messaging";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Card } from "@/shared/components/ui/card";
@@ -23,10 +14,6 @@ import { EmptyState } from "@/shared/components/EmptyState";
 import { useMarkThreadRead, useMessages, useSendMessage, useThreads } from "@/shared/hooks/useApi";
 import { isApiError } from "@/shared/api/errors";
 import { toast } from "sonner";
-import { stomp } from "@/shared/ws/stompClient";
-import { useQueryClient } from "@tanstack/react-query";
-import { qk } from "@/shared/hooks/useApi";
-import { useUiStore } from "@/app/stores/uiStore";
 import { useAuthStore } from "@/app/stores/authStore";
 import { relative, fmtDateTime } from "@/shared/lib/dates";
 import { cn } from "@/shared/lib/cn";
@@ -35,12 +22,9 @@ export function ChatPage() {
   const params = useParams<{ threadId?: string }>();
   const navigate = useNavigate();
   const user = useAuthStore.getState().user!;
-  const reconnecting = useUiStore((s) => s.reconnectingChat);
-  const setReconnecting = useUiStore((s) => s.setReconnectingChat);
-  const qc = useQueryClient();
 
   const threadsQ = useThreads();
-  const threads = threadsQ.data ?? mockThreads;
+  const threads = threadsQ.data ?? [];
   const [search, setSearch] = React.useState("");
   const [draft, setDraft] = React.useState("");
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -64,15 +48,9 @@ export function ChatPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages.length, activeId]);
 
-  // STOMP subscription per active thread
   React.useEffect(() => {
     if (!activeId) return;
-    const sub = stomp.subscribe(`/topic/threads/${activeId}`, () => {
-      qc.invalidateQueries({ queryKey: qk.messages(activeId) });
-      qc.invalidateQueries({ queryKey: qk.threads });
-    });
     markReadM.mutate(activeId);
-    return sub;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId]);
 
@@ -93,9 +71,11 @@ export function ChatPage() {
       senderId: user.id,
       senderName: user.fullName,
       senderRole: user.role === "SUPER_ADMIN" ? "STAFF" : user.role,
+      kind: "HUMAN",
       body: draft.trim(),
       sentAt: new Date().toISOString(),
       status: "sending",
+      mine: true,
     };
     setPending((p) => [...p, optimistic]);
     const body = draft.trim();
@@ -118,22 +98,10 @@ export function ChatPage() {
         title="Messages"
         description="Conversations with customers and order-specific threads."
         actions={
-          <div className="flex items-center gap-2">
-            {reconnecting && (
-              <Badge variant="warning" className="gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Reconnecting…
-              </Badge>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setReconnecting(!reconnecting)}
-            >
-              <WifiOff className="mr-1 h-3.5 w-3.5" />
-              {reconnecting ? "Stop demo" : "Simulate reconnect"}
-            </Button>
-          </div>
+          <Badge variant="outline" className="gap-1">
+            {threadsQ.isFetching && <Loader2 className="h-3 w-3 animate-spin" />}
+            Secure polling · 5 seconds
+          </Badge>
         }
       />
       <Card className="grid h-[calc(100vh-220px)] grid-cols-[320px_1fr] overflow-hidden">
@@ -168,7 +136,7 @@ export function ChatPage() {
                       <div className="flex items-center justify-between gap-2">
                         <p className="truncate text-sm font-medium">{t.customer.name}</p>
                         <span className="text-[10px] text-muted-foreground">
-                          {relative(t.lastMessageAt)}
+                          {t.lastMessageAt ? relative(t.lastMessageAt) : "New"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2">
@@ -208,13 +176,15 @@ export function ChatPage() {
                 <div>
                   <p className="text-sm font-medium">{active.customer.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {active.kind === "ORDER" ? `Order ${active.orderId}` : "General inquiry"}
+                    {active.kind === "ORDER"
+                      ? `Order ${active.orderCode ?? active.orderId}`
+                      : "General inquiry"}
                   </p>
                 </div>
               </div>
               <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-muted/30 p-4">
                 {messages.map((m) => {
-                  if (m.senderRole === "SYSTEM") {
+                  if (m.kind === "SYSTEM") {
                     return (
                       <div key={m.id} className="my-2 text-center">
                         <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
@@ -223,7 +193,7 @@ export function ChatPage() {
                       </div>
                     );
                   }
-                  const mine = m.senderRole !== "CUSTOMER";
+                  const mine = m.mine;
                   return (
                     <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
                       <div
@@ -247,7 +217,9 @@ export function ChatPage() {
                           )}
                         >
                           {fmtDateTime(m.sentAt)}
-                          {mine && m.status === "sending" && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {mine && m.status === "sending" && (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          )}
                           {mine && m.status === "sent" && <CheckCheck className="h-3 w-3" />}
                         </p>
                       </div>
@@ -274,7 +246,9 @@ export function ChatPage() {
                     Send
                   </Button>
                 </div>
-                <p className="mt-1 text-[10px] text-muted-foreground">Enter to send · Shift+Enter for newline</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Enter to send · Shift+Enter for newline
+                </p>
               </div>
             </>
           ) : (

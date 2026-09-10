@@ -7,6 +7,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\RecordedPaymentContext;
 use App\Enums\RecordedPaymentStatus;
+use App\Enums\UserNotificationType;
 use App\Exceptions\RecordedPaymentException;
 use App\Models\BillingRecord;
 use App\Models\Order;
@@ -23,7 +24,7 @@ use Throwable;
 
 class RecordedPaymentService
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(private readonly AuditLogger $audit, private readonly MessagingService $messaging) {}
 
     public function submitOrderPayment(Order $order, User $customer, Request $request, PaymentMethod $method, string $reference, UploadedFile $proof): RecordedPayment
     {
@@ -148,6 +149,15 @@ class RecordedPaymentService
                     'duplicate_reference' => $referenceDuplicate !== null,
                     'duplicate_proof' => $proofDuplicate !== null,
                 ]);
+                if ($context === RecordedPaymentContext::CustomerOrder) {
+                    $this->messaging->appendOrderActivity(
+                        $locked,
+                        "{$method->value} payment proof was submitted for manual review.",
+                        UserNotificationType::Payment,
+                        "Payment proof for {$locked->order_number}",
+                        $submitter->getKey(),
+                    );
+                }
 
                 return $payment->fresh(['business', 'order', 'billingRecord', 'submitter', 'reviewEvents']);
             });
@@ -216,6 +226,26 @@ class RecordedPaymentService
                 $locked->getKey(),
                 ['context' => $locked->context->value, 'method' => $locked->method->value, 'amount_minor' => $locked->amount_minor],
             );
+            $decision = $next === RecordedPaymentStatus::Verified ? 'manually verified' : 'rejected';
+            if ($locked->context === RecordedPaymentContext::CustomerOrder) {
+                $this->messaging->appendOrderActivity(
+                    $locked->order,
+                    "{$locked->method->value} payment proof was {$decision}.",
+                    UserNotificationType::Payment,
+                    "Payment {$decision}",
+                    $reviewer->getKey(),
+                );
+            } elseif ($locked->submitter) {
+                $this->messaging->notifyUser(
+                    $locked->business,
+                    $locked->submitter,
+                    UserNotificationType::Payment,
+                    "Subscription payment {$decision}",
+                    "Your {$locked->method->value} subscription proof was {$decision}.",
+                    'PAYMENT',
+                    (string) $locked->getKey(),
+                );
+            }
 
             return $locked->fresh(['business', 'order', 'billingRecord', 'submitter', 'reviewer', 'reviewEvents']);
         });
