@@ -22,6 +22,8 @@ import { isApiError } from "@/shared/api/errors";
 import { useAuthStore } from "@/app/stores/authStore";
 import { allowedTransitions } from "@/shared/lib/roleGuards";
 import { fmtDateTime } from "@/shared/lib/dates";
+import { ErrorState } from "@/shared/components/ErrorState";
+import { LoadingState } from "@/shared/components/LoadingState";
 
 const statusActionLabel: Record<OrderStatus, string> = {
   PENDING: "Mark Pending",
@@ -41,7 +43,7 @@ export function OrderDetailPage() {
   const user = useAuthStore((s) => s.user)!;
 
   if (orderQ.isLoading) {
-    return <p className="p-6 text-sm text-muted-foreground">Loading order…</p>;
+    return <LoadingState label="Loading order…" className="mx-auto max-w-3xl" />;
   }
 
   if (!order) {
@@ -53,7 +55,11 @@ export function OrderDetailPage() {
             Back to orders
           </Link>
         </Button>
-        <p>Order not found.</p>
+        <ErrorState
+          title="Order not found"
+          message="The order may not exist or may belong to another business."
+          onRetry={() => void orderQ.refetch()}
+        />
       </div>
     );
   }

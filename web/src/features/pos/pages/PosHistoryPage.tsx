@@ -13,7 +13,8 @@ import { fmtDateTime } from "@/shared/lib/dates";
 import { ReceiptView } from "../components/ReceiptView";
 
 export function PosHistoryPage() {
-  const sales = useSales().data ?? [];
+  const salesQ = useSales();
+  const sales = salesQ.data ?? [];
   const [selected, setSelected] = React.useState<PosSale | null>(null);
   const columns: ColumnDef<PosSale>[] = React.useMemo(
     () => [
@@ -71,6 +72,12 @@ export function PosHistoryPage() {
       <DataTable
         columns={columns}
         data={sales}
+        isLoading={salesQ.isLoading}
+        isError={salesQ.isError}
+        onRetry={() => void salesQ.refetch()}
+        loadingLabel="Loading sales history…"
+        emptyTitle="No completed sales"
+        emptyDescription="Completed POS sales and receipts will appear here."
         searchKey="receiptNumber"
         searchPlaceholder="Search receipt number…"
       />

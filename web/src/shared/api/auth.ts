@@ -33,6 +33,9 @@ export async function switchBusiness(businessId: number): Promise<AuthResponse> 
   return data;
 }
 
-export async function changePassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {
+export async function changePassword(payload: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<void> {
   await http.post("/auth/change-password", payload);
 }

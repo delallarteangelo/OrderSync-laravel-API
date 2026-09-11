@@ -98,10 +98,14 @@ export function UserFormPage() {
     <>
       <PageHeader
         title={existing ? `Edit ${existing.fullName}` : "New user"}
-        description={existing ? "Update user details and access." : "Add a new staff member or cashier."}
+        description={
+          existing ? "Update user details and access." : "Add a new staff member or cashier."
+        }
         breadcrumbs={
           <nav className="text-xs text-muted-foreground">
-            <a href="/users" className="hover:underline">Users</a>
+            <a href="/users" className="hover:underline">
+              Users
+            </a>
             <span className="mx-1">/</span>
             <span>{existing?.fullName ?? "New"}</span>
           </nav>

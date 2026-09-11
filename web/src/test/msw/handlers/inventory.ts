@@ -1,13 +1,24 @@
 import { http, HttpResponse } from "msw";
 import { db, randomId, findUserByToken, tokenFromAuthHeader } from "../db";
-import type { InventoryMovement, ReasonCode, RestockEntry, StockAdjustment } from "@/shared/types/inventory";
+import type {
+  InventoryMovement,
+  ReasonCode,
+  RestockEntry,
+  StockAdjustment,
+} from "@/shared/types/inventory";
 
 function actor(request: Request) {
   const u = findUserByToken(tokenFromAuthHeader(request.headers.get("authorization")));
   return u ? { id: u.id, name: u.fullName } : null;
 }
 
-function recordMovement(productId: string, delta: number, reason: ReasonCode, who: { id: string; name: string }, note?: string): InventoryMovement {
+function recordMovement(
+  productId: string,
+  delta: number,
+  reason: ReasonCode,
+  who: { id: string; name: string },
+  note?: string,
+): InventoryMovement {
   const product = db.products.find((p) => p.id === productId);
   const mv: InventoryMovement = {
     id: randomId("mv"),
@@ -67,7 +78,11 @@ export const inventoryHandlers = [
     if (idx === -1) return HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 });
     if (body.delta < 0 && !body.note) {
       return HttpResponse.json(
-        { code: "VALIDATION", message: "Note required for negative adjustment", fieldErrors: { note: ["Required"] } },
+        {
+          code: "VALIDATION",
+          message: "Note required for negative adjustment",
+          fieldErrors: { note: ["Required"] },
+        },
         { status: 422 },
       );
     }

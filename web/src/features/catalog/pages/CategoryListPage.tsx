@@ -22,10 +22,15 @@ import {
   useUpdateCategory,
 } from "@/shared/hooks/useApi";
 import { isApiError } from "@/shared/api/errors";
+import { EmptyState } from "@/shared/components/EmptyState";
+import { ErrorState } from "@/shared/components/ErrorState";
+import { LoadingState } from "@/shared/components/LoadingState";
 
 export function CategoryListPage() {
-  const categories = useCategories().data ?? [];
-  const products = useProducts().data ?? [];
+  const categoriesQ = useCategories();
+  const productsQ = useProducts();
+  const categories = categoriesQ.data ?? [];
+  const products = productsQ.data ?? [];
   const createM = useCreateCategory();
   const updateM = useUpdateCategory();
   const deleteM = useDeleteCategory();
@@ -74,7 +79,10 @@ export function CategoryListPage() {
 
   return (
     <>
-      <PageHeader title="Categories" description="Group products for easier browsing and POS tiles." />
+      <PageHeader
+        title="Categories"
+        description="Group products for easier browsing and POS tiles."
+      />
       <Card>
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center gap-2">
@@ -89,59 +97,77 @@ export function CategoryListPage() {
               Add
             </Button>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="text-right">Products</TableHead>
-                <TableHead className="w-32 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell>
-                    {editingId === c.id ? (
-                      <Input
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && commitEdit()}
-                        autoFocus
-                      />
-                    ) : (
-                      <span className="font-medium">{c.name}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground">
-                    {countOf(c.id)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {editingId === c.id ? (
-                        <>
-                          <Button size="icon" variant="ghost" onClick={commitEdit}>
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button size="icon" variant="ghost" onClick={() => startEdit(c.id, c.name)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => setDeleteId(c.id)}>
-                            <Trash2 className="h-4 w-4 text-rose-600" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
+          {categoriesQ.isLoading || productsQ.isLoading ? (
+            <LoadingState label="Loading categories…" />
+          ) : categoriesQ.isError || productsQ.isError ? (
+            <ErrorState
+              title="Categories are unavailable"
+              onRetry={() => void Promise.all([categoriesQ.refetch(), productsQ.refetch()])}
+            />
+          ) : categories.length === 0 ? (
+            <EmptyState
+              title="No categories yet"
+              description="Add a category to organize the product catalog."
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="text-right">Products</TableHead>
+                  <TableHead className="w-32 text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {categories.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell>
+                      {editingId === c.id ? (
+                        <Input
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && commitEdit()}
+                          autoFocus
+                        />
+                      ) : (
+                        <span className="font-medium">{c.name}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {countOf(c.id)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {editingId === c.id ? (
+                          <>
+                            <Button size="icon" variant="ghost" onClick={commitEdit}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => startEdit(c.id, c.name)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setDeleteId(c.id)}>
+                              <Trash2 className="h-4 w-4 text-rose-600" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

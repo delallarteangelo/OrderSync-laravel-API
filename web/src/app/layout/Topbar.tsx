@@ -145,12 +145,21 @@ export function Topbar() {
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/95 px-6 backdrop-blur">
       <div className="relative w-full max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search products, orders, customers…" className="h-9 pl-9" />
+        <Input
+          aria-label="Search products, orders, and customers"
+          placeholder="Search products, orders, customers…"
+          className="h-9 pl-9"
+        />
       </div>
       <div className="ml-auto flex items-center gap-2">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" className="relative">
+            <Button
+              aria-label="Open notifications"
+              variant="outline"
+              size="icon"
+              className="relative"
+            >
               <Bell className="h-4 w-4" />
               {(notifications.data?.unreadCount ?? 0) > 0 && (
                 <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-rose-500 px-1 text-[10px] text-white">
@@ -177,7 +186,7 @@ export function Topbar() {
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-medium leading-tight">{notification.title}</p>
                     {!notification.readAt && (
-                      <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                      <span aria-label="Unread" className="mt-1 h-2 w-2 rounded-full bg-primary" />
                     )}
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">{notification.body}</p>
@@ -226,7 +235,7 @@ export function Topbar() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-9 gap-2 px-2">
+            <Button aria-label="Open account menu" variant="ghost" className="h-9 gap-2 px-2">
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-primary/10 text-primary">
                   {initialsOf(user.fullName)}

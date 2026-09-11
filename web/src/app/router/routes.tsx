@@ -3,6 +3,8 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/app/providers/AuthProvider";
 import { RequireAuth } from "@/app/router/RequireAuth";
 import { RequireRole } from "@/app/router/RequireRole";
+import { LoadingState } from "@/shared/components/LoadingState";
+import { RouteErrorState } from "@/shared/components/RouteErrorState";
 
 const AppShell = React.lazy(() =>
   import("@/app/layout/AppShell").then(({ AppShell }) => ({ default: AppShell })),
@@ -140,12 +142,9 @@ function Wrap({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <React.Suspense
         fallback={
-          <div
-            role="status"
-            className="flex min-h-screen items-center justify-center text-sm text-muted-foreground"
-          >
-            Loading OrderSync…
-          </div>
+          <main className="flex min-h-screen items-center justify-center p-6">
+            <LoadingState label="Loading OrderSync…" className="w-full max-w-lg" />
+          </main>
         }
       >
         {children}
@@ -157,6 +156,7 @@ function Wrap({ children }: { children: React.ReactNode }) {
 export const router = createBrowserRouter([
   {
     path: "/shop/:slug?",
+    errorElement: <RouteErrorState />,
     element: (
       <Wrap>
         <StorefrontPage />
@@ -165,6 +165,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
+    errorElement: <RouteErrorState />,
     element: (
       <Wrap>
         <LoginPage />
@@ -173,6 +174,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/platform",
+    errorElement: <RouteErrorState />,
     element: (
       <Wrap>
         <RequireAuth>
@@ -185,6 +187,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/platform/payments",
+    errorElement: <RouteErrorState />,
     element: (
       <Wrap>
         <RequireAuth>
@@ -197,6 +200,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/register-business",
+    errorElement: <RouteErrorState />,
     element: (
       <Wrap>
         <BusinessRegistrationPage />
@@ -205,6 +209,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/403",
+    errorElement: <RouteErrorState />,
     element: (
       <Wrap>
         <RequireAuth>
@@ -215,6 +220,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/pos",
+    errorElement: <RouteErrorState />,
     element: (
       <Wrap>
         <RequireAuth>
@@ -227,6 +233,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/",
+    errorElement: <RouteErrorState />,
     element: (
       <Wrap>
         <RequireAuth>

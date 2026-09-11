@@ -1,9 +1,5 @@
 import * as React from "react";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/shared/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import type { ReportBucket } from "@/shared/types/reports";
 
 export interface BucketSelectorProps {

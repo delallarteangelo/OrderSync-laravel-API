@@ -6,7 +6,9 @@ export async function getSettings(): Promise<BusinessSettings> {
   return data;
 }
 
-export async function updateSettings(payload: Partial<BusinessSettings>): Promise<BusinessSettings> {
+export async function updateSettings(
+  payload: Partial<BusinessSettings>,
+): Promise<BusinessSettings> {
   const { data } = await http.put<BusinessSettings>("/settings", payload);
   return data;
 }

@@ -42,6 +42,9 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { CustomerSupportPanel } from "@/features/storefront/components/CustomerSupportPanel";
 import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
+import { EmptyState } from "@/shared/components/EmptyState";
+import { ErrorState } from "@/shared/components/ErrorState";
+import { LoadingState } from "@/shared/components/LoadingState";
 
 export function StorefrontPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -65,7 +68,11 @@ export function StorefrontPage() {
 
   if (!slug) {
     return (
-      <main className="min-h-screen bg-muted/30 px-4 py-10">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="min-h-screen bg-muted/30 px-4 py-10 outline-none"
+      >
         <div className="mx-auto max-w-5xl space-y-6">
           <div className="flex items-center gap-3">
             <Store className="h-8 w-8 text-primary" />
@@ -74,8 +81,17 @@ export function StorefrontPage() {
               <p className="text-sm text-muted-foreground">Choose a store for pickup ordering.</p>
             </div>
           </div>
-          {directory.isLoading && <p>Loading stores…</p>}
-          {directory.isError && <p>Stores are unavailable right now.</p>}
+          {directory.isLoading && <LoadingState label="Loading stores…" />}
+          {directory.isError && (
+            <ErrorState
+              title="Stores are unavailable"
+              message="Check the connection and try again."
+              onRetry={() => void directory.refetch()}
+            />
+          )}
+          {!directory.isLoading && !directory.isError && (directory.data ?? []).length === 0 && (
+            <EmptyState title="No stores are accepting orders" />
+          )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(directory.data ?? []).map((business) => (
               <Card key={business.id}>
@@ -96,8 +112,32 @@ export function StorefrontPage() {
     );
   }
 
-  if (storefront.isLoading) return <p className="p-8">Loading storefront…</p>;
-  if (!storefront.data) return <p className="p-8">This storefront is unavailable.</p>;
+  if (storefront.isLoading) {
+    return (
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto min-h-screen max-w-3xl p-8 outline-none"
+      >
+        <LoadingState label="Loading storefront…" />
+      </main>
+    );
+  }
+  if (!storefront.data) {
+    return (
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto min-h-screen max-w-3xl p-8 outline-none"
+      >
+        <ErrorState
+          title="This storefront is unavailable"
+          message="It may be closed to online ordering or the connection may be unavailable."
+          onRetry={() => void storefront.refetch()}
+        />
+      </main>
+    );
+  }
 
   const data = storefront.data;
   const total = cart.lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
@@ -137,11 +177,11 @@ export function StorefrontPage() {
   };
 
   return (
-    <main className="min-h-screen bg-muted/30">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-muted/30 outline-none">
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-4">
           <Button asChild variant="ghost" size="icon">
-            <Link to="/shop">
+            <Link to="/shop" aria-label="Back to store directory">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
@@ -212,7 +252,11 @@ export function StorefrontPage() {
               <Card key={product.id} className="overflow-hidden">
                 <div className="flex h-36 items-center justify-center bg-muted text-muted-foreground">
                   {product.imageUrl ? (
-                    <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <Store className="h-9 w-9" />
                   )}
@@ -321,12 +365,18 @@ export function StorefrontPage() {
                       <p className="text-sm font-medium">{line.name}</p>
                       <Money value={line.unitPrice * line.quantity} className="text-sm" />
                     </div>
-                    <Button size="icon" variant="ghost" onClick={() => cart.remove(line.productId)}>
+                    <Button
+                      aria-label={`Remove ${line.name} from cart`}
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => cart.remove(line.productId)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
+                      aria-label={`Decrease ${line.name} quantity`}
                       size="icon"
                       variant="outline"
                       className="h-7 w-7"
@@ -336,6 +386,7 @@ export function StorefrontPage() {
                     </Button>
                     <span className="w-8 text-center text-sm">{line.quantity}</span>
                     <Button
+                      aria-label={`Increase ${line.name} quantity`}
                       size="icon"
                       variant="outline"
                       className="h-7 w-7"

@@ -1,7 +1,12 @@
 import type { AxiosError, AxiosInstance } from "axios";
 import { ApiError, type FieldErrors } from "../errors";
 
-type ServerError = { code?: string; message?: string; fieldErrors?: FieldErrors; errors?: FieldErrors };
+type ServerError = {
+  code?: string;
+  message?: string;
+  fieldErrors?: FieldErrors;
+  errors?: FieldErrors;
+};
 
 export function attachErrorInterceptor(http: AxiosInstance) {
   http.interceptors.response.use(

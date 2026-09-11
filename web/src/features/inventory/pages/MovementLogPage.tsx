@@ -17,7 +17,10 @@ import { useMovements, useProducts } from "@/shared/hooks/useApi";
 import { fmtDateTime } from "@/shared/lib/dates";
 import { exportRowsCsv } from "@/shared/lib/csv";
 
-const reasonColor: Record<ReasonCode, "secondary" | "info" | "success" | "destructive" | "warning"> = {
+const reasonColor: Record<
+  ReasonCode,
+  "secondary" | "info" | "success" | "destructive" | "warning"
+> = {
   POS_SALE: "info",
   ORDER_CONFIRMED: "warning",
   ADJUSTMENT: "secondary",
@@ -25,8 +28,10 @@ const reasonColor: Record<ReasonCode, "secondary" | "info" | "success" | "destru
 };
 
 export function MovementLogPage() {
-  const movements = useMovements().data ?? [];
-  const products = useProducts().data ?? [];
+  const movementsQ = useMovements();
+  const productsQ = useProducts();
+  const movements = movementsQ.data ?? [];
+  const products = productsQ.data ?? [];
   const [productId, setProductId] = React.useState<string>("ALL");
   const [reason, setReason] = React.useState<ReasonCode | "ALL">("ALL");
 
@@ -46,7 +51,9 @@ export function MovementLogPage() {
         accessorKey: "occurredAt",
         header: "When",
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">{fmtDateTime(row.original.occurredAt)}</span>
+          <span className="text-sm text-muted-foreground">
+            {fmtDateTime(row.original.occurredAt)}
+          </span>
         ),
       },
       {
@@ -67,7 +74,11 @@ export function MovementLogPage() {
         accessorKey: "delta",
         header: "Delta",
         cell: ({ row }) => (
-          <span className={row.original.delta < 0 ? "font-medium text-rose-600" : "font-medium text-emerald-600"}>
+          <span
+            className={
+              row.original.delta < 0 ? "font-medium text-rose-600" : "font-medium text-emerald-600"
+            }
+          >
             {row.original.delta > 0 ? "+" : ""}
             {row.original.delta}
           </span>
@@ -118,6 +129,12 @@ export function MovementLogPage() {
       <DataTable
         columns={columns}
         data={filtered}
+        isLoading={movementsQ.isLoading || productsQ.isLoading}
+        isError={movementsQ.isError || productsQ.isError}
+        onRetry={() => void Promise.all([movementsQ.refetch(), productsQ.refetch()])}
+        loadingLabel="Loading stock movements…"
+        emptyTitle="No stock movements found"
+        emptyDescription="Stock adjustments and completed transactions will appear here."
         searchKey="productName"
         searchPlaceholder="Search product…"
         pageSize={15}

@@ -10,7 +10,10 @@ export const queryClient = new QueryClient({
       gcTime: 5 * 60_000,
       refetchOnWindowFocus: false,
       retry: (failureCount, error) => {
-        if (isApiError(error) && (error.status === 401 || error.status === 403 || error.status === 404)) {
+        if (
+          isApiError(error) &&
+          (error.status === 401 || error.status === 403 || error.status === 404)
+        ) {
           return false;
         }
         return failureCount < 1;

@@ -30,7 +30,8 @@ const ALL_STATUSES: (OrderStatus | "ALL")[] = [
 ];
 
 export function OrderListPage() {
-  const orders = useOrders().data ?? [];
+  const ordersQ = useOrders();
+  const orders = ordersQ.data ?? [];
   const [status, setStatus] = React.useState<OrderStatus | "ALL">("ALL");
 
   const filtered = React.useMemo(
@@ -109,6 +110,12 @@ export function OrderListPage() {
       <DataTable
         columns={columns}
         data={filtered}
+        isLoading={ordersQ.isLoading}
+        isError={ordersQ.isError}
+        onRetry={() => void ordersQ.refetch()}
+        loadingLabel="Loading orders…"
+        emptyTitle="No orders found"
+        emptyDescription="New customer pickup orders will appear here."
         searchKey="customer"
         searchPlaceholder="Search customer name…"
         toolbar={

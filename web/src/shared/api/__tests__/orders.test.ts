@@ -18,9 +18,9 @@ describe("orders api", () => {
     await loginAsAdmin();
     const all = await listOrders();
     const pending = all.find((o) => o.status === "PENDING")!;
-    await expect(
-      transitionOrder(pending.id, "COMPLETED"),
-    ).rejects.toSatisfy((e: unknown) => isApiError(e) && e.code === "ILLEGAL_TRANSITION");
+    await expect(transitionOrder(pending.id, "COMPLETED")).rejects.toSatisfy(
+      (e: unknown) => isApiError(e) && e.code === "ILLEGAL_TRANSITION",
+    );
   });
 
   it("PENDING -> CONFIRMED deducts stock and appends history", async () => {

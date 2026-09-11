@@ -12,12 +12,18 @@ export interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={cn(
         "flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/30 p-10 text-center",
         className,
       )}
     >
-      {icon && <div className="text-muted-foreground">{icon}</div>}
+      {icon && (
+        <div aria-hidden="true" className="text-muted-foreground">
+          {icon}
+        </div>
+      )}
       <div className="space-y-1">
         <p className="text-sm font-medium">{title}</p>
         {description && <p className="text-xs text-muted-foreground">{description}</p>}

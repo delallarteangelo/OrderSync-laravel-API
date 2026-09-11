@@ -17,12 +17,13 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <div
+      role="alert"
       className={cn(
         "flex flex-col items-center justify-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-10 text-center",
         className,
       )}
     >
-      <AlertTriangle className="h-8 w-8 text-destructive" />
+      <AlertTriangle aria-hidden="true" className="h-8 w-8 text-destructive" />
       <div>
         <p className="text-sm font-medium">{title}</p>
         <p className="text-xs text-muted-foreground">{message}</p>

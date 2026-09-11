@@ -22,6 +22,9 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { fmtDateTime } from "@/shared/lib/dates";
+import { EmptyState } from "@/shared/components/EmptyState";
+import { ErrorState } from "@/shared/components/ErrorState";
+import { LoadingState } from "@/shared/components/LoadingState";
 
 export function PaymentsPage() {
   const user = useAuthStore((state) => state.user)!;
@@ -60,19 +63,30 @@ export function PaymentsPage() {
       />
       {!platform && user.role === "BUSINESS_OWNER" && <InstructionManager />}
       <div className="mt-6 space-y-3">
-        {payments.isLoading && <p className="text-sm text-muted-foreground">Loading payments…</p>}
-        {(payments.data ?? []).length === 0 && !payments.isLoading && (
-          <p className="text-sm text-muted-foreground">No recorded payments yet.</p>
-        )}
-        {(payments.data ?? []).map((payment) => (
-          <PaymentReviewCard
-            key={payment.id}
-            payment={payment}
-            platform={platform}
-            busy={review.isPending}
-            onReview={(decision) => review.mutate({ payment, decision })}
+        {payments.isLoading && <LoadingState label="Loading payments…" />}
+        {payments.isError && (
+          <ErrorState
+            title="Payments are unavailable"
+            message="The payment records could not be loaded."
+            onRetry={() => void payments.refetch()}
           />
-        ))}
+        )}
+        {(payments.data ?? []).length === 0 && !payments.isLoading && !payments.isError && (
+          <EmptyState
+            title="No recorded payments"
+            description="Submitted customer or subscription payment proofs will appear here."
+          />
+        )}
+        {!payments.isError &&
+          (payments.data ?? []).map((payment) => (
+            <PaymentReviewCard
+              key={payment.id}
+              payment={payment}
+              platform={platform}
+              busy={review.isPending}
+              onReview={(decision) => review.mutate({ payment, decision })}
+            />
+          ))}
       </div>
     </>
   );

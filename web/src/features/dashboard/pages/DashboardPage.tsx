@@ -222,26 +222,24 @@ function AdminDashboard({ loading, snap }: { loading: boolean; snap?: DashboardS
             </Button>
           </CardHeader>
           <CardContent className="space-y-2">
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)
-            ) : (
-              recentOrders.map((o) => (
-                <Link
-                  key={o.id}
-                  to={`/orders/${o.id}`}
-                  className="flex items-center justify-between rounded-md border bg-card px-3 py-2 hover:bg-accent/50"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{o.code}</p>
-                    <p className="truncate text-xs text-muted-foreground">{o.customer.name}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Money value={o.total} className="text-sm font-medium" />
-                    <StatusChip status={o.status} />
-                  </div>
-                </Link>
-              ))
-            )}
+            {loading
+              ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)
+              : recentOrders.map((o) => (
+                  <Link
+                    key={o.id}
+                    to={`/orders/${o.id}`}
+                    className="flex items-center justify-between rounded-md border bg-card px-3 py-2 hover:bg-accent/50"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{o.code}</p>
+                      <p className="truncate text-xs text-muted-foreground">{o.customer.name}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Money value={o.total} className="text-sm font-medium" />
+                      <StatusChip status={o.status} />
+                    </div>
+                  </Link>
+                ))}
           </CardContent>
         </Card>
 
@@ -250,33 +248,29 @@ function AdminDashboard({ loading, snap }: { loading: boolean; snap?: DashboardS
             <CardTitle>Recent movements</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />)
-            ) : (
-              recentMovements.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center justify-between rounded-md border bg-card px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{m.productName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {m.reason} · {fmtDateTime(m.occurredAt)}
-                    </p>
-                  </div>
-                  <span
-                    className={
-                      m.delta < 0
-                        ? "font-medium text-rose-600"
-                        : "font-medium text-emerald-600"
-                    }
+            {loading
+              ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />)
+              : recentMovements.map((m) => (
+                  <div
+                    key={m.id}
+                    className="flex items-center justify-between rounded-md border bg-card px-3 py-2"
                   >
-                    {m.delta > 0 ? "+" : ""}
-                    {m.delta}
-                  </span>
-                </div>
-              ))
-            )}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{m.productName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {m.reason} · {fmtDateTime(m.occurredAt)}
+                      </p>
+                    </div>
+                    <span
+                      className={
+                        m.delta < 0 ? "font-medium text-rose-600" : "font-medium text-emerald-600"
+                      }
+                    >
+                      {m.delta > 0 ? "+" : ""}
+                      {m.delta}
+                    </span>
+                  </div>
+                ))}
           </CardContent>
         </Card>
       </div>

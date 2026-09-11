@@ -14,7 +14,12 @@ export interface DateRangePickerProps {
   align?: "start" | "center" | "end";
 }
 
-export function DateRangePicker({ value, onChange, className, align = "start" }: DateRangePickerProps) {
+export function DateRangePicker({
+  value,
+  onChange,
+  className,
+  align = "start",
+}: DateRangePickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>

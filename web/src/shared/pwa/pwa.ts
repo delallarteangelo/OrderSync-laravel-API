@@ -10,12 +10,7 @@ export function isPublicCatalogPath(pathname: string): boolean {
 }
 
 export async function registerOrderSyncServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (
-    !flags.pwaEnabled ||
-    flags.useMsw ||
-    import.meta.env.DEV ||
-    !("serviceWorker" in navigator)
-  ) {
+  if (!flags.pwaEnabled || flags.useMsw || import.meta.env.DEV || !("serviceWorker" in navigator)) {
     return null;
   }
   return navigator.serviceWorker.register("/sw.js", { scope: "/" });

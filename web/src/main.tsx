@@ -2,9 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { router } from "@/app/router/routes";
-import { Toaster } from "sonner";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { QueryProvider } from "@/app/providers/QueryProvider";
+import { ToastProvider } from "@/app/providers/ToastProvider";
 import { flags } from "@/shared/config/env";
 import { PwaManager } from "@/shared/pwa/PwaManager";
 import "@/styles/globals.css";
@@ -22,11 +22,12 @@ void enableMswIfNeeded().then(() => {
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <QueryProvider>
-        <TooltipProvider delayDuration={150}>
-          <RouterProvider router={router} />
-          <PwaManager />
-          <Toaster richColors closeButton position="top-right" />
-        </TooltipProvider>
+        <ToastProvider>
+          <TooltipProvider delayDuration={150}>
+            <RouterProvider router={router} />
+            <PwaManager />
+          </TooltipProvider>
+        </ToastProvider>
       </QueryProvider>
     </React.StrictMode>,
   );

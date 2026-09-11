@@ -49,6 +49,7 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: php artisan migrate:fresh --force
+      - run: vendor/bin/pint --test
       - run: php artisan test
 
   web:
@@ -64,10 +65,13 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
+      - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
 
   flutter:
     runs-on: ubuntu-latest

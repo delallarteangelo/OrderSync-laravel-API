@@ -104,8 +104,8 @@ export const platformHandlers = [
       businesses: { total: 1, pending: 1, active: 0, suspended: 0 },
       subscriptions: { active: 0, grace: 0, expired: 0 },
       users: { total: 1, active: 1 },
-    billing: { paidRecords: 0, paidAmountMinor: 0, currency: "PHP" },
-    system: { database: "ok", checkedAt: new Date().toISOString() },
+      billing: { paidRecords: 0, paidAmountMinor: 0, currency: "PHP" },
+      system: { database: "ok", checkedAt: new Date().toISOString() },
     }),
   ),
   http.get("/api/v1/tenant/subscription", () =>

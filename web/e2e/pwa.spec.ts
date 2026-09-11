@@ -44,5 +44,5 @@ test("is installable, mobile-safe, and reloads its shell offline", async ({ page
   expect(cachedCatalog.items[0].name).toBe("Cached store");
   await page.reload();
   await expect(page.getByRole("heading", { name: "OrderSync stores" })).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("Offline");
+  await expect(page.getByRole("status").filter({ hasText: "Offline:" })).toContainText("Offline");
 });

@@ -25,11 +25,15 @@ export const usersHandlers = [
     const body = (await request.json()) as Partial<User> & { password?: string };
     const fieldErrors: Record<string, string[]> = {};
     if (!body.email) fieldErrors.email = ["Email is required"];
-    else if (db.users.some((u) => u.email.toLowerCase() === body.email!.toLowerCase())) fieldErrors.email = ["Email already exists"];
+    else if (db.users.some((u) => u.email.toLowerCase() === body.email!.toLowerCase()))
+      fieldErrors.email = ["Email already exists"];
     if (!body.fullName) fieldErrors.fullName = ["Full name is required"];
     if (!body.role) fieldErrors.role = ["Role is required"];
     if (Object.keys(fieldErrors).length) {
-      return HttpResponse.json({ code: "VALIDATION", message: "Invalid user", fieldErrors }, { status: 422 });
+      return HttpResponse.json(
+        { code: "VALIDATION", message: "Invalid user", fieldErrors },
+        { status: 422 },
+      );
     }
     const user: User = {
       id: randomId("u"),
@@ -55,7 +59,10 @@ export const usersHandlers = [
     if (idx === -1) return HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 });
     // Cannot demote self
     if (db.users[idx].id === me.id && body.role && body.role !== "BUSINESS_OWNER") {
-      return HttpResponse.json({ code: "SELF_DEMOTE", message: "You cannot change your own role" }, { status: 403 });
+      return HttpResponse.json(
+        { code: "SELF_DEMOTE", message: "You cannot change your own role" },
+        { status: 403 },
+      );
     }
     db.users[idx] = { ...db.users[idx], ...body };
     return HttpResponse.json(db.users[idx]);
@@ -65,7 +72,10 @@ export const usersHandlers = [
     const me = requireAdmin(request);
     if (!me) return HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 });
     if (me.id === params.id) {
-      return HttpResponse.json({ code: "SELF_DEACTIVATE", message: "You cannot deactivate your own account" }, { status: 403 });
+      return HttpResponse.json(
+        { code: "SELF_DEACTIVATE", message: "You cannot deactivate your own account" },
+        { status: 403 },
+      );
     }
     const idx = db.users.findIndex((u) => u.id === params.id);
     if (idx === -1) return HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 });

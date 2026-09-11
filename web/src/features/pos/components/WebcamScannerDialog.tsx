@@ -19,8 +19,9 @@ export function WebcamScannerDialog({ open, onOpenChange }: Props) {
         <DialogHeader>
           <DialogTitle>Webcam scanner (mock)</DialogTitle>
           <DialogDescription>
-            In production, this view streams from <code>getUserMedia()</code> and decodes EAN/Code-128
-            in real-time. For this prototype, use the scan input or type a SKU and press Enter.
+            In production, this view streams from <code>getUserMedia()</code> and decodes
+            EAN/Code-128 in real-time. For this prototype, use the scan input or type a SKU and
+            press Enter.
           </DialogDescription>
         </DialogHeader>
         <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-md border bg-black text-white">

@@ -175,6 +175,12 @@ export function ProductListPage() {
       <DataTable
         columns={columns}
         data={filtered}
+        isLoading={productsQ.isLoading || categoriesQ.isLoading}
+        isError={productsQ.isError || categoriesQ.isError}
+        onRetry={() => void Promise.all([productsQ.refetch(), categoriesQ.refetch()])}
+        loadingLabel="Loading products…"
+        emptyTitle="No products found"
+        emptyDescription="Add a product or change the current filters."
         searchKey="name"
         searchPlaceholder="Search product name…"
         toolbar={

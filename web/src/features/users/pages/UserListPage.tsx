@@ -26,7 +26,8 @@ import { useAuthStore } from "@/app/stores/authStore";
 import { fmtDate } from "@/shared/lib/dates";
 
 export function UserListPage() {
-  const users = useUsers().data ?? [];
+  const usersQ = useUsers();
+  const users = usersQ.data ?? [];
   const updateM = useUpdateUser();
   const deactivateM = useDeactivateUser();
   const resetM = useResetUserPassword();
@@ -39,8 +40,7 @@ export function UserListPage() {
       users.filter(
         (u) =>
           (role === "ALL" || u.role === role) &&
-          (status === "ALL" ||
-            (status === "ACTIVE" ? u.isActive : !u.isActive)),
+          (status === "ALL" || (status === "ACTIVE" ? u.isActive : !u.isActive)),
       ),
     [users, role, status],
   );
@@ -162,6 +162,12 @@ export function UserListPage() {
       <DataTable
         columns={columns}
         data={filtered}
+        isLoading={usersQ.isLoading}
+        isError={usersQ.isError}
+        onRetry={() => void usersQ.refetch()}
+        loadingLabel="Loading users…"
+        emptyTitle="No users found"
+        emptyDescription="Add a user or change the current filters."
         searchKey="fullName"
         searchPlaceholder="Search name…"
         toolbar={

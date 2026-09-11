@@ -31,7 +31,8 @@ function StockBadge({ p }: { p: Product }) {
 export function InventoryListPage() {
   const inventoryQ = useInventory();
   const products = inventoryQ.data ?? [];
-  const categories = useCategories().data ?? [];
+  const categoriesQ = useCategories();
+  const categories = categoriesQ.data ?? [];
   const categoryName = React.useCallback(
     (id: string) => categories.find((c) => c.id === id)?.name ?? "—",
     [categories],
@@ -95,6 +96,12 @@ export function InventoryListPage() {
       <DataTable
         columns={columns}
         data={products}
+        isLoading={inventoryQ.isLoading || categoriesQ.isLoading}
+        isError={inventoryQ.isError || categoriesQ.isError}
+        onRetry={() => void Promise.all([inventoryQ.refetch(), categoriesQ.refetch()])}
+        loadingLabel="Loading inventory…"
+        emptyTitle="No inventory found"
+        emptyDescription="Products appear here after they are added to the catalog."
         searchKey="name"
         searchPlaceholder="Search product…"
       />

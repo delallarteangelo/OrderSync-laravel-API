@@ -3,7 +3,11 @@ import { useAuthStore } from "@/app/stores/authStore";
 
 type Resolver = (value?: unknown) => void;
 let refreshing = false;
-let queue: Array<{ resolve: Resolver; reject: (reason?: unknown) => void; cfg: AxiosRequestConfig }> = [];
+let queue: Array<{
+  resolve: Resolver;
+  reject: (reason?: unknown) => void;
+  cfg: AxiosRequestConfig;
+}> = [];
 
 function flushQueue(error: unknown, http: AxiosInstance) {
   const pending = queue;
@@ -18,7 +22,10 @@ export function attachRefreshInterceptor(http: AxiosInstance) {
   http.interceptors.response.use(
     (r) => r,
     async (error: AxiosError) => {
-      const cfg = (error.config ?? {}) as AxiosRequestConfig & { _retry?: boolean; _skipRefresh?: boolean };
+      const cfg = (error.config ?? {}) as AxiosRequestConfig & {
+        _retry?: boolean;
+        _skipRefresh?: boolean;
+      };
       const status = error.response?.status;
       if (status !== 401 || cfg._retry || cfg._skipRefresh) throw error;
 
@@ -31,7 +38,9 @@ export function attachRefreshInterceptor(http: AxiosInstance) {
       refreshing = true;
       cfg._retry = true;
       try {
-        const { data } = await http.post("/auth/refresh", null, { _skipRefresh: true } as AxiosRequestConfig);
+        const { data } = await http.post("/auth/refresh", null, {
+          _skipRefresh: true,
+        } as AxiosRequestConfig);
         if (data?.accessToken && data?.user) {
           useAuthStore.getState().setSession({ accessToken: data.accessToken, user: data.user });
         }

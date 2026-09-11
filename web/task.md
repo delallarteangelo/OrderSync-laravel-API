@@ -17,6 +17,7 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 - [x] 2026-09-10 — Phase 9 analytics and reports verified: PostgreSQL-reconciled tenant dashboards, sales/revenue, order status, inventory/movement, product performance, customer trends, platform subscription metrics, and filtered tenant-branded CSV/PDF exports now use real Laravel APIs. See [`../docs/ANALYTICS_REPORTS.md`](../docs/ANALYTICS_REPORTS.md).
 - [x] 2026-09-10 — Phase 10 local-grounded AI customer support verified: tenant FAQs/announcements, provider-neutral backend contract, product/stock and customer-owned order tools, explicit AI labels, prompt defenses, limits/cost metrics, audit, and human handoffs use real Laravel APIs without an external provider. See [`../docs/AI_CUSTOMER_SUPPORT.md`](../docs/AI_CUSTOMER_SUPPORT.md).
 - [x] 2026-09-11 — Phase 11 PWA and offline safety verified: install/update flow, allowlisted public-catalog caching, local cart/message drafts, server-confirmed writes, responsive customer catalog/cart/orders/payments/chat/AI, route splitting, Playwright offline coverage, and Lighthouse audit are complete without deployment. See [`../docs/PROGRESSIVE_WEB_APP.md`](../docs/PROGRESSIVE_WEB_APP.md).
+- [x] 2026-09-11 — Phase 12 release hardening verified: shared accessible states, global toasts, connectivity heartbeat, security headers and route invariants, expanded CI/browser checks, release runbook, Nginx example, and v1.0 notes are complete without deployment. See [`../docs/RELEASE_HARDENING.md`](../docs/RELEASE_HARDENING.md).
 
 ## Legend
 
@@ -237,17 +238,17 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 ## Phase 15 — Polish, testing, hardening, release
 
 - [ ] Add reusable `Skeleton`, `EmptyState`, `ErrorState` components and use them across all list/detail pages
-- [ ] Wire global toast service via `ToastProvider`
-- [ ] Add offline banner driven by `navigator.onLine` + custom heartbeat ping
-- [ ] Accessibility audit: keyboard nav, ARIA labels, focus traps in dialogs, color contrast ≥ AA
+- [x] Wire global toast service via `ToastProvider`
+- [x] Add offline banner driven by `navigator.onLine` + custom heartbeat ping
+- [x] Accessibility audit: keyboard nav, ARIA labels, focus traps in dialogs, color contrast ≥ AA
 - [ ] Extract English strings into `src/shared/i18n/en.ts` (single module, future i18n hook in place)
 - [ ] Author Vitest suites for `src/shared/lib/`, `src/shared/api/interceptors/`, every feature's `api/` and `hooks/`
 - [ ] Author Playwright E2E specs: role login, tenant isolation, POS sale, order confirmation, payment proof, subscription lifecycle, AI handoff, PWA installability, and reports
-- [ ] Add CI workflow (GitHub Actions): install → lint → type-check → test → build → e2e (against `vite preview`)
-- [ ] Configure strict Content-Security-Policy, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
-- [ ] Add `docs/deploy/nginx.conf.example` with SPA fallback and security headers
+- [x] Add CI workflow (GitHub Actions): install → lint → type-check → test → build → e2e (against `vite preview`)
+- [x] Configure strict Content-Security-Policy, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
+- [x] Add `docs/deploy/nginx.conf.example` with SPA fallback and security headers
 - [ ] Verify `Lighthouse` on dashboard: Performance ≥ 85, Accessibility ≥ 95
-- [ ] Draft v1.0 release notes
+- [x] Draft v1.0 release notes
 
 ---
 

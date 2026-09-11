@@ -1,11 +1,12 @@
 import * as React from "react";
-import { Download, RefreshCw, WifiOff } from "lucide-react";
+import { Download, RefreshCw, ServerCrash, WifiOff } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
+import { useOnlineStatus, useServiceReachability } from "@/shared/hooks/useOnlineStatus";
 import { registerOrderSyncServiceWorker, type InstallPromptEvent } from "@/shared/pwa/pwa";
 
 export function PwaManager() {
   const online = useOnlineStatus();
+  const service = useServiceReachability(online);
   const [installPrompt, setInstallPrompt] = React.useState<InstallPromptEvent | null>(null);
   const [waitingWorker, setWaitingWorker] = React.useState<ServiceWorker | null>(null);
 
@@ -62,6 +63,15 @@ export function PwaManager() {
           <WifiOff className="h-4 w-4" />
           Offline: cached catalogs and saved drafts remain available. Sending and checkout are
           paused.
+        </div>
+      )}
+      {online && service === "unreachable" && (
+        <div
+          role="alert"
+          className="pointer-events-auto flex max-w-md items-center gap-2 rounded-md bg-rose-100 px-4 py-2 text-sm font-medium text-rose-950 shadow"
+        >
+          <ServerCrash aria-hidden="true" className="h-4 w-4 shrink-0" />
+          OrderSync cannot reach the server. Avoid submitting changes until service is restored.
         </div>
       )}
       {installPrompt && (

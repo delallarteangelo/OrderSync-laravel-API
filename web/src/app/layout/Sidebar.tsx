@@ -81,6 +81,7 @@ export function Sidebar() {
 
   return (
     <aside
+      aria-label="Business workspace"
       className={cn(
         "fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-background transition-[width]",
         collapsed ? "w-16" : "w-64",
@@ -97,7 +98,7 @@ export function Sidebar() {
           </div>
         )}
       </div>
-      <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-4">
+      <nav aria-label="Primary navigation" className="flex-1 space-y-4 overflow-y-auto px-2 py-4">
         {groups.map((group) => {
           const visible = group.items.filter(
             (item) =>
@@ -154,6 +155,7 @@ export function Sidebar() {
       </nav>
       <div className="border-t p-2">
         <Button
+          aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
           variant="ghost"
           size="sm"
           onClick={toggle}
