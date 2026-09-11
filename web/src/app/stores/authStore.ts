@@ -3,6 +3,7 @@ import type { User, Role } from "@/shared/types/auth";
 import { adminUser, cashierUser, mockUsers } from "@/mock/mockUsers";
 import { usePosCartStore } from "./posCartStore";
 import { useStorefrontCartStore } from "./storefrontCartStore";
+import { clearMessageDraftsForUser } from "@/shared/hooks/usePersistentDraft";
 
 type AuthState = {
   user: User | null;
@@ -24,7 +25,7 @@ function syncCartTenant(user: User | null) {
   useStorefrontCartStore.getState().setBusiness(user?.business?.slug ?? null);
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
   bootstrapped: false,
@@ -33,6 +34,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ accessToken, user });
   },
   clear: () => {
+    const userId = get().user?.id;
+    if (userId) clearMessageDraftsForUser(userId);
     syncCartTenant(null);
     set({ accessToken: null, user: null });
   },
@@ -43,6 +46,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user, accessToken: "demo-token" });
   },
   signOut: () => {
+    const userId = get().user?.id;
+    if (userId) clearMessageDraftsForUser(userId);
     syncCartTenant(null);
     set({ user: null, accessToken: null });
   },

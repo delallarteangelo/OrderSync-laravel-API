@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { QueryProvider } from "@/app/providers/QueryProvider";
 import { flags } from "@/shared/config/env";
+import { PwaManager } from "@/shared/pwa/PwaManager";
 import "@/styles/globals.css";
 
 async function enableMswIfNeeded() {
@@ -23,6 +24,7 @@ void enableMswIfNeeded().then(() => {
       <QueryProvider>
         <TooltipProvider delayDuration={150}>
           <RouterProvider router={router} />
+          <PwaManager />
           <Toaster richColors closeButton position="top-right" />
         </TooltipProvider>
       </QueryProvider>

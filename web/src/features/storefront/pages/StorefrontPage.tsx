@@ -1,6 +1,17 @@
 import * as React from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Minus, Plus, ShoppingCart, Store, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ClipboardList,
+  Download,
+  MessageCircle,
+  Minus,
+  PackageSearch,
+  Plus,
+  ShoppingCart,
+  Store,
+  Trash2,
+} from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthStore } from "@/app/stores/authStore";
@@ -29,6 +40,8 @@ import type { Order } from "@/shared/types/orders";
 import type { WalletMethod } from "@/shared/types/payments";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { CustomerSupportPanel } from "@/features/storefront/components/CustomerSupportPanel";
+import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
 
 export function StorefrontPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -44,6 +57,7 @@ export function StorefrontPage() {
   const placeOrder = usePlaceCustomerOrder();
   const cancelOrder = useCancelCustomerOrder();
   const checkoutKey = React.useRef<string | null>(null);
+  const online = useOnlineStatus();
 
   React.useEffect(() => {
     if (slug) setCartBusiness(slug);
@@ -89,6 +103,10 @@ export function StorefrontPage() {
   const total = cart.lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
 
   const submit = () => {
+    if (!online) {
+      toast.error("Reconnect before placing the order. Your cart is still saved on this device.");
+      return;
+    }
     if (!user) {
       navigate("/login", { state: { from: location.pathname } });
       return;
@@ -121,7 +139,7 @@ export function StorefrontPage() {
   return (
     <main className="min-h-screen bg-muted/30">
       <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-4">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-4">
           <Button asChild variant="ghost" size="icon">
             <Link to="/shop">
               <ArrowLeft className="h-4 w-4" />
@@ -132,7 +150,7 @@ export function StorefrontPage() {
             <h1 className="font-semibold">{data.business.name}</h1>
             <p className="text-xs text-muted-foreground">Order online · Pickup only</p>
           </div>
-          <div className="ml-auto text-sm">
+          <div className="ml-auto max-w-full text-sm">
             {signedIntoStore ? (
               `Hi, ${user.fullName}`
             ) : (
@@ -146,13 +164,48 @@ export function StorefrontPage() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[1fr_360px]">
-        <section className="space-y-6">
+      <nav
+        aria-label="Store sections"
+        className="sticky top-0 z-20 flex gap-1 overflow-x-auto border-b bg-background/95 px-3 py-2 shadow-sm backdrop-blur lg:hidden"
+      >
+        <Button asChild size="sm" variant="ghost" className="shrink-0">
+          <a href="#catalog">
+            <PackageSearch className="mr-1 h-4 w-4" /> Catalog
+          </a>
+        </Button>
+        <Button asChild size="sm" variant="ghost" className="shrink-0">
+          <a href="#cart">
+            <ShoppingCart className="mr-1 h-4 w-4" /> Cart ({cart.lines.length})
+          </a>
+        </Button>
+        {signedIntoStore && (
+          <>
+            <Button asChild size="sm" variant="ghost" className="shrink-0">
+              <a href="#orders">
+                <ClipboardList className="mr-1 h-4 w-4" /> Orders
+              </a>
+            </Button>
+            <Button asChild size="sm" variant="ghost" className="shrink-0">
+              <a href="#support">
+                <MessageCircle className="mr-1 h-4 w-4" /> Support
+              </a>
+            </Button>
+          </>
+        )}
+      </nav>
+
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 pb-24 lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-6">
+        <section id="catalog" className="min-w-0 scroll-mt-20 space-y-6">
           <div>
             <h2 className="text-xl font-semibold">Available products</h2>
             <p className="text-sm text-muted-foreground">
-              Prices and availability are confirmed by the store.
+              Prices and availability come from the store. The server rechecks them at checkout.
             </p>
+            {!online && (
+              <p className="mt-2 text-sm font-medium text-amber-800">
+                You are viewing the last cached public catalog. Checkout waits for a connection.
+              </p>
+            )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {data.products.map((product) => (
@@ -188,8 +241,13 @@ export function StorefrontPage() {
           </div>
 
           {signedIntoStore && (
-            <div className="space-y-3">
+            <div id="orders" className="scroll-mt-20 space-y-3">
               <h2 className="text-xl font-semibold">My orders</h2>
+              {!online && orders.isError && (
+                <p className="text-sm text-muted-foreground">
+                  Private order history is not stored for offline use. Reconnect to refresh it.
+                </p>
+              )}
               {(orders.data ?? []).length === 0 && (
                 <p className="text-sm text-muted-foreground">No orders yet.</p>
               )}
@@ -197,7 +255,7 @@ export function StorefrontPage() {
                 <Card key={order.id}>
                   <CardContent className="space-y-4 p-4">
                     <div className="flex flex-wrap items-center gap-3">
-                      <div className="min-w-48 flex-1">
+                      <div className="min-w-0 flex-1 basis-48">
                         <p className="font-medium">{order.code}</p>
                         <p className="text-xs text-muted-foreground">
                           {fmtDateTime(order.placedAt)} · {order.items.length} item(s)
@@ -210,25 +268,43 @@ export function StorefrontPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={cancelOrder.isPending}
+                            disabled={cancelOrder.isPending || !online}
                             onClick={() =>
-                              cancelOrder.mutate({ id: order.id, note: "Cancelled by customer" })
+                              cancelOrder.mutate(
+                                { id: order.id, note: "Cancelled by customer" },
+                                {
+                                  onSuccess: () =>
+                                    toast.success(`Order ${order.code} cancellation confirmed.`),
+                                  onError: (error) =>
+                                    toast.error(
+                                      isApiError(error)
+                                        ? error.message
+                                        : "Unable to cancel the order.",
+                                    ),
+                                },
+                              )
                             }
                           >
                             Cancel
                           </Button>
                         )}
                     </div>
-                    <CustomerPaymentPanel order={order} onChanged={() => orders.refetch()} />
+                    <CustomerPaymentPanel
+                      order={order}
+                      online={online}
+                      onChanged={() => orders.refetch()}
+                    />
                   </CardContent>
                 </Card>
               ))}
             </div>
           )}
+
+          {signedIntoStore && <CustomerSupportPanel businessSlug={slug} />}
         </section>
 
-        <aside>
-          <Card className="sticky top-4">
+        <aside id="cart" className="min-w-0 scroll-mt-20">
+          <Card className="lg:sticky lg:top-4">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" /> Cart
@@ -277,14 +353,19 @@ export function StorefrontPage() {
                 <Money value={total} />
               </div>
               <p className="text-xs text-muted-foreground">
-                Pickup only. Stock is deducted when the store confirms your order.
+                Saved on this device. The server confirms current price and stock before accepting
+                the order.
               </p>
               <Button
                 className="w-full"
-                disabled={cart.lines.length === 0 || placeOrder.isPending}
+                disabled={cart.lines.length === 0 || placeOrder.isPending || !online}
                 onClick={submit}
               >
-                {placeOrder.isPending ? "Placing order…" : "Place pickup order"}
+                {placeOrder.isPending
+                  ? "Waiting for server…"
+                  : online
+                    ? "Place pickup order"
+                    : "Reconnect to checkout"}
               </Button>
             </CardContent>
           </Card>
@@ -294,11 +375,19 @@ export function StorefrontPage() {
   );
 }
 
-function CustomerPaymentPanel({ order, onChanged }: { order: Order; onChanged: () => void }) {
+function CustomerPaymentPanel({
+  order,
+  online,
+  onChanged,
+}: {
+  order: Order;
+  online: boolean;
+  onChanged: () => void;
+}) {
   const instructions = useQuery({
     queryKey: ["customer", "payment-instructions", order.business.id],
     queryFn: listCustomerPaymentInstructions,
-    enabled: order.status === "PENDING",
+    enabled: order.status === "PENDING" && online,
   });
   const [method, setMethod] = React.useState<WalletMethod>("GCASH");
   const [reference, setReference] = React.useState("");
@@ -376,6 +465,7 @@ function CustomerPaymentPanel({ order, onChanged }: { order: Order; onChanged: (
               className="mt-2"
               size="sm"
               variant="outline"
+              disabled={!online}
               onClick={() =>
                 openPrivatePaymentFile(
                   `/customer/payment-instructions/${selected.id}/qr`,
@@ -403,11 +493,18 @@ function CustomerPaymentPanel({ order, onChanged }: { order: Order; onChanged: (
         </div>
       </div>
       <Button
-        disabled={submit.isPending || !reference.trim() || !proof}
+        disabled={!online || submit.isPending || !reference.trim() || !proof}
         onClick={() => submit.mutate()}
       >
-        {submit.isPending ? "Uploading…" : "Submit for manual review"}
+        {submit.isPending
+          ? "Waiting for server…"
+          : online
+            ? "Submit for manual review"
+            : "Reconnect to submit"}
       </Button>
+      <p className="text-xs text-muted-foreground">
+        A proof is shown as submitted only after the server accepts the upload.
+      </p>
     </div>
   );
 }

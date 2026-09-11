@@ -1,0 +1,27 @@
+{
+  "id": "/shop",
+  "name": "OrderSync",
+  "short_name": "OrderSync",
+  "description": "Browse local stores, place pickup orders, and contact store support.",
+  "start_url": "/shop",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#15803d",
+  "orientation": "any",
+  "categories": ["shopping", "business"],
+  "icons": [
+    {
+      "src": "/ordersync-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/ordersync-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

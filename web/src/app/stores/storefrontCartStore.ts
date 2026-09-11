@@ -64,6 +64,11 @@ export const useStorefrontCartStore = create<StorefrontCartState>()(
         set({ lines: get().lines.filter((line) => line.productId !== productId) }),
       clear: () => set({ lines: [] }),
     }),
-    { name: "storefront-cart-draft", storage: createJSONStorage(() => sessionStorage) },
+    {
+      name: "storefront-cart-draft",
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ businessSlug: state.businessSlug, lines: state.lines }),
+    },
   ),
 );

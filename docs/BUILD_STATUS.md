@@ -1,6 +1,6 @@
 # OrderSync Build Status
 
-Last verified: 2026-09-10
+Last verified: 2026-09-11
 
 This is the repository-level source of truth for implementation status. Client task trackers describe intended client work and are not evidence that backend or cross-client behavior is complete.
 
@@ -19,7 +19,7 @@ This is the repository-level source of truth for implementation status. Client t
 | 8 — Messaging, realtime events, notifications | Complete | Tenant-safe conversations, activity messages, unread state, preferences, durable polling, and foreground web/Android delivery verified without an external provider. |
 | 9 — Analytics and reports | Complete | Tenant dashboards, reconciled sales/order/inventory analytics, product/customer trends, platform metrics, and tenant-branded filtered exports verified. |
 | 10 — AI customer support | Complete | Provider-neutral local-grounded answers, tenant knowledge/tools, explicit AI labels, usage/cost controls, prompt defenses, audit, and human handoff verified without an external provider. |
-| 11 — Progressive Web App and offline safety | Not started | Requires separate approval. |
+| 11 — Progressive Web App and offline safety | Complete | Install/update flow, public-catalog cache, offline drafts, mobile customer support/commerce, server-confirmed writes, route splitting, and browser audits verified. |
 | 12 — Hardening, migration, release readiness | Not started | Production deployment remains separately approved. |
 
 ## Phase 1 baseline
@@ -154,6 +154,19 @@ See [`ANALYTICS_REPORTS.md`](ANALYTICS_REPORTS.md) for metric definitions, date 
 
 See [`AI_CUSTOMER_SUPPORT.md`](AI_CUSTOMER_SUPPORT.md) for provider boundaries, data records, grounding tools, APIs, roles, client behavior, safeguards, and deferrals.
 
+## Phase 11 baseline
+
+- OrderSync provides an installable `/shop` PWA manifest with regular and maskable icons, theme metadata, a browser-driven install action, and an explicit version-update action.
+- The versioned service worker caches the application shell and built assets; API caching is allowlisted to public `GET /api/v1/storefronts` catalog responses only.
+- Private customer, payment, messaging, AI, authentication, and tenant administration responses are never cached by the service worker. No non-GET request is cached or queued.
+- Offline mode is visible. Customers can browse the last cached catalog and keep a device-local cart/message draft, but checkout, payments, cancellations, messages, AI requests, and handoffs wait for server confirmation.
+- Cart drafts are store scoped. Message drafts are business/user/thread scoped and removed after confirmed submission, confirmed handoff, or sign-out.
+- The customer storefront now has mobile navigation and responsive catalog, cart, checkout, order, payment, chat, grounded-AI, FAQ/announcement, and human-handoff interfaces.
+- React routes are lazy loaded, reducing the initial core entry from approximately 2.85 MB to 507 kB; report and PDF code remains isolated until requested.
+- No backend schema, external account/service, system installation, deployment, or Android behavior changed.
+
+See [`PROGRESSIVE_WEB_APP.md`](PROGRESSIVE_WEB_APP.md) for cache boundaries, offline semantics, install/update behavior, mobile support, verification, and deferrals.
+
 ## Validation matrix
 
 | Surface | Command/check | Result |
@@ -283,10 +296,23 @@ See [`AI_CUSTOMER_SUPPORT.md`](AI_CUSTOMER_SUPPORT.md) for provider boundaries, 
 | Human handoff | Automatic/manual opening, one-open-per-thread constraint, business resolution, customer conversation event | Passed |
 | External/deployment services | Scope review | Not used — no external AI, embeddings/vector service, paid resource, system installation, or deployment introduced |
 
+## Phase 11 validation matrix
+
+| Surface | Command/check | Result |
+| --- | --- | --- |
+| PWA install/update | Manifest, icons, service-worker registration/readiness, install prompt, waiting-worker update path | Passed — versioned local PWA with no MSW scope conflict |
+| Offline safety | Cache allowlist, non-GET/private exclusions, visible offline mode, draft persistence, server-confirmed writes | Passed — only public storefront catalog reads and application assets are cached |
+| Customer mobile web | 390×844 production-browser layout and catalog/cart/orders/payments/chat/AI review | Passed — no horizontal overflow; section navigation and responsive controls verified |
+| React | ESLint, typecheck, complete Vitest suite, production build | Passed — 0 errors, clean typecheck, 22 files/62 tests, lazy production build complete |
+| Browser E2E | Installed Edge via Playwright | Passed — 1 test covering manifest, service-worker control, mobile width, cached catalog, offline reload, and status message |
+| Lighthouse | 12.8.2 mobile audit against local production preview | Passed — Performance 92, Accessibility 100, Best Practices 96, SEO 100; no runtime error |
+| Database/backend/Android | Scope and diff review | Unchanged — `ordersync` remains empty/migrated and Phase 10 APIs are reused |
+| External/deployment services | Scope review | Not used — no hosting, account, paid service, background sync, push provider, or deployment introduced |
+
 ## Known limitations
 
 - React reports, dashboards, messaging, and AI support use Laravel in normal development; settings and remaining later-phase prototype areas still depend on MSW fixtures.
-- React lint retains 19 non-blocking warnings, and the production build reports a 2.85 MB main chunk that should be code-split in a later web phase.
+- React retains its non-blocking lint warning set. Route splitting reduces the initial core entry to approximately 507 kB, while the lazy PDF export chunk remains approximately 1.50 MB and is reported by the build size warning.
 - Flutter storefront, catalog, cart, checkout, customer orders, messaging, and foreground notifications use real APIs; account editing and other later-phase screens remain prototype-only.
 - Flutter tokens are intentionally memory-only because no encrypted-storage dependency was approved for Phase 2; cold-start restoration remains deferred.
 - Flutter storefront, cart, and last-known orders are memory-only and do not survive a cold app restart because no new persistence dependency was approved for Phase 6.
@@ -301,7 +327,9 @@ See [`AI_CUSTOMER_SUPPORT.md`](AI_CUSTOMER_SUPPORT.md) for provider boundaries, 
 - POS GCash, Maya, card, and other non-cash references remain cashier-recorded only; Phase 7 proof verification applies to customer orders and subscription bills, not completed POS sales.
 - Completed sales have no void, return, refund, or correction workflow; direct mutation is intentionally prohibited.
 - Customer orders are pickup-only, placement does not reserve stock, and confirmed orders have no customer cancellation, refund, or automatic restock workflow.
-- No direct wallet verification, refund workflow, external background push, network-backed generative AI, PWA/offline safety, or deployment implementation exists yet.
+- No direct wallet verification, refund workflow, external background push, network-backed generative AI, background write synchronization, or deployment implementation exists yet.
+- The PWA intentionally caches no private responses. Offline order history, payment data, and conversation history require a connection; only public catalogs and local unsent drafts survive offline reloads.
+- The Phase 11 Lighthouse best-practices score is 96 because the otherwise static local preview recorded an unavailable `/api/v1/auth/refresh` request; it produced no Lighthouse runtime error and must be rechecked with the full release stack running.
 - Phase 10 uses lexical tenant knowledge retrieval and deterministic formatting, not semantic embeddings or a generative model; it intentionally hands unsupported questions to people instead of improvising.
 - AI limits are enforced against completed immutable runs and HTTP throttles; provider-grade reservation accounting and a cost ceiling must be designed with any future paid provider.
 - Phase 9 reports are synchronous and browser-exported with a maximum 732-day range; scheduled/email delivery, persisted exports, custom builders, warehouse analytics, cohort/category drill-down, and Android report screens remain deferred.
@@ -335,3 +363,5 @@ See [`AI_CUSTOMER_SUPPORT.md`](AI_CUSTOMER_SUPPORT.md) for provider boundaries, 
 - Phase 9 exports are generated on demand in the browser from server-filtered rows; they are not stored, scheduled, or sent to an external service.
 - Phase 10 uses the server-side provider contract with `LOCAL_GROUNDED` only. Selecting an external provider requires a separate options, pricing, privacy, retention, and cost-ceiling proposal.
 - Phase 10 tool access is server-owned and tenant/customer constrained; clients submit questions but cannot supply tool results, tenant IDs, order ownership, prompts, models, or provider credentials.
+- Phase 11 never queues commerce or messaging writes. Cached catalog values are advisory while offline, and Laravel remains authoritative for price, stock, order, payment, message, AI, and handoff completion.
+- Phase 11 service-worker API caching is a strict public-storefront GET allowlist. Customer carts and scoped message drafts use local device storage and private message drafts are cleared on sign-out.

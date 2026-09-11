@@ -16,6 +16,7 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 - [x] 2026-09-10 — Phase 8 messaging and foreground notifications verified: tenant/customer-safe support and order threads, immutable human/system activity, unread state, notification inbox/preferences, durable polling records, and real Laravel-backed web screens replace normal-development messaging mocks. See [`../docs/MESSAGING_NOTIFICATIONS.md`](../docs/MESSAGING_NOTIFICATIONS.md).
 - [x] 2026-09-10 — Phase 9 analytics and reports verified: PostgreSQL-reconciled tenant dashboards, sales/revenue, order status, inventory/movement, product performance, customer trends, platform subscription metrics, and filtered tenant-branded CSV/PDF exports now use real Laravel APIs. See [`../docs/ANALYTICS_REPORTS.md`](../docs/ANALYTICS_REPORTS.md).
 - [x] 2026-09-10 — Phase 10 local-grounded AI customer support verified: tenant FAQs/announcements, provider-neutral backend contract, product/stock and customer-owned order tools, explicit AI labels, prompt defenses, limits/cost metrics, audit, and human handoffs use real Laravel APIs without an external provider. See [`../docs/AI_CUSTOMER_SUPPORT.md`](../docs/AI_CUSTOMER_SUPPORT.md).
+- [x] 2026-09-11 — Phase 11 PWA and offline safety verified: install/update flow, allowlisted public-catalog caching, local cart/message drafts, server-confirmed writes, responsive customer catalog/cart/orders/payments/chat/AI, route splitting, Playwright offline coverage, and Lighthouse audit are complete without deployment. See [`../docs/PROGRESSIVE_WEB_APP.md`](../docs/PROGRESSIVE_WEB_APP.md).
 
 ## Legend
 
@@ -224,12 +225,12 @@ Granular, checkbox-driven tracker that mirrors `implementation_plan.md` 1:1. Upd
 
 ## Phase 14 — Progressive Web App
 
-- [ ] Add web app manifest, OrderSync icons, theme colors, and install prompt
-- [ ] Register a service worker with versioned update flow and cached application shell
-- [ ] Make customer storefront, catalog, cart, checkout, payments, orders, and chat responsive on mobile browsers
-- [ ] Cache read-only catalog data and preserve offline cart/message drafts
-- [ ] Require server confirmation before showing order, stock, payment, or subscription writes as complete
-- [ ] Run Lighthouse PWA, performance, accessibility, and offline checks
+- [x] Add web app manifest, OrderSync icons, theme colors, and install prompt
+- [x] Register a service worker with versioned update flow and cached application shell
+- [x] Make customer storefront, catalog, cart, checkout, payments, orders, chat, and grounded AI responsive on mobile browsers
+- [x] Cache only public read-only catalog data and preserve offline cart/message drafts
+- [x] Require server confirmation before showing order, stock, payment, subscription, message, AI, or handoff writes as complete
+- [x] Run Lighthouse performance/accessibility/SEO plus Playwright installability, mobile, cache, and offline checks
 
 ---
 

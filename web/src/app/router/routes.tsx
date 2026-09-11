@@ -1,42 +1,157 @@
 import * as React from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { AppShell } from "@/app/layout/AppShell";
 import { AuthProvider } from "@/app/providers/AuthProvider";
 import { RequireAuth } from "@/app/router/RequireAuth";
 import { RequireRole } from "@/app/router/RequireRole";
 
-import { LoginPage } from "@/features/auth/pages/LoginPage";
-import { BusinessRegistrationPage } from "@/features/auth/pages/BusinessRegistrationPage";
-import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
-import { ProductListPage } from "@/features/catalog/pages/ProductListPage";
-import { ProductFormPage } from "@/features/catalog/pages/ProductFormPage";
-import { CategoryListPage } from "@/features/catalog/pages/CategoryListPage";
-import { InventoryListPage } from "@/features/inventory/pages/InventoryListPage";
-import { RestockPage } from "@/features/inventory/pages/RestockPage";
-import { MovementLogPage } from "@/features/inventory/pages/MovementLogPage";
-import { PosPage } from "@/features/pos/pages/PosPage";
-import { PosHistoryPage } from "@/features/pos/pages/PosHistoryPage";
-import { OrderListPage } from "@/features/orders/pages/OrderListPage";
-import { OrderDetailPage } from "@/features/orders/pages/OrderDetailPage";
-import { ChatPage } from "@/features/messaging/pages/ChatPage";
-import { SalesReportPage } from "@/features/reports/pages/SalesReportPage";
-import { OrdersReportPage } from "@/features/reports/pages/OrdersReportPage";
-import { InventoryReportPage } from "@/features/reports/pages/InventoryReportPage";
-import { UserListPage } from "@/features/users/pages/UserListPage";
-import { UserFormPage } from "@/features/users/pages/UserFormPage";
-import { BusinessSettingsPage } from "@/features/settings/pages/BusinessSettingsPage";
-import { NotFoundPage } from "@/features/misc/NotFoundPage";
-import { ForbiddenPage } from "@/features/misc/ForbiddenPage";
-import { PlatformHomePage } from "@/features/platform/pages/PlatformHomePage";
-import { StorefrontPage } from "@/features/storefront/pages/StorefrontPage";
-import { PaymentsPage } from "@/features/payments/pages/PaymentsPage";
-import { AiSupportPage } from "@/features/ai-support/pages/AiSupportPage";
+const AppShell = React.lazy(() =>
+  import("@/app/layout/AppShell").then(({ AppShell }) => ({ default: AppShell })),
+);
+const LoginPage = React.lazy(() =>
+  import("@/features/auth/pages/LoginPage").then(({ LoginPage }) => ({ default: LoginPage })),
+);
+const BusinessRegistrationPage = React.lazy(() =>
+  import("@/features/auth/pages/BusinessRegistrationPage").then(({ BusinessRegistrationPage }) => ({
+    default: BusinessRegistrationPage,
+  })),
+);
+const DashboardPage = React.lazy(() =>
+  import("@/features/dashboard/pages/DashboardPage").then(({ DashboardPage }) => ({
+    default: DashboardPage,
+  })),
+);
+const ProductListPage = React.lazy(() =>
+  import("@/features/catalog/pages/ProductListPage").then(({ ProductListPage }) => ({
+    default: ProductListPage,
+  })),
+);
+const ProductFormPage = React.lazy(() =>
+  import("@/features/catalog/pages/ProductFormPage").then(({ ProductFormPage }) => ({
+    default: ProductFormPage,
+  })),
+);
+const CategoryListPage = React.lazy(() =>
+  import("@/features/catalog/pages/CategoryListPage").then(({ CategoryListPage }) => ({
+    default: CategoryListPage,
+  })),
+);
+const InventoryListPage = React.lazy(() =>
+  import("@/features/inventory/pages/InventoryListPage").then(({ InventoryListPage }) => ({
+    default: InventoryListPage,
+  })),
+);
+const RestockPage = React.lazy(() =>
+  import("@/features/inventory/pages/RestockPage").then(({ RestockPage }) => ({
+    default: RestockPage,
+  })),
+);
+const MovementLogPage = React.lazy(() =>
+  import("@/features/inventory/pages/MovementLogPage").then(({ MovementLogPage }) => ({
+    default: MovementLogPage,
+  })),
+);
+const PosPage = React.lazy(() =>
+  import("@/features/pos/pages/PosPage").then(({ PosPage }) => ({ default: PosPage })),
+);
+const PosHistoryPage = React.lazy(() =>
+  import("@/features/pos/pages/PosHistoryPage").then(({ PosHistoryPage }) => ({
+    default: PosHistoryPage,
+  })),
+);
+const OrderListPage = React.lazy(() =>
+  import("@/features/orders/pages/OrderListPage").then(({ OrderListPage }) => ({
+    default: OrderListPage,
+  })),
+);
+const OrderDetailPage = React.lazy(() =>
+  import("@/features/orders/pages/OrderDetailPage").then(({ OrderDetailPage }) => ({
+    default: OrderDetailPage,
+  })),
+);
+const ChatPage = React.lazy(() =>
+  import("@/features/messaging/pages/ChatPage").then(({ ChatPage }) => ({ default: ChatPage })),
+);
+const SalesReportPage = React.lazy(() =>
+  import("@/features/reports/pages/SalesReportPage").then(({ SalesReportPage }) => ({
+    default: SalesReportPage,
+  })),
+);
+const OrdersReportPage = React.lazy(() =>
+  import("@/features/reports/pages/OrdersReportPage").then(({ OrdersReportPage }) => ({
+    default: OrdersReportPage,
+  })),
+);
+const InventoryReportPage = React.lazy(() =>
+  import("@/features/reports/pages/InventoryReportPage").then(({ InventoryReportPage }) => ({
+    default: InventoryReportPage,
+  })),
+);
+const UserListPage = React.lazy(() =>
+  import("@/features/users/pages/UserListPage").then(({ UserListPage }) => ({
+    default: UserListPage,
+  })),
+);
+const UserFormPage = React.lazy(() =>
+  import("@/features/users/pages/UserFormPage").then(({ UserFormPage }) => ({
+    default: UserFormPage,
+  })),
+);
+const BusinessSettingsPage = React.lazy(() =>
+  import("@/features/settings/pages/BusinessSettingsPage").then(({ BusinessSettingsPage }) => ({
+    default: BusinessSettingsPage,
+  })),
+);
+const NotFoundPage = React.lazy(() =>
+  import("@/features/misc/NotFoundPage").then(({ NotFoundPage }) => ({
+    default: NotFoundPage,
+  })),
+);
+const ForbiddenPage = React.lazy(() =>
+  import("@/features/misc/ForbiddenPage").then(({ ForbiddenPage }) => ({
+    default: ForbiddenPage,
+  })),
+);
+const PlatformHomePage = React.lazy(() =>
+  import("@/features/platform/pages/PlatformHomePage").then(({ PlatformHomePage }) => ({
+    default: PlatformHomePage,
+  })),
+);
+const StorefrontPage = React.lazy(() =>
+  import("@/features/storefront/pages/StorefrontPage").then(({ StorefrontPage }) => ({
+    default: StorefrontPage,
+  })),
+);
+const PaymentsPage = React.lazy(() =>
+  import("@/features/payments/pages/PaymentsPage").then(({ PaymentsPage }) => ({
+    default: PaymentsPage,
+  })),
+);
+const AiSupportPage = React.lazy(() =>
+  import("@/features/ai-support/pages/AiSupportPage").then(({ AiSupportPage }) => ({
+    default: AiSupportPage,
+  })),
+);
 
 const businessWorkspaceRoles = ["BUSINESS_OWNER", "STAFF", "CASHIER"] as const;
 const inventoryManagerRoles = ["BUSINESS_OWNER", "STAFF"] as const;
 
 function Wrap({ children }: { children: React.ReactNode }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <AuthProvider>
+      <React.Suspense
+        fallback={
+          <div
+            role="status"
+            className="flex min-h-screen items-center justify-center text-sm text-muted-foreground"
+          >
+            Loading OrderSync…
+          </div>
+        }
+      >
+        {children}
+      </React.Suspense>
+    </AuthProvider>
+  );
 }
 
 export const router = createBrowserRouter([

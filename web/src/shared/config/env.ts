@@ -6,10 +6,10 @@ const schema = z.object({
   VITE_APP_ENV: z.enum(["dev", "staging", "prod"]).default("dev"),
   VITE_ENABLE_HTTP_LOGS: z.enum(["true", "false"]).default("false"),
   VITE_LOW_STOCK_BANNER: z.enum(["true", "false"]).default("true"),
-  VITE_USE_MSW: z.enum(["true", "false"]).default("true"),
+  VITE_USE_MSW: z.enum(["true", "false"]).default("false"),
   VITE_USE_MOCK_AUTH: z.enum(["true", "false"]).default("false"),
   VITE_USE_POLLING_CHAT: z.enum(["true", "false"]).default("false"),
-  VITE_PWA_ENABLED: z.enum(["true", "false"]).default("false"),
+  VITE_PWA_ENABLED: z.enum(["true", "false"]).default("true"),
   VITE_AI_SUPPORT_ENABLED: z.enum(["true", "false"]).default("false"),
 });
 

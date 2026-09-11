@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="OrderSync shopping bag">
+  <rect width="512" height="512" fill="#15803d"/>
+  <path fill="#fff" d="M160 192h192l-20 160a28 28 0 0 1-28 24h-96a28 28 0 0 1-28-24l-20-160Zm48-40a48 48 0 0 1 96 0v24h-28v-24a20 20 0 0 0-40 0v24h-28v-24Z"/>
+  <path fill="#bbf7d0" d="m221 277 25 25 50-56 21 20-70 78-47-47 21-20Z"/>
+</svg>
