@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: ordersync-api
+    runtime: php
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php artisan config:cache
+    startCommand: php artisan serve --host 0.0.0.0 --port $PORT
