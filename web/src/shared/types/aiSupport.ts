@@ -20,14 +20,16 @@ export type AiSupportSettings = {
   dailyCustomerRequestLimit: number;
   monthlyBusinessRequestLimit: number;
   maximumQuestionCharacters: number;
-  provider: "LOCAL_GROUNDED";
-  externalProviderConfigured: false;
+  provider: "LOCAL_GROUNDED" | "GEMINI";
+  externalProviderConfigured: boolean;
+  publicInformationOnly: boolean;
 };
 
 export type AiUsage = {
   period: string;
   provider: string;
   externalProviderConfigured: boolean;
+  publicInformationOnly: boolean;
   requests: number;
   answered: number;
   handedOff: number;

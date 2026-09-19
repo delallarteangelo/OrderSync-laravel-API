@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\DatabaseDialect;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +91,14 @@ return new class extends Migration
             $table->index(['business_id', 'status']);
         });
 
-        DB::statement('CREATE UNIQUE INDEX categories_business_name_unique ON categories (business_id, LOWER(name))');
+        if (DatabaseDialect::isPostgreSql()) {
+            DB::statement('CREATE UNIQUE INDEX categories_business_name_unique ON categories (business_id, LOWER(name))');
+        } else {
+            Schema::table('categories', function (Blueprint $table): void {
+                // Hostinger's utf8mb4_unicode_ci collation makes this unique key case-insensitive.
+                $table->unique(['business_id', 'name'], 'categories_business_name_unique');
+            });
+        }
         DB::statement("ALTER TABLE inventory_movements ADD CONSTRAINT inventory_movements_reason_check CHECK (reason IN ('ADJUSTMENT', 'RESTOCK', 'POS_SALE', 'ORDER_CONFIRMED'))");
         DB::statement('ALTER TABLE inventory_movements ADD CONSTRAINT inventory_movements_delta_check CHECK (delta <> 0)');
         DB::statement('ALTER TABLE inventory_movements ADD CONSTRAINT inventory_movements_quantity_check CHECK (quantity_before >= 0 AND quantity_after >= 0 AND quantity_after = quantity_before + delta)');

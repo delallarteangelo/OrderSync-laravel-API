@@ -13,10 +13,14 @@ abstract class TestCase extends BaseTestCase
 
         $connection = config('database.default');
         $database = config("database.connections.{$connection}.database");
+        $expectedDatabase = match ($connection) {
+            'mysql', 'mariadb' => 'ordersync_mysql_test',
+            default => 'ordersync_test',
+        };
 
-        if (app()->environment('testing') && $database !== 'ordersync_test') {
+        if (app()->environment('testing') && $database !== $expectedDatabase) {
             throw new RuntimeException(
-                "Automated tests must use the isolated ordersync_test database; resolved {$database}.",
+                "Automated tests on {$connection} must use the isolated {$expectedDatabase} database; resolved {$database}.",
             );
         }
     }

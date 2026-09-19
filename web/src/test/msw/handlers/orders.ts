@@ -10,6 +10,8 @@ const LEGAL_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   COMPLETED: [],
   REJECTED: [],
   CANCELLED: [],
+  REFUND_PENDING: [],
+  REFUNDED: [],
 };
 
 function actor(request: Request) {
@@ -124,12 +126,21 @@ export const ordersHandlers = [
       items,
       subtotal: total,
       total,
+      walletPaid: 0,
+      counterPaid: 0,
+      amountReceived: 0,
+      balanceDue: total,
+      refundedAmount: 0,
+      financialStatus: "UNPAID",
+      balanceCollectionMethod: "CASH_AT_PICKUP",
       fulfillmentMethod: "PICKUP",
       status: "PENDING",
       placedAt: now,
       updatedAt: now,
       statusHistory: [{ status: "PENDING", at: now, actorName: who.name }],
       payments: [],
+      counterPayments: [],
+      refunds: [],
     };
     db.orders = [order, ...db.orders];
     return HttpResponse.json(order, { status: 201 });

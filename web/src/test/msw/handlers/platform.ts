@@ -95,6 +95,8 @@ export const platformHandlers = [
           name: body.businessName,
           owner: { id: "new-owner", fullName: body.ownerName, email: body.ownerEmail },
         },
+        application: { id: "application-1" },
+        applicationToken: "mock-application-token",
       },
       { status: 201 },
     );

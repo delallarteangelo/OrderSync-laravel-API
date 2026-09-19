@@ -15,8 +15,8 @@ import {
   Settings,
   ReceiptText,
   WalletCards,
-  Store,
   Bot,
+  CreditCard,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -27,6 +27,7 @@ import { useAuthStore } from "@/app/stores/authStore";
 import { Button } from "@/shared/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
 import { useThreads } from "@/shared/hooks/useApi";
+import { OrderSyncLogo } from "@/shared/components/OrderSyncLogo";
 
 type NavItem = {
   to: string;
@@ -67,6 +68,7 @@ const groups: NavGroup[] = [
       { to: "/ai-support", label: "AI support", icon: Bot, adminOnly: true },
       { to: "/users", label: "Users", icon: Users, adminOnly: true },
       { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
+      { to: "/subscription", label: "Subscription", icon: CreditCard, adminOnly: true },
     ],
   },
 ];
@@ -88,9 +90,7 @@ export function Sidebar() {
       )}
     >
       <div className="flex h-16 items-center gap-2 border-b px-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Store className="h-5 w-5" />
-        </div>
+        <OrderSyncLogo className="h-9 w-9" decorative />
         {!collapsed && (
           <div className="flex-1 overflow-hidden">
             <p className="truncate text-sm font-semibold">{businessName}</p>

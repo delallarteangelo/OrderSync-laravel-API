@@ -1,3 +1,5 @@
+import type { OrderStatus } from "./orders";
+
 export type WalletMethod = "GCASH" | "MAYA";
 export type RecordedPaymentStatus = "SUBMITTED" | "VERIFIED" | "REJECTED";
 export type RecordedPaymentContext = "CUSTOMER_ORDER" | "SUBSCRIPTION";
@@ -25,11 +27,14 @@ export type RecordedPayment = {
   business: { id: string; name: string };
   orderId: string | null;
   orderCode: string | null;
+  orderStatus: OrderStatus | null;
   billingRecordId: string | null;
+  subscriptionRequestId?: string | null;
   payer: { id: string | null; name: string };
   method: WalletMethod;
   referenceNumber: string;
   amount: number;
+  verifiedAmount?: number | null;
   currency: "PHP";
   status: RecordedPaymentStatus;
   proofAvailable: boolean;

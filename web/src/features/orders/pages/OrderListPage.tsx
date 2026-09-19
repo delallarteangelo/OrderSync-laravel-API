@@ -6,6 +6,7 @@ import type { Order, OrderStatus } from "@/shared/types/orders";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { DataTable } from "@/shared/components/DataTable";
 import { StatusChip } from "@/shared/components/StatusChip";
+import { Badge } from "@/shared/components/ui/badge";
 import { Money } from "@/shared/components/Money";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -27,11 +28,13 @@ const ALL_STATUSES: (OrderStatus | "ALL")[] = [
   "COMPLETED",
   "REJECTED",
   "CANCELLED",
+  "REFUND_PENDING",
+  "REFUNDED",
 ];
 
 export function OrderListPage() {
   const ordersQ = useOrders();
-  const orders = ordersQ.data ?? [];
+  const orders = React.useMemo(() => ordersQ.data ?? [], [ordersQ.data]);
   const [status, setStatus] = React.useState<OrderStatus | "ALL">("ALL");
 
   const filtered = React.useMemo(
@@ -87,6 +90,14 @@ export function OrderListPage() {
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => <StatusChip status={row.original.status} />,
+      },
+      {
+        id: "payment",
+        header: "Payment / balance",
+        cell: ({ row }) => {
+          const latest = row.original.payments[0];
+          return <div className="space-y-1"><Badge variant="secondary">{row.original.financialStatus.replaceAll("_", " ")}</Badge><p className="text-xs">Received <Money value={row.original.amountReceived} /> · Due <Money value={row.original.balanceDue} /></p>{latest?.status === "SUBMITTED" && <p className="text-xs text-amber-700">Proof awaiting review</p>}</div>;
+        },
       },
       {
         id: "actions",

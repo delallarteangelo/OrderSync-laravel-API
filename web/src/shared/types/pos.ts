@@ -17,6 +17,8 @@ export const posSaleSchema = z.object({
   code: z.string(),
   receiptNumber: z.string(),
   businessName: z.string(),
+  receiptHeader: z.string().optional(),
+  receiptFooter: z.string().optional(),
   lines: z.array(cartLineSchema),
   subtotal: z.number().nonnegative(),
   taxTotal: z.number().nonnegative(),

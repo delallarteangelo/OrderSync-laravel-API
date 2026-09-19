@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['business_id', 'customer_user_id', 'order_id', 'kind', 'customer_name', 'customer_email', 'last_message_at'])]
+#[Fillable(['business_id', 'customer_user_id', 'general_customer_user_id', 'order_id', 'kind', 'customer_name', 'customer_email', 'last_message_at'])]
 class ConversationThread extends Model
 {
     protected function casts(): array

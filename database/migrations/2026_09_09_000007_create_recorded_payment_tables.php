@@ -69,7 +69,7 @@ return new class extends Migration
             $table->string('actor_name');
             $table->text('note')->nullable();
             $table->timestampTz('created_at')->useCurrent();
-            $table->index(['business_id', 'recorded_payment_id', 'created_at']);
+            $table->index(['business_id', 'recorded_payment_id', 'created_at'], 'payment_review_events_lookup_index');
         });
 
         DB::statement("ALTER TABLE payment_instructions ADD CONSTRAINT payment_instructions_method_check CHECK (method IN ('GCASH', 'MAYA'))");

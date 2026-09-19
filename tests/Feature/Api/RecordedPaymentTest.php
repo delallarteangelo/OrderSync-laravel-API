@@ -93,14 +93,22 @@ class RecordedPaymentTest extends TestCase
         $payment = RecordedPayment::query()->findOrFail($paymentId);
         Storage::disk('local')->assertExists($payment->proof_path);
         $this->assertStringStartsWith('payment-proofs/', $payment->proof_path);
+        $this->withToken($ownerToken)->getJson("/api/v1/orders/{$order->getKey()}")
+            ->assertOk()
+            ->assertJsonPath('payments.0.id', $paymentId)
+            ->assertJsonPath('payments.0.status', 'SUBMITTED')
+            ->assertJsonPath('payments.0.proofAvailable', true);
+        $this->withToken($ownerToken)->getJson('/api/v1/orders')
+            ->assertOk()
+            ->assertJsonPath('items.0.payments.0.id', $paymentId);
 
         $this->withToken($ownerToken)->postJson("/api/v1/orders/{$order->getKey()}/transition", ['next' => 'CONFIRMED'])
             ->assertStatus(409)->assertJsonPath('code', 'PAYMENT_NOT_VERIFIED');
         $this->withToken($ownerToken)->get("/api/v1/payments/{$paymentId}/proof")->assertOk();
         $this->withToken($customerToken)->get("/api/v1/customer/payments/{$paymentId}/proof")->assertOk();
 
-        $reviewed = $this->withToken($ownerToken)->postJson("/api/v1/payments/{$paymentId}/review", ['decision' => 'VERIFIED'])
-            ->assertOk()->assertJsonPath('status', 'VERIFIED')->assertJsonPath('reviewHistory.1.note', 'Manually verified');
+        $reviewed = $this->withToken($ownerToken)->postJson("/api/v1/payments/{$paymentId}/review", ['decision' => 'VERIFIED', 'verifiedAmountMinor' => 5000, 'walletReceiptConfirmed' => true])
+            ->assertOk()->assertJsonPath('status', 'VERIFIED')->assertJsonPath('verifiedAmount', 50);
         $receipt = $reviewed->json('receiptNumber');
         $this->assertNotEmpty($receipt);
         $this->withToken($customerToken)->getJson("/api/v1/customer/payments/{$paymentId}/receipt")
@@ -113,6 +121,135 @@ class RecordedPaymentTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'payment.proof_submitted']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'payment.manually_verified']);
         $this->assertDatabaseHas('user_notifications', ['business_id' => $business->getKey(), 'user_id' => $customer->getKey(), 'type' => 'PAYMENT']);
+    }
+
+    public function test_submitted_proof_must_be_reviewed_before_order_rejection(): void
+    {
+        [$business, $customer, $customerToken, $ownerToken] = $this->tenant();
+        $product = $this->product($business, 13000, 2);
+        $order = $this->order($business, $customer, $product, 1, 'REJECT-BEFORE-PAYMENT-REVIEW');
+        $paymentId = $this->withToken($customerToken)->post("/api/v1/customer/orders/{$order->getKey()}/payments", [
+            'method' => 'MAYA', 'referenceNumber' => 'REJECT-ORDER-1', 'proof' => UploadedFile::fake()->image('proof.png'),
+        ])->assertCreated()->json('id');
+
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$order->getKey()}/transition", [
+            'next' => 'REJECTED', 'note' => 'Item unavailable',
+        ])->assertStatus(409)->assertJsonPath('code', 'PAYMENT_REVIEW_PENDING');
+        $this->withToken($ownerToken)->getJson('/api/v1/payments')->assertOk()
+            ->assertJsonPath('items.0.status', 'SUBMITTED')
+            ->assertJsonPath('items.0.orderStatus', 'PENDING');
+        $this->withToken($ownerToken)->postJson("/api/v1/payments/{$paymentId}/review", ['decision' => 'VERIFIED'])
+            ->assertStatus(422)->assertJsonPath('code', 'WALLET_RECEIPT_NOT_CONFIRMED');
+        $this->withToken($ownerToken)->postJson("/api/v1/payments/{$paymentId}/review", [
+            'decision' => 'REJECTED', 'reason' => 'Order rejected; payment not accepted',
+        ])->assertOk()->assertJsonPath('status', 'REJECTED')->assertJsonPath('orderStatus', 'PENDING');
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$order->getKey()}/transition", [
+            'next' => 'REJECTED', 'note' => 'Item unavailable',
+        ])->assertOk()->assertJsonPath('status', 'REJECTED');
+
+        $this->assertDatabaseHas('recorded_payments', ['id' => $paymentId, 'status' => 'REJECTED', 'receipt_number' => null]);
+        $this->assertDatabaseHas('payment_review_events', ['recorded_payment_id' => $paymentId, 'status' => 'REJECTED']);
+        $this->assertDatabaseHas('audit_logs', ['business_id' => $business->getKey(), 'action' => 'payment.rejected', 'subject_id' => (string) $paymentId]);
+    }
+
+    public function test_verified_payment_moves_rejection_to_refund_pending(): void
+    {
+        [$business, $customer, $customerToken, $ownerToken] = $this->tenant();
+        $product = $this->product($business, 1000, 2);
+        $order = $this->order($business, $customer, $product, 1, 'PAID-ORDER-CANNOT-REJECT');
+        $paymentId = $this->withToken($customerToken)->post("/api/v1/customer/orders/{$order->getKey()}/payments", [
+            'method' => 'GCASH', 'referenceNumber' => 'VERIFIED-ORDER-1', 'proof' => UploadedFile::fake()->image('paid.png'),
+        ])->assertCreated()->json('id');
+        $this->withToken($ownerToken)->postJson("/api/v1/payments/{$paymentId}/review", ['decision' => 'VERIFIED', 'verifiedAmountMinor' => 1000, 'walletReceiptConfirmed' => true])
+            ->assertOk()->assertJsonPath('status', 'VERIFIED');
+
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$order->getKey()}/transition", [
+            'next' => 'REJECTED', 'note' => 'No stock',
+        ])->assertOk()->assertJsonPath('status', 'REFUND_PENDING')->assertJsonPath('financialStatus', 'REFUND_PENDING')->assertJsonPath('balanceDue', 0);
+        $this->assertDatabaseHas('orders', ['id' => $order->getKey(), 'status' => 'REFUND_PENDING']);
+    }
+
+    public function test_short_wallet_receipt_can_be_topped_up_or_settled_at_pickup(): void
+    {
+        [$business, $customer, $customerToken, $ownerToken] = $this->tenant();
+        $order = $this->order($business, $customer, $this->product($business, 7000, 3), 1, 'PARTIAL-WALLET-1');
+        $id = $this->withToken($customerToken)->post("/api/v1/customer/orders/{$order->getKey()}/payments", [
+            'method' => 'GCASH', 'referenceNumber' => 'PARTIAL-CLAIM', 'claimedAmountMinor' => 5000,
+            'proof' => UploadedFile::fake()->image('claim.png'),
+        ])->assertCreated()->assertJsonPath('amount', 50)->json('id');
+        $this->withToken($ownerToken)->postJson("/api/v1/payments/{$id}/review", [
+            'decision' => 'VERIFIED', 'walletReceiptConfirmed' => true, 'verifiedAmountMinor' => 3000,
+        ])->assertOk()->assertJsonPath('verifiedAmount', 30);
+        $this->withToken($customerToken)->getJson("/api/v1/customer/orders/{$order->getKey()}")
+            ->assertOk()->assertJsonPath('financialStatus', 'PARTIALLY_PAID')->assertJsonPath('balanceDue', 40);
+
+        $this->withToken($customerToken)->patchJson("/api/v1/customer/orders/{$order->getKey()}/balance-method", ['method' => 'WALLET_TOPUP'])
+            ->assertOk()->assertJsonPath('balanceCollectionMethod', 'WALLET_TOPUP');
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$order->getKey()}/transition", ['next' => 'CONFIRMED'])
+            ->assertStatus(409)->assertJsonPath('code', 'TOPUP_REQUIRED');
+        $secondId = $this->withToken($customerToken)->post("/api/v1/customer/orders/{$order->getKey()}/payments", [
+            'method' => 'GCASH', 'referenceNumber' => 'PARTIAL-TOPUP', 'claimedAmountMinor' => 4000,
+            'proof' => UploadedFile::fake()->image('topup.png'),
+        ])->assertCreated()->json('id');
+        $this->withToken($ownerToken)->postJson("/api/v1/payments/{$secondId}/review", [
+            'decision' => 'VERIFIED', 'walletReceiptConfirmed' => true, 'verifiedAmountMinor' => 4000,
+        ])->assertOk();
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$order->getKey()}/transition", ['next' => 'CONFIRMED'])
+            ->assertOk()->assertJsonPath('balanceDue', 0)->assertJsonPath('financialStatus', 'PAID');
+
+        $cashOrder = $this->order($business, $customer, $this->product($business, 6000, 3), 1, 'PARTIAL-CASH-2');
+        $cashId = $this->withToken($customerToken)->post("/api/v1/customer/orders/{$cashOrder->getKey()}/payments", [
+            'method' => 'MAYA', 'referenceNumber' => 'CASH-CLAIM', 'claimedAmountMinor' => 2000,
+            'proof' => UploadedFile::fake()->image('cash.png'),
+        ])->assertCreated()->json('id');
+        $this->withToken($ownerToken)->postJson("/api/v1/payments/{$cashId}/review", [
+            'decision' => 'VERIFIED', 'walletReceiptConfirmed' => true, 'verifiedAmountMinor' => 2000,
+        ])->assertOk();
+        foreach (['CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP'] as $status) {
+            $this->withToken($ownerToken)->postJson("/api/v1/orders/{$cashOrder->getKey()}/transition", ['next' => $status])->assertOk();
+        }
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$cashOrder->getKey()}/transition", ['next' => 'COMPLETED'])
+            ->assertStatus(409)->assertJsonPath('code', 'BALANCE_DUE');
+        $outstandingId = $this->withToken($customerToken)->post("/api/v1/customer/orders/{$cashOrder->getKey()}/payments", [
+            'method' => 'MAYA', 'referenceNumber' => 'CASH-OUTSTANDING', 'claimedAmountMinor' => 4000,
+            'proof' => UploadedFile::fake()->image('outstanding.png'),
+        ])->assertCreated()->json('id');
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$cashOrder->getKey()}/counter-payments", [
+            'amountMinor' => 4000, 'referenceNumber' => 'COUNTER-RECEIPT-1',
+        ])->assertStatus(409)->assertJsonPath('code', 'PAYMENT_REVIEW_PENDING');
+        $this->withToken($ownerToken)->postJson("/api/v1/payments/{$outstandingId}/review", [
+            'decision' => 'REJECTED', 'reason' => 'No second incoming wallet transaction found',
+        ])->assertOk();
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$cashOrder->getKey()}/counter-payments", [
+            'amountMinor' => 4000, 'referenceNumber' => 'COUNTER-RECEIPT-1',
+        ])->assertOk()->assertJsonPath('counterPaid', 40)->assertJsonPath('balanceDue', 0);
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$cashOrder->getKey()}/transition", ['next' => 'COMPLETED'])
+            ->assertOk()->assertJsonPath('status', 'COMPLETED');
+    }
+
+    public function test_received_money_requires_actual_refund_reference_before_closure(): void
+    {
+        [$business, $customer, $customerToken, $ownerToken] = $this->tenant();
+        $order = $this->order($business, $customer, $this->product($business, 1000, 2), 1, 'REFUND-MANUAL-1');
+        $id = $this->withToken($customerToken)->post("/api/v1/customer/orders/{$order->getKey()}/payments", [
+            'method' => 'GCASH', 'referenceNumber' => 'REFUND-IN-1', 'proof' => UploadedFile::fake()->image('paid.png'),
+        ])->assertCreated()->json('id');
+        $this->withToken($ownerToken)->postJson("/api/v1/payments/{$id}/review", [
+            'decision' => 'VERIFIED', 'walletReceiptConfirmed' => true, 'verifiedAmountMinor' => 1000,
+        ])->assertOk();
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$order->getKey()}/transition", ['next' => 'REJECTED', 'note' => 'Item unavailable'])
+            ->assertOk()->assertJsonPath('status', 'REFUND_PENDING');
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$order->getKey()}/refund", [
+            'method' => 'GCASH', 'referenceNumber' => 'REFUND-OUT-1', 'amountMinor' => 1000,
+        ])->assertUnprocessable();
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$order->getKey()}/refund", [
+            'method' => 'GCASH', 'referenceNumber' => 'REFUND-OUT-1', 'amountMinor' => 400, 'refundConfirmed' => true,
+        ])->assertOk()->assertJsonPath('status', 'REFUND_PENDING')->assertJsonPath('refundedAmount', 4);
+        $this->withToken($ownerToken)->postJson("/api/v1/orders/{$order->getKey()}/refund", [
+            'method' => 'MAYA', 'referenceNumber' => 'REFUND-OUT-2', 'amountMinor' => 600, 'refundConfirmed' => true,
+        ])->assertOk()->assertJsonPath('status', 'REFUNDED')->assertJsonPath('financialStatus', 'REFUNDED');
+        $this->assertDatabaseHas('order_refunds', ['business_id' => $business->getKey(), 'order_id' => $order->getKey(), 'amount_minor' => 400]);
+        $this->assertDatabaseHas('order_refunds', ['business_id' => $business->getKey(), 'order_id' => $order->getKey(), 'amount_minor' => 600]);
     }
 
     public function test_duplicate_signals_rejection_resubmission_and_tenant_boundaries_are_enforced(): void
@@ -132,6 +269,12 @@ class RecordedPaymentTest extends TestCase
         ])->assertCreated()->assertJsonPath('duplicateReference', true)->assertJsonPath('duplicateProof', true)->assertJsonPath('duplicateOfPaymentId', $firstId)->json('id');
 
         $this->withToken($otherOwnerToken)->getJson("/api/v1/payments/{$secondId}/receipt")->assertNotFound();
+        $this->withToken($ownerToken)->postJson("/api/v1/payments/{$firstId}/review", [
+            'decision' => 'VERIFIED', 'walletReceiptConfirmed' => true, 'verifiedAmountMinor' => 1000,
+        ])->assertOk();
+        $this->withToken($ownerToken)->postJson("/api/v1/payments/{$secondId}/review", [
+            'decision' => 'VERIFIED', 'walletReceiptConfirmed' => true, 'verifiedAmountMinor' => 1000,
+        ])->assertStatus(409)->assertJsonPath('code', 'DUPLICATE_VERIFIED_REFERENCE');
         $this->withToken($ownerToken)->postJson("/api/v1/payments/{$secondId}/review", ['decision' => 'REJECTED'])
             ->assertUnprocessable()->assertJsonPath('code', 'REJECTION_REASON_REQUIRED');
         $this->withToken($ownerToken)->postJson("/api/v1/payments/{$secondId}/review", ['decision' => 'REJECTED', 'reason' => 'Duplicate proof'])
@@ -227,9 +370,9 @@ class RecordedPaymentTest extends TestCase
 
     private function product(Business $business, int $priceMinor, int $quantity): Product
     {
-        $category = Category::query()->create(['business_id' => $business->getKey(), 'name' => 'Payments']);
+        $category = Category::query()->create(['business_id' => $business->getKey(), 'name' => 'Payments '.(Category::query()->count() + 1)]);
         $product = Product::query()->create([
-            'business_id' => $business->getKey(), 'category_id' => $category->getKey(), 'sku' => 'PAY-'.$business->getKey(),
+            'business_id' => $business->getKey(), 'category_id' => $category->getKey(), 'sku' => 'PAY-'.$business->getKey().'-'.(Product::query()->count() + 1),
             'name' => 'Payment Product', 'price_minor' => $priceMinor, 'is_active' => true,
         ]);
         InventoryStock::query()->create(['business_id' => $business->getKey(), 'product_id' => $product->getKey(), 'quantity' => $quantity]);

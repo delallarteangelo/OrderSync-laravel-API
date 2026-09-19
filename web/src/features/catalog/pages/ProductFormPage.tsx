@@ -34,6 +34,7 @@ import {
   useProduct,
   useUpdateProduct,
   useUploadProductImage,
+  useSettings,
 } from "@/shared/hooks/useApi";
 import { isApiError, type FieldErrors } from "@/shared/api/errors";
 
@@ -55,6 +56,8 @@ export function ProductFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const categoriesQ = useCategories();
+  const settingsQ = useSettings();
+  const lowStockDefault = settingsQ.data?.lowStockDefault;
   const categories = categoriesQ.data ?? [];
   const existingQ = useProduct(id);
   const existing = existingQ.data;
@@ -121,6 +124,12 @@ export function ProductFormPage() {
         },
   });
 
+  React.useEffect(() => {
+    if (!id && lowStockDefault !== undefined && !form.getFieldState("lowStockThreshold").isDirty) {
+      form.setValue("lowStockThreshold", lowStockDefault);
+    }
+  }, [id, lowStockDefault, form]);
+
   const onSubmit = async (values: FormValues) => {
     const payload: Partial<Product> = {
       name: values.name,
@@ -157,6 +166,7 @@ export function ProductFormPage() {
   };
 
   const saving = createM.isPending || updateM.isPending || uploadImageM.isPending;
+  const loadingDefaults = !existing && !settingsQ.data;
 
   const handleImage = (file?: File) => {
     if (!file) return;
@@ -382,11 +392,32 @@ export function ProductFormPage() {
               </CardContent>
             </Card>
 
+            {loadingDefaults && (
+              <p
+                role={settingsQ.isError ? "alert" : undefined}
+                className={
+                  settingsQ.isError ? "text-sm text-destructive" : "text-sm text-muted-foreground"
+                }
+              >
+                {settingsQ.isError
+                  ? "Unable to load product defaults. "
+                  : "Loading product defaults…"}
+                {settingsQ.isError && (
+                  <button
+                    type="button"
+                    className="underline"
+                    onClick={() => void settingsQ.refetch()}
+                  >
+                    Try again
+                  </button>
+                )}
+              </p>
+            )}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => navigate("/catalog")}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving}>
+              <Button type="submit" disabled={saving || loadingDefaults}>
                 {saving ? "Saving…" : existing ? "Save changes" : "Create product"}
               </Button>
             </div>

@@ -145,6 +145,22 @@ class AuthTokenService
         });
     }
 
+    public function revokeUserBusinessSessions(int $userId, int $businessId): void
+    {
+        DB::transaction(function () use ($userId, $businessId): void {
+            AccessToken::query()
+                ->where('user_id', $userId)
+                ->where('business_id', $businessId)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+            RefreshToken::query()
+                ->where('user_id', $userId)
+                ->where('business_id', $businessId)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+        });
+    }
+
     public static function hash(string $plainToken): string
     {
         return hash('sha256', $plainToken);

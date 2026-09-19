@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Contracts\AiSupportProvider;
 use App\Enums\AiSupportRunStatus;
 use App\Enums\ConversationMessageKind;
 use App\Enums\SupportHandoffStatus;
@@ -19,7 +18,9 @@ use App\Models\SupportHandoff;
 use App\Models\User;
 use App\Support\Ai\AiProviderResult;
 use App\Support\Ai\AiSupportContext;
+use App\Support\Ai\AiSupportProviderSelector;
 use App\Support\Ai\PromptInjectionGuard;
+use App\Support\Database\DatabaseDialect;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,7 @@ use Throwable;
 class AiSupportService
 {
     public function __construct(
-        private readonly AiSupportProvider $provider,
+        private readonly AiSupportProviderSelector $providers,
         private readonly PromptInjectionGuard $guard,
         private readonly AuditLogger $audit,
         private readonly MessagingService $messaging,
@@ -69,6 +70,7 @@ class AiSupportService
         });
 
         $started = hrtime(true);
+        $provider = $this->providers->forBusiness($business, $question);
         $reason = $this->guard->reason($question);
         if ($reason !== null) {
             $result = new AiProviderResult(
@@ -80,7 +82,7 @@ class AiSupportService
             $status = AiSupportRunStatus::Refused;
         } else {
             try {
-                $result = $this->provider->answer($this->context($business, $thread, $customer, $question));
+                $result = $provider->answer($this->context($business, $thread, $customer, $question));
                 $status = $result->needsHandoff ? AiSupportRunStatus::Handoff : AiSupportRunStatus::Answered;
             } catch (Throwable) {
                 $result = new AiProviderResult(
@@ -94,7 +96,7 @@ class AiSupportService
         }
         $latencyMs = max(0, (int) round((hrtime(true) - $started) / 1_000_000));
 
-        $completed = DB::transaction(function () use ($business, $thread, $customer, $questionMessage, $result, $status, $latencyMs): array {
+        $completed = DB::transaction(function () use ($business, $thread, $customer, $questionMessage, $result, $status, $latencyMs, $provider): array {
             $locked = ConversationThread::query()->lockForUpdate()->findOrFail($thread->getKey());
             $this->assertCustomerThread($business, $locked, $customer);
             $response = $locked->messages()->create([
@@ -113,7 +115,7 @@ class AiSupportService
                 'question_message_id' => $questionMessage->getKey(),
                 'response_message_id' => $response->getKey(),
                 'status' => $status,
-                'provider' => $this->provider->code(),
+                'provider' => $provider->code(),
                 'model' => $result->model,
                 'tools_used' => $result->toolsUsed,
                 'input_characters' => mb_strlen($questionMessage->body),
@@ -136,7 +138,7 @@ class AiSupportService
         $this->audit->record('ai.support.completed', $request, $customer, $business, AiSupportRun::class, $completed['run']->getKey(), [
             'thread_id' => $thread->getKey(),
             'status' => $status->value,
-            'provider' => $this->provider->code(),
+            'provider' => $provider->code(),
             'tools' => implode(',', $result->toolsUsed),
             'input_characters' => mb_strlen($question),
             'output_characters' => mb_strlen($result->answer),
@@ -187,11 +189,15 @@ class AiSupportService
             if ($locked->status === SupportHandoffStatus::Resolved) {
                 return $locked;
             }
-            $locked->update([
+            $updates = [
                 'status' => SupportHandoffStatus::Resolved,
                 'resolved_at' => now(),
                 'resolved_by_user_id' => $resolver->getKey(),
-            ]);
+            ];
+            if (DatabaseDialect::isMySqlFamily()) {
+                $updates['open_thread_id'] = null;
+            }
+            $locked->update($updates);
             $message = $thread->messages()->create([
                 'business_id' => $thread->business_id,
                 'sender_user_id' => null,
@@ -218,12 +224,13 @@ class AiSupportService
         $timezone = $business->timezone;
         $start = CarbonImmutable::now($timezone)->startOfMonth()->utc();
         $query = AiSupportRun::query()->where('business_id', $business->getKey())->where('created_at', '>=', $start);
-        $byStatus = (clone $query)->selectRaw('status, COUNT(*)::int AS aggregate')->groupBy('status')->pluck('aggregate', 'status');
+        $byStatus = (clone $query)->selectRaw('status, COUNT(*) AS aggregate')->groupBy('status')->pluck('aggregate', 'status');
 
         return [
             'period' => $start->setTimezone($timezone)->format('Y-m'),
-            'provider' => $this->provider->code(),
-            'externalProviderConfigured' => false,
+            'provider' => $this->providers->forBusiness($business)->code(),
+            'externalProviderConfigured' => $this->providers->forBusiness($business)->code() === 'GEMINI',
+            'publicInformationOnly' => $this->providers->forBusiness($business)->code() === 'GEMINI' && ! config('ai_support.gemini.paid_tier'),
             'requests' => (clone $query)->count(),
             'answered' => (int) ($byStatus[AiSupportRunStatus::Answered->value] ?? 0),
             'handedOff' => (int) (($byStatus[AiSupportRunStatus::Handoff->value] ?? 0) + ($byStatus[AiSupportRunStatus::Refused->value] ?? 0) + ($byStatus[AiSupportRunStatus::Unavailable->value] ?? 0)),
@@ -345,16 +352,21 @@ class AiSupportService
 
     private function openHandoff(ConversationThread $thread, User $customer, string $reason, ?string $note = null, ?AiSupportRun $run = null): SupportHandoff
     {
+        $attributes = [
+            'business_id' => $thread->business_id,
+            'customer_user_id' => $customer->getKey(),
+            'ai_support_run_id' => $run?->getKey(),
+            'reason_code' => $reason,
+            'customer_note' => $note,
+            'requested_at' => now(),
+        ];
+        if (DatabaseDialect::isMySqlFamily()) {
+            $attributes['open_thread_id'] = $thread->getKey();
+        }
+
         return SupportHandoff::query()->firstOrCreate(
             ['conversation_thread_id' => $thread->getKey(), 'status' => SupportHandoffStatus::Open->value],
-            [
-                'business_id' => $thread->business_id,
-                'customer_user_id' => $customer->getKey(),
-                'ai_support_run_id' => $run?->getKey(),
-                'reason_code' => $reason,
-                'customer_note' => $note,
-                'requested_at' => now(),
-            ],
+            $attributes,
         );
     }
 }

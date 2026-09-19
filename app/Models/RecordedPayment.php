@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['business_id', 'context', 'order_id', 'billing_record_id', 'submitted_by_user_id', 'method', 'reference_number', 'amount_minor', 'currency', 'status', 'proof_disk', 'proof_path', 'proof_mime_type', 'proof_size_bytes', 'proof_sha256', 'duplicate_reference', 'duplicate_proof', 'duplicate_of_payment_id', 'reviewed_by_user_id', 'rejection_reason', 'receipt_number', 'submitted_at', 'reviewed_at', 'retained_until', 'proof_deleted_at'])]
+#[Fillable(['business_id', 'context', 'order_id', 'billing_record_id', 'submitted_by_user_id', 'method', 'reference_number', 'amount_minor', 'verified_amount_minor', 'currency', 'status', 'proof_disk', 'proof_path', 'proof_mime_type', 'proof_size_bytes', 'proof_sha256', 'duplicate_reference', 'duplicate_proof', 'duplicate_of_payment_id', 'reviewed_by_user_id', 'rejection_reason', 'receipt_number', 'submitted_at', 'reviewed_at', 'retained_until', 'proof_deleted_at'])]
 class RecordedPayment extends Model
 {
     protected function casts(): array
@@ -20,6 +20,7 @@ class RecordedPayment extends Model
             'method' => PaymentMethod::class,
             'status' => RecordedPaymentStatus::class,
             'amount_minor' => 'integer',
+            'verified_amount_minor' => 'integer',
             'proof_size_bytes' => 'integer',
             'duplicate_reference' => 'boolean',
             'duplicate_proof' => 'boolean',

@@ -11,6 +11,7 @@ use App\Models\BillingRecord;
 use App\Models\Business;
 use App\Models\Order;
 use App\Models\RecordedPayment;
+use DomainException;
 use App\Services\RecordedPaymentPayload;
 use App\Services\RecordedPaymentService;
 use App\Services\SaasPayload;
@@ -66,8 +67,9 @@ class RecordedPaymentController extends Controller
     {
         $this->ensureCustomerOrder($request, $order);
         [$method, $reference, $proof] = $this->validateSubmission($request);
+        $validated = $request->validate(['claimedAmountMinor' => ['nullable', 'integer', 'min:1']]);
         try {
-            $payment = $this->payments->submitOrderPayment($order, $request->user(), $request, $method, $reference, $proof);
+            $payment = $this->payments->submitOrderPayment($order, $request->user(), $request, $method, $reference, $proof, $validated['claimedAmountMinor'] ?? null);
         } catch (RecordedPaymentException $exception) {
             return $this->error($exception);
         }
@@ -119,11 +121,15 @@ class RecordedPaymentController extends Controller
         $validated = $request->validate([
             'decision' => ['required', Rule::in([RecordedPaymentStatus::Verified->value, RecordedPaymentStatus::Rejected->value])],
             'reason' => ['nullable', 'string', 'max:2000'],
+            'walletReceiptConfirmed' => ['sometimes', 'boolean'],
+            'verifiedAmountMinor' => ['nullable', 'integer', 'min:1'],
         ]);
         try {
-            $payment = $this->payments->review($payment, $request->user(), $request, RecordedPaymentStatus::from($validated['decision']), $validated['reason'] ?? null);
+            $payment = $this->payments->review($payment, $request->user(), $request, RecordedPaymentStatus::from($validated['decision']), $validated['reason'] ?? null, (bool) ($validated['walletReceiptConfirmed'] ?? false), $validated['verifiedAmountMinor'] ?? null);
         } catch (RecordedPaymentException $exception) {
             return $this->error($exception);
+        } catch (DomainException $exception) {
+            return response()->json(['code' => 'SUBSCRIPTION_REVIEW_NOT_ALLOWED', 'message' => $exception->getMessage()], 409);
         }
 
         return response()->json(RecordedPaymentPayload::payment($payment));

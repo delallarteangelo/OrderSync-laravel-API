@@ -26,6 +26,7 @@
 /storage/pail
 /vendor
 /web/*.tsbuildinfo
+/graphify-out/cost.json
 _ide_helper.php
 Homestead.json
 Homestead.yaml

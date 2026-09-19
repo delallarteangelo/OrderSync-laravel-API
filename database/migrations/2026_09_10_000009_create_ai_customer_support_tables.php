@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\DatabaseDialect;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +17,9 @@ return new class extends Migration
             $table->string('title', 200);
             $table->text('question')->nullable();
             $table->text('content');
-            $table->jsonb('keywords')->nullable();
+            DatabaseDialect::isPostgreSql()
+                ? $table->jsonb('keywords')->nullable()
+                : $table->json('keywords')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestampTz('published_at')->nullable();
             $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
@@ -46,7 +49,9 @@ return new class extends Migration
             $table->string('status', 20);
             $table->string('provider', 50);
             $table->string('model', 100)->nullable();
-            $table->jsonb('tools_used')->nullable();
+            DatabaseDialect::isPostgreSql()
+                ? $table->jsonb('tools_used')->nullable()
+                : $table->json('tools_used')->nullable();
             $table->unsignedInteger('input_characters')->default(0);
             $table->unsignedInteger('output_characters')->default(0);
             $table->unsignedBigInteger('estimated_cost_minor')->default(0);
@@ -70,32 +75,46 @@ return new class extends Migration
             $table->timestampTz('resolved_at')->nullable();
             $table->foreignId('resolved_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->index(['business_id', 'status', 'requested_at']);
+            if (! DatabaseDialect::isPostgreSql()) {
+                $table->unsignedBigInteger('open_thread_id')->nullable();
+                $table->unique('open_thread_id', 'support_handoffs_one_open_per_thread');
+            }
         });
 
         DB::statement("ALTER TABLE ai_knowledge_entries ADD CONSTRAINT ai_knowledge_entries_type_check CHECK (type IN ('FAQ', 'ANNOUNCEMENT'))");
-        DB::statement('ALTER TABLE ai_knowledge_entries ADD CONSTRAINT ai_knowledge_entries_title_check CHECK (char_length(btrim(title)) BETWEEN 1 AND 200)');
-        DB::statement('ALTER TABLE ai_knowledge_entries ADD CONSTRAINT ai_knowledge_entries_content_check CHECK (char_length(btrim(content)) BETWEEN 1 AND 8000)');
+        DB::statement('ALTER TABLE ai_knowledge_entries ADD CONSTRAINT ai_knowledge_entries_title_check CHECK (char_length(trim(title)) BETWEEN 1 AND 200)');
+        DB::statement('ALTER TABLE ai_knowledge_entries ADD CONSTRAINT ai_knowledge_entries_content_check CHECK (char_length(trim(content)) BETWEEN 1 AND 8000)');
         DB::statement("ALTER TABLE ai_support_runs ADD CONSTRAINT ai_support_runs_status_check CHECK (status IN ('ANSWERED', 'HANDOFF', 'REFUSED', 'LIMITED', 'UNAVAILABLE'))");
         DB::statement("ALTER TABLE support_handoffs ADD CONSTRAINT support_handoffs_status_check CHECK (status IN ('OPEN', 'RESOLVED'))");
-        DB::statement('CREATE UNIQUE INDEX support_handoffs_one_open_per_thread ON support_handoffs (conversation_thread_id) WHERE status = \'OPEN\'');
+        if (DatabaseDialect::isPostgreSql()) {
+            DB::statement('CREATE UNIQUE INDEX support_handoffs_one_open_per_thread ON support_handoffs (conversation_thread_id) WHERE status = \'OPEN\'');
+        }
 
-        DB::statement('ALTER TABLE conversation_messages DROP CONSTRAINT conversation_messages_kind_check');
-        DB::statement('ALTER TABLE conversation_messages DROP CONSTRAINT conversation_messages_role_check');
-        DB::statement('ALTER TABLE conversation_messages DROP CONSTRAINT conversation_messages_sender_check');
+        DatabaseDialect::dropCheckConstraint('conversation_messages', 'conversation_messages_kind_check');
+        DatabaseDialect::dropCheckConstraint('conversation_messages', 'conversation_messages_role_check');
+        if (DatabaseDialect::isPostgreSql()) {
+            DatabaseDialect::dropCheckConstraint('conversation_messages', 'conversation_messages_sender_check');
+        }
         DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_kind_check CHECK (kind IN ('HUMAN', 'SYSTEM', 'AI'))");
         DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_role_check CHECK (sender_role IN ('BUSINESS_OWNER', 'STAFF', 'CASHIER', 'CUSTOMER', 'SYSTEM', 'AI'))");
-        DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_sender_check CHECK ((kind IN ('SYSTEM', 'AI') AND sender_user_id IS NULL AND sender_role = kind) OR (kind = 'HUMAN' AND sender_user_id IS NOT NULL AND sender_role NOT IN ('SYSTEM', 'AI')))");
+        if (DatabaseDialect::isPostgreSql()) {
+            DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_sender_check CHECK ((kind IN ('SYSTEM', 'AI') AND sender_user_id IS NULL AND sender_role = kind) OR (kind = 'HUMAN' AND sender_user_id IS NOT NULL AND sender_role NOT IN ('SYSTEM', 'AI')))");
+        }
     }
 
     public function down(): void
     {
         DB::table('conversation_messages')->where('kind', 'AI')->delete();
-        DB::statement('ALTER TABLE conversation_messages DROP CONSTRAINT conversation_messages_sender_check');
-        DB::statement('ALTER TABLE conversation_messages DROP CONSTRAINT conversation_messages_role_check');
-        DB::statement('ALTER TABLE conversation_messages DROP CONSTRAINT conversation_messages_kind_check');
+        if (DatabaseDialect::isPostgreSql()) {
+            DatabaseDialect::dropCheckConstraint('conversation_messages', 'conversation_messages_sender_check');
+        }
+        DatabaseDialect::dropCheckConstraint('conversation_messages', 'conversation_messages_role_check');
+        DatabaseDialect::dropCheckConstraint('conversation_messages', 'conversation_messages_kind_check');
         DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_kind_check CHECK (kind IN ('HUMAN', 'SYSTEM'))");
         DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_role_check CHECK (sender_role IN ('BUSINESS_OWNER', 'STAFF', 'CASHIER', 'CUSTOMER', 'SYSTEM'))");
-        DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_sender_check CHECK ((kind = 'SYSTEM' AND sender_user_id IS NULL AND sender_role = 'SYSTEM') OR (kind = 'HUMAN' AND sender_user_id IS NOT NULL AND sender_role <> 'SYSTEM'))");
+        if (DatabaseDialect::isPostgreSql()) {
+            DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_sender_check CHECK ((kind = 'SYSTEM' AND sender_user_id IS NULL AND sender_role = 'SYSTEM') OR (kind = 'HUMAN' AND sender_user_id IS NOT NULL AND sender_role <> 'SYSTEM'))");
+        }
 
         Schema::dropIfExists('support_handoffs');
         Schema::dropIfExists('ai_support_runs');

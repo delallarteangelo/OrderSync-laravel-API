@@ -1,7 +1,9 @@
 import { http } from "./axios";
 import type {
   BillingRecord,
+  BusinessStatus,
   Paginated,
+  PlanCode,
   PlatformBusiness,
   PlatformDashboard,
   PlatformUser,
@@ -9,13 +11,38 @@ import type {
   SubscriptionPlan,
 } from "@/shared/types/platform";
 
+export type PlatformListDirection = "asc" | "desc";
+
+export type PlatformBusinessListParams = {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  status?: BusinessStatus;
+  planCode?: PlanCode | "UNASSIGNED";
+  sort?: "name" | "status" | "planCode" | "userCount" | "periodEnd" | "createdAt";
+  direction?: PlatformListDirection;
+};
+
+export type PlatformUserListParams = {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  isActive?: boolean;
+  access?: "SUPER_ADMIN" | "TENANT";
+  membershipRole?: "BUSINESS_OWNER" | "STAFF" | "CASHIER" | "CUSTOMER";
+  sort?: "fullName" | "email" | "access" | "membershipsCount" | "isActive" | "createdAt";
+  direction?: PlatformListDirection;
+};
+
 export async function getPlatformDashboard(): Promise<PlatformDashboard> {
   const { data } = await http.get<PlatformDashboard>("/platform/dashboard");
   return data;
 }
 
-export async function listPlatformBusinesses(): Promise<Paginated<PlatformBusiness>> {
-  const { data } = await http.get<Paginated<PlatformBusiness>>("/platform/businesses");
+export async function listPlatformBusinesses(
+  params: PlatformBusinessListParams = {},
+): Promise<Paginated<PlatformBusiness>> {
+  const { data } = await http.get<Paginated<PlatformBusiness>>("/platform/businesses", { params });
   return data;
 }
 
@@ -128,8 +155,10 @@ export async function markBillingPaid(id: string, reference?: string): Promise<B
   return data.billingRecord;
 }
 
-export async function listPlatformUsers(): Promise<Paginated<PlatformUser>> {
-  const { data } = await http.get<Paginated<PlatformUser>>("/platform/users");
+export async function listPlatformUsers(
+  params: PlatformUserListParams = {},
+): Promise<Paginated<PlatformUser>> {
+  const { data } = await http.get<Paginated<PlatformUser>>("/platform/users", { params });
   return data;
 }
 

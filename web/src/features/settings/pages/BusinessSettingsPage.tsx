@@ -22,13 +22,19 @@ import {
 } from "@/shared/api/payments";
 import type { BillingRecord } from "@/shared/types/platform";
 import type { RecordedPayment, WalletMethod } from "@/shared/types/payments";
+import { useAuthStore } from "@/app/stores/authStore";
 
 export function BusinessSettingsPage() {
+  const businessId = useAuthStore((state) => state.user?.business?.id ?? "no-business");
+  return <BusinessSettingsContent key={businessId} businessId={businessId} />;
+}
+
+function BusinessSettingsContent({ businessId }: { businessId: string }) {
   const settingsQ = useSettings();
   const updateM = useUpdateSettings();
   const [draft, setDraft] = React.useState<BusinessSettings | null>(null);
   const subscriptionQ = useQuery({
-    queryKey: ["tenant", "subscription"],
+    queryKey: ["tenant", businessId, "subscription"],
     queryFn: getTenantSubscription,
   });
 
@@ -37,6 +43,25 @@ export function BusinessSettingsPage() {
   }, [settingsQ.data, draft]);
 
   if (!draft) {
+    if (settingsQ.isError) {
+      return (
+        <>
+          <PageHeader title="Business settings" description="The settings could not be loaded." />
+          <Card>
+            <CardContent className="space-y-3 p-6">
+              <p role="alert" className="text-sm text-destructive">
+                {isApiError(settingsQ.error)
+                  ? settingsQ.error.message
+                  : "Unable to load business settings."}
+              </p>
+              <Button variant="outline" onClick={() => void settingsQ.refetch()}>
+                Try again
+              </Button>
+            </CardContent>
+          </Card>
+        </>
+      );
+    }
     return (
       <>
         <PageHeader title="Business settings" description="Loading…" />
@@ -49,7 +74,10 @@ export function BusinessSettingsPage() {
 
   const save = () => {
     updateM.mutate(draft, {
-      onSuccess: () => toast.success("Settings saved"),
+      onSuccess: (saved) => {
+        setDraft(saved);
+        toast.success("Settings saved");
+      },
       onError: (e) => toast.error(isApiError(e) ? e.message : "Failed to save settings"),
     });
   };
@@ -58,7 +86,7 @@ export function BusinessSettingsPage() {
     <>
       <PageHeader
         title="Business settings"
-        description="Store profile, tax, receipt template, and inventory defaults."
+        description="Business profile, POS tax, receipt text, inventory defaults, and subscription."
         actions={
           <Button onClick={save} disabled={updateM.isPending}>
             <Save className="mr-1 h-4 w-4" />
@@ -78,7 +106,7 @@ export function BusinessSettingsPage() {
         <TabsContent value="profile">
           <Card>
             <CardContent className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
-              <Field label="Store name">
+              <Field label="Business name">
                 <Input value={draft.storeName} onChange={(e) => set("storeName", e.target.value)} />
               </Field>
               <Field label="Phone">
@@ -108,17 +136,23 @@ export function BusinessSettingsPage() {
               <Field label="Tax rate (%)">
                 <Input
                   type="number"
+                  min={0}
+                  max={100}
                   step="0.01"
                   value={draft.taxRate}
                   onChange={(e) => set("taxRate", Number(e.target.value))}
                 />
               </Field>
               <Field label="Currency symbol">
-                <Input
-                  value={draft.currencySymbol}
-                  onChange={(e) => set("currencySymbol", e.target.value)}
-                />
+                <Input value={draft.currencySymbol} readOnly aria-readonly="true" />
+                <p className="text-xs text-muted-foreground">
+                  OrderSync currently records amounts in Philippine pesos only.
+                </p>
               </Field>
+              <p className="text-xs text-muted-foreground md:col-span-2">
+                Tax is added to the discounted subtotal on future POS sales. Existing sales stay
+                unchanged.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -141,7 +175,8 @@ export function BusinessSettingsPage() {
                 />
               </Field>
               <p className="text-xs text-muted-foreground">
-                Both fields appear on every printed POS receipt.
+                These fields appear on future printed POS receipts. Each sale keeps its own receipt
+                text.
               </p>
             </CardContent>
           </Card>
@@ -153,9 +188,14 @@ export function BusinessSettingsPage() {
               <Field label="Default low-stock threshold">
                 <Input
                   type="number"
+                  min={0}
                   value={draft.lowStockDefault}
                   onChange={(e) => set("lowStockDefault", Number(e.target.value))}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Used for new products unless a threshold is entered. Existing products keep their
+                  current threshold.
+                </p>
               </Field>
             </CardContent>
           </Card>
@@ -166,6 +206,13 @@ export function BusinessSettingsPage() {
             <CardContent className="space-y-4 p-6">
               {subscriptionQ.isLoading ? (
                 <p className="text-sm text-muted-foreground">Loading subscription…</p>
+              ) : subscriptionQ.isError ? (
+                <div role="alert" className="space-y-2 text-sm text-destructive">
+                  <p>Unable to load the subscription.</p>
+                  <Button variant="outline" onClick={() => void subscriptionQ.refetch()}>
+                    Try again
+                  </Button>
+                </div>
               ) : subscriptionQ.data?.subscription ? (
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -207,7 +254,7 @@ export function BusinessSettingsPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">No subscription has been assigned.</p>
               )}
-              <SubscriptionPayments />
+              <SubscriptionPayments businessId={businessId} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -218,9 +265,9 @@ export function BusinessSettingsPage() {
 
 type TenantBill = BillingRecord & { payments: RecordedPayment[] };
 
-function SubscriptionPayments() {
+function SubscriptionPayments({ businessId }: { businessId: string }) {
   const bills = useQuery({
-    queryKey: ["tenant", "billing-records"],
+    queryKey: ["tenant", businessId, "billing-records"],
     queryFn: listTenantBillingRecords,
   });
 
@@ -243,13 +290,13 @@ function SubscriptionPayments() {
         <p className="text-sm text-muted-foreground">No billing records yet.</p>
       ) : null}
       {bills.data?.map((bill) => (
-        <SubscriptionBill key={bill.id} bill={bill} />
+        <SubscriptionBill key={bill.id} bill={bill} businessId={businessId} />
       ))}
     </section>
   );
 }
 
-function SubscriptionBill({ bill }: { bill: TenantBill }) {
+function SubscriptionBill({ bill, businessId }: { bill: TenantBill; businessId: string }) {
   const queryClient = useQueryClient();
   const [method, setMethod] = React.useState<WalletMethod>("GCASH");
   const [reference, setReference] = React.useState("");
@@ -261,7 +308,7 @@ function SubscriptionBill({ bill }: { bill: TenantBill }) {
       return submitSubscriptionPayment(bill.id, method, reference, proof);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["tenant", "billing-records"] });
+      await queryClient.invalidateQueries({ queryKey: ["tenant", businessId, "billing-records"] });
       setReference("");
       setProof(null);
       toast.success("Payment proof submitted for manual review");

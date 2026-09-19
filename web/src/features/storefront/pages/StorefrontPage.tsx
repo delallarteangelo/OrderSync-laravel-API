@@ -24,6 +24,7 @@ import {
   useStorefronts,
 } from "@/shared/hooks/useApi";
 import { isApiError } from "@/shared/api/errors";
+import { chooseCustomerBalanceMethod } from "@/shared/api/orders";
 import { Money } from "@/shared/components/Money";
 import { StatusChip } from "@/shared/components/StatusChip";
 import { Button } from "@/shared/components/ui/button";
@@ -438,13 +439,16 @@ function CustomerPaymentPanel({
   const instructions = useQuery({
     queryKey: ["customer", "payment-instructions", order.business.id],
     queryFn: listCustomerPaymentInstructions,
-    enabled: order.status === "PENDING" && online,
+    enabled: ["PENDING", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP"].includes(order.status) && online,
   });
   const [method, setMethod] = React.useState<WalletMethod>("GCASH");
   const [reference, setReference] = React.useState("");
   const [proof, setProof] = React.useState<File>();
+  const [claimedAmount, setClaimedAmount] = React.useState(String(order.balanceDue));
+  const claimMinor = Math.round(Number(claimedAmount) * 100);
+  const choice = useMutation({ mutationFn: (choiceMethod: Order["balanceCollectionMethod"]) => chooseCustomerBalanceMethod(order.id, choiceMethod), onSuccess: () => { toast.success("Balance payment choice updated."); onChanged(); }, onError: (error) => toast.error(isApiError(error) ? error.message : "Unable to update payment choice.") });
   const submit = useMutation({
-    mutationFn: () => submitOrderPayment(order.id, method, reference.trim(), proof!),
+    mutationFn: () => submitOrderPayment(order.id, method, reference.trim(), proof!, claimMinor),
     onSuccess: (payment) => {
       toast.success(
         payment.duplicateProof || payment.duplicateReference
@@ -459,16 +463,9 @@ function CustomerPaymentPanel({
   });
   const latest = order.payments[0];
   const active = order.payments.find(
-    (payment) => payment.status === "SUBMITTED" || payment.status === "VERIFIED",
+    (payment) => payment.status === "SUBMITTED",
   );
-
-  if (latest?.status === "VERIFIED") {
-    return (
-      <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">
-        Manually verified {latest.method} payment · Receipt {latest.receiptNumber}
-      </div>
-    );
-  }
+  if (order.balanceDue <= 0) return <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">Fully paid. Your verified receipts remain on the order.</p>;
   if (active?.status === "SUBMITTED") {
     return (
       <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
@@ -476,7 +473,7 @@ function CustomerPaymentPanel({
       </div>
     );
   }
-  if (order.status !== "PENDING" || (instructions.data ?? []).length === 0) {
+  if (!["PENDING", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP"].includes(order.status) || (instructions.data ?? []).length === 0) {
     return latest?.status === "REJECTED" ? (
       <p className="text-sm text-destructive">Payment rejected: {latest.rejectionReason}</p>
     ) : null;
@@ -491,6 +488,8 @@ function CustomerPaymentPanel({
         </p>
       )}
       <p className="text-sm font-medium">Pay with GCash or Maya</p>
+      <p className="text-sm">Balance due: <Money value={order.balanceDue} /> · Received: <Money value={order.amountReceived} /></p>
+      <div className="flex flex-wrap gap-2"><Button size="sm" variant={order.balanceCollectionMethod === "WALLET_TOPUP" ? "default" : "outline"} disabled={choice.isPending || order.status === "READY_FOR_PICKUP"} onClick={() => choice.mutate("WALLET_TOPUP")}>Top up by wallet</Button><Button size="sm" variant={order.balanceCollectionMethod === "CASH_AT_PICKUP" ? "default" : "outline"} disabled={choice.isPending || order.status === "READY_FOR_PICKUP"} onClick={() => choice.mutate("CASH_AT_PICKUP")}>Pay balance at pickup</Button></div>
       <p className="text-xs text-muted-foreground">
         Proofs are checked by the store manually. OrderSync does not contact the wallet provider.
       </p>
@@ -530,6 +529,7 @@ function CustomerPaymentPanel({
         </div>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1"><Label>Amount sent (₱)</Label><Input type="number" min="0.01" step="0.01" max={order.balanceDue} value={claimedAmount} onChange={(event) => setClaimedAmount(event.target.value)} /></div>
         <div className="space-y-1">
           <Label>Wallet reference</Label>
           <Input value={reference} onChange={(event) => setReference(event.target.value)} />
@@ -544,7 +544,7 @@ function CustomerPaymentPanel({
         </div>
       </div>
       <Button
-        disabled={!online || submit.isPending || !reference.trim() || !proof}
+        disabled={!online || submit.isPending || !reference.trim() || !proof || !Number.isFinite(claimMinor) || claimMinor < 1 || claimMinor > Math.round(order.balanceDue * 100)}
         onClick={() => submit.mutate()}
       >
         {submit.isPending

@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { http as axiosClient } from "@/shared/api/axios";
+import { login } from "@/shared/api/auth";
 import { useAuthStore } from "@/app/stores/authStore";
 
 beforeEach(() => {
@@ -9,6 +10,39 @@ beforeEach(() => {
 });
 
 describe("refresh interceptor", () => {
+  it("preserves invalid-credentials errors without attempting token refresh", async () => {
+    let refreshCalls = 0;
+    server.use(
+      http.post("/api/v1/auth/login", () =>
+        HttpResponse.json(
+          {
+            code: "INVALID_CREDENTIALS",
+            message: "The email or password is incorrect.",
+          },
+          { status: 401 },
+        ),
+      ),
+      http.post("/api/v1/auth/refresh", () => {
+        refreshCalls += 1;
+        return HttpResponse.json(
+          {
+            code: "INVALID_REFRESH_TOKEN",
+            message: "The refresh token is missing, expired, or invalid.",
+          },
+          { status: 401 },
+        );
+      }),
+    );
+
+    await expect(
+      login({ email: "owner@example.com", password: "wrong-password" }),
+    ).rejects.toMatchObject({
+      code: "INVALID_CREDENTIALS",
+      message: "The email or password is incorrect.",
+    });
+    expect(refreshCalls).toBe(0);
+  });
+
   it("fires exactly one refresh under N parallel 401s", async () => {
     let refreshCalls = 0;
     let firstCall = true;

@@ -1,23 +1,19 @@
 import * as React from "react";
-import { Download, RefreshCw, ServerCrash, WifiOff } from "lucide-react";
+import { RefreshCw, ServerCrash, WifiOff } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { useOnlineStatus, useServiceReachability } from "@/shared/hooks/useOnlineStatus";
-import { registerOrderSyncServiceWorker, type InstallPromptEvent } from "@/shared/pwa/pwa";
+import { registerOrderSyncServiceWorker } from "@/shared/pwa/pwa";
 
 export function PwaManager() {
   const online = useOnlineStatus();
   const service = useServiceReachability(online);
-  const [installPrompt, setInstallPrompt] = React.useState<InstallPromptEvent | null>(null);
   const [waitingWorker, setWaitingWorker] = React.useState<ServiceWorker | null>(null);
 
   React.useEffect(() => {
     const onInstallPrompt = (event: Event) => {
       event.preventDefault();
-      setInstallPrompt(event as InstallPromptEvent);
     };
-    const onInstalled = () => setInstallPrompt(null);
     window.addEventListener("beforeinstallprompt", onInstallPrompt);
-    window.addEventListener("appinstalled", onInstalled);
 
     void registerOrderSyncServiceWorker().then((registration) => {
       if (!registration) return;
@@ -34,16 +30,8 @@ export function PwaManager() {
 
     return () => {
       window.removeEventListener("beforeinstallprompt", onInstallPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
     };
   }, []);
-
-  const install = async () => {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    await installPrompt.userChoice;
-    setInstallPrompt(null);
-  };
 
   const update = () => {
     if (!waitingWorker) return;
@@ -73,16 +61,6 @@ export function PwaManager() {
           <ServerCrash aria-hidden="true" className="h-4 w-4 shrink-0" />
           OrderSync cannot reach the server. Avoid submitting changes until service is restored.
         </div>
-      )}
-      {installPrompt && (
-        <Button
-          className="pointer-events-auto bg-green-800 text-white shadow hover:bg-green-900"
-          style={{ backgroundColor: "#166534" }}
-          size="sm"
-          onClick={() => void install()}
-        >
-          <Download className="mr-2 h-4 w-4" /> Install OrderSync
-        </Button>
       )}
       {waitingWorker && (
         <Button

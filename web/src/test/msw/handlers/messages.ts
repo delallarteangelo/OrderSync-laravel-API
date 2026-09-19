@@ -25,6 +25,7 @@ const aiSettings: AiSupportSettings = {
   maximumQuestionCharacters: 1000,
   provider: "LOCAL_GROUNDED",
   externalProviderConfigured: false,
+  publicInformationOnly: false,
 };
 
 function actor(request: Request) {
@@ -55,6 +56,14 @@ export const messagesHandlers = [
     };
     knowledge.push(entry);
     return HttpResponse.json(entry, { status: 201 });
+  }),
+
+  http.delete("/api/v1/ai/knowledge/:id", ({ params, request }) => {
+    if (!actor(request)) return HttpResponse.json({ code: "UNAUTH" }, { status: 401 });
+    const index = knowledge.findIndex((entry) => entry.id === params.id);
+    if (index < 0) return HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 });
+    const [deleted] = knowledge.splice(index, 1);
+    return HttpResponse.json({ deleted: true, id: deleted.id });
   }),
 
   http.get("/api/v1/ai/settings", ({ request }) => {

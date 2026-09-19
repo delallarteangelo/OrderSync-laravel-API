@@ -10,6 +10,7 @@ use App\Models\Business;
 use App\Models\Subscription;
 use App\Models\SubscriptionEvent;
 use App\Models\SubscriptionPlan;
+use App\Models\SubscriptionRequest;
 use App\Models\User;
 use DomainException;
 use Illuminate\Http\Request;
@@ -20,10 +21,19 @@ class SubscriptionAdministrationService
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly AuthTokenService $tokens,
+        private readonly SubscriptionRequestService $applications,
     ) {}
 
     public function approve(Business $business, User $actor, Request $request): Business
     {
+        $application = SubscriptionRequest::query()->where('business_id', $business->getKey())
+            ->where('kind', 'INITIAL')->latest('id')->first();
+        if ($application) {
+            $this->applications->review($application, $actor, $request, true, null);
+
+            return $business->fresh(['subscription.plan.entitlements', 'memberships.user']);
+        }
+
         return DB::transaction(function () use ($business, $actor, $request): Business {
             $business = Business::query()->lockForUpdate()->findOrFail($business->getKey());
             if ($business->status !== BusinessStatus::Pending) {
@@ -45,6 +55,7 @@ class SubscriptionAdministrationService
                 'starts_at' => $now,
                 'current_period_start' => $now,
                 'current_period_end' => $now->copy()->addMonthNoOverflow(),
+                'period_price_minor' => $plan->price_minor,
             ]);
             $this->event($subscription, $actor, 'subscription.started', null, SubscriptionStatus::Active->value, null, $plan->code);
             $this->audit->record('business.approved', $request, $actor, $business, Business::class, $business->getKey(), ['plan_code' => $plan->code]);
@@ -100,6 +111,10 @@ class SubscriptionAdministrationService
             if (! $plan->is_active) {
                 throw new DomainException('The selected subscription plan is inactive.');
             }
+            if (SubscriptionRequest::query()->where('business_id', $business->getKey())
+                ->whereIn('status', ['PENDING_REVIEW', 'AWAITING_PAYMENT', 'PAYMENT_SUBMITTED'])->exists()) {
+                throw new DomainException('Resolve the subscription request before manually reassigning a plan.');
+            }
 
             $subscription = Subscription::query()->where('business_id', $business->getKey())->lockForUpdate()->first();
             $fromStatus = $subscription?->status->value;
@@ -113,6 +128,7 @@ class SubscriptionAdministrationService
                 'current_period_end' => $now->copy()->addMonthsNoOverflow($months),
                 'grace_ends_at' => null,
                 'cancelled_at' => null,
+                'period_price_minor' => $plan->price_minor,
             ];
             if ($subscription) {
                 $subscription->update($values);
@@ -138,6 +154,7 @@ class SubscriptionAdministrationService
                 'current_period_end' => $periodStart->copy()->addMonthsNoOverflow($months),
                 'grace_ends_at' => null,
                 'cancelled_at' => null,
+                'period_price_minor' => $subscription->plan->price_minor,
             ]);
             $this->event($subscription, $actor, 'subscription.renewed', $fromStatus, SubscriptionStatus::Active->value, $subscription->plan->code, $subscription->plan->code, ['months' => $months]);
             $this->audit->record('subscription.renewed', $request, $actor, $subscription->business, Subscription::class, $subscription->getKey(), ['months' => $months]);
@@ -203,6 +220,9 @@ class SubscriptionAdministrationService
     {
         return DB::transaction(function () use ($record, $reference, $actor, $request): BillingRecord {
             $record = BillingRecord::query()->with('business')->lockForUpdate()->findOrFail($record->getKey());
+            if ($record->subscription_request_id !== null) {
+                throw new DomainException('Application bills require verified wallet proof; manual mark-paid cannot activate a plan.');
+            }
             if ($record->status !== BillingStatus::Pending && $record->status !== BillingStatus::Overdue) {
                 throw new DomainException('Only pending or overdue billing records can be marked paid.');
             }

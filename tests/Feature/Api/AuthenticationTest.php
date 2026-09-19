@@ -3,9 +3,11 @@
 namespace Tests\Feature\Api;
 
 use App\Enums\Role;
+use App\Enums\SubscriptionStatus;
 use App\Models\AuditLog;
 use App\Models\Business;
 use App\Models\Membership;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\AuthTokenService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,7 +68,14 @@ class AuthenticationTest extends TestCase
 
     public function test_mobile_login_returns_rotating_refresh_token_in_response_body(): void
     {
-        [$user] = $this->createMember(Role::Customer);
+        [$user, $business] = $this->createMember(Role::Customer);
+        $business->subscription()->create([
+            'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'STANDARD')->firstOrFail()->getKey(),
+            'status' => SubscriptionStatus::Active,
+            'starts_at' => now(),
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
 
         $login = $this->withHeaders([
             'X-Client' => 'ordersync-android',
@@ -89,6 +98,23 @@ class AuthenticationTest extends TestCase
         $this->assertNotSame($login->json('refreshToken'), $refresh->json('refreshToken'));
     }
 
+    public function test_customer_web_login_is_redirected_to_the_mobile_app_without_issuing_tokens(): void
+    {
+        [$customer] = $this->createMember(Role::Customer);
+
+        $this->withHeader('X-Client', 'ordersync-web')
+            ->postJson('/api/v1/auth/login', [
+                'email' => $customer->email,
+                'password' => 'password',
+            ])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'CUSTOMER_APP_REQUIRED')
+            ->assertJsonPath('message', 'Customer accounts must sign in through the OrderSync mobile app.');
+
+        $this->assertDatabaseCount('access_tokens', 0);
+        $this->assertDatabaseCount('refresh_tokens', 0);
+    }
+
     public function test_invalid_inactive_and_membershipless_accounts_cannot_login(): void
     {
         [$user] = $this->createMember(Role::Cashier);
@@ -96,7 +122,9 @@ class AuthenticationTest extends TestCase
         $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
             'password' => 'wrong-password',
-        ])->assertUnauthorized()->assertJsonPath('code', 'INVALID_CREDENTIALS');
+        ])->assertUnauthorized()
+            ->assertJsonPath('code', 'INVALID_CREDENTIALS')
+            ->assertJsonPath('message', 'The email or password is incorrect.');
 
         $user->update(['is_active' => false]);
         $this->postJson('/api/v1/auth/login', [

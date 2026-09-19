@@ -16,7 +16,9 @@ class PosPayload
             'id' => (string) $sale->getKey(),
             'code' => $sale->sale_number,
             'receiptNumber' => $sale->receipt_number,
-            'businessName' => $sale->business->name,
+            'businessName' => $sale->business_name ?? $sale->business->name,
+            'receiptHeader' => $sale->receipt_header ?? '',
+            'receiptFooter' => $sale->receipt_footer ?? 'Thank you for shopping!',
             'lines' => $sale->lines->map(fn (SaleLine $line): array => [
                 'productId' => (string) $line->product_id,
                 'sku' => $line->sku,

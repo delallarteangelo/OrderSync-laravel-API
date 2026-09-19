@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['business_id', 'conversation_thread_id', 'customer_user_id', 'ai_support_run_id', 'status', 'reason_code', 'customer_note', 'requested_at', 'resolved_at', 'resolved_by_user_id'])]
+#[Fillable(['business_id', 'conversation_thread_id', 'customer_user_id', 'ai_support_run_id', 'status', 'reason_code', 'customer_note', 'requested_at', 'resolved_at', 'resolved_by_user_id', 'open_thread_id'])]
 class SupportHandoff extends Model
 {
     public $timestamps = false;

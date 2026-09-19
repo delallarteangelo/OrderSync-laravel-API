@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\AiKnowledgeEntry;
 use App\Models\AiSupportRun;
 use App\Models\AiSupportSetting;
+use App\Models\Business;
 use App\Models\SupportHandoff;
+use App\Support\Ai\AiSupportProviderSelector;
 
 class AiSupportPayload
 {
@@ -25,15 +27,18 @@ class AiSupportPayload
         ];
     }
 
-    public static function settings(AiSupportSetting $settings): array
+    public static function settings(AiSupportSetting $settings, Business $business): array
     {
+        $provider = app(AiSupportProviderSelector::class)->forBusiness($business);
+
         return [
             'assistantEnabled' => $settings->assistant_enabled,
             'dailyCustomerRequestLimit' => $settings->daily_customer_request_limit,
             'monthlyBusinessRequestLimit' => $settings->monthly_business_request_limit,
             'maximumQuestionCharacters' => $settings->maximum_question_characters,
-            'provider' => 'LOCAL_GROUNDED',
-            'externalProviderConfigured' => false,
+            'provider' => $provider->code(),
+            'externalProviderConfigured' => $provider->code() === 'GEMINI',
+            'publicInformationOnly' => $provider->code() === 'GEMINI' && ! config('ai_support.gemini.paid_tier'),
         ];
     }
 

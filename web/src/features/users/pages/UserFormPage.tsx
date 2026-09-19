@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { Switch } from "@/shared/components/ui/switch";
-import { Label } from "@/shared/components/ui/label";
 import { useCreateUser, useUpdateUser, useUser } from "@/shared/hooks/useApi";
 import { isApiError, type FieldErrors } from "@/shared/api/errors";
 import { useAuthStore } from "@/app/stores/authStore";
@@ -34,6 +33,7 @@ const schema = z.object({
   email: z.string().email("Invalid email"),
   role: z.enum(["BUSINESS_OWNER", "STAFF", "CASHIER"]),
   isActive: z.boolean(),
+  password: z.string(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -55,6 +55,7 @@ export function UserFormPage() {
         email: existing.email,
         role: existing.role as FormValues["role"],
         isActive: existing.isActive,
+        password: "",
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -68,11 +69,22 @@ export function UserFormPage() {
           email: existing.email,
           role: existing.role as FormValues["role"],
           isActive: existing.isActive,
+          password: "",
         }
-      : { fullName: "", email: "", role: "CASHIER" as const, isActive: true },
+      : { fullName: "", email: "", role: "CASHIER" as const, isActive: true, password: "" },
   });
 
   const submit = form.handleSubmit((values) => {
+    if (!existing) {
+      if (values.password.length < 12) {
+        form.setError("password", { message: "Use at least 12 characters" });
+        return;
+      }
+      if (!/[A-Za-z]/.test(values.password) || !/\d/.test(values.password)) {
+        form.setError("password", { message: "Include at least one letter and one number" });
+        return;
+      }
+    }
     const opts = {
       onSuccess: () => {
         toast.success(existing ? "User updated" : "User created");
@@ -89,8 +101,15 @@ export function UserFormPage() {
         }
       },
     };
-    if (existing) updateM.mutate({ id: existing.id, payload: values }, opts);
-    else createM.mutate(values, opts);
+    if (existing) {
+      const profile = {
+        fullName: values.fullName,
+        email: values.email,
+        role: values.role,
+        isActive: values.isActive,
+      };
+      updateM.mutate({ id: existing.id, payload: profile }, opts);
+    } else createM.mutate(values, opts);
   });
   const saving = createM.isPending || updateM.isPending;
 
@@ -198,13 +217,22 @@ export function UserFormPage() {
                 )}
               />
               {!existing && (
-                <div className="space-y-1.5">
-                  <Label>Temporary password</Label>
-                  <Input value="TempPass1234" readOnly />
-                  <p className="text-xs text-muted-foreground">
-                    User will be required to change this on first sign-in.
-                  </p>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Temporary password</FormLabel>
+                      <FormControl>
+                        <Input type="password" autoComplete="new-password" {...field} />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Use at least 12 characters with letters and numbers, then share it securely.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => navigate("/users")}>

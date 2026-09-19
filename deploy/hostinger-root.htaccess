@@ -1,0 +1,15 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # The whole Laravel release lives in public_html, while only its public
+    # directory is web-accessible. The rewrite is internal, so URLs stay clean.
+    RewriteRule ^public(?:/|$) - [L]
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+<FilesMatch "^(\.env|artisan|composer\.(json|lock))$">
+    Require all denied
+</FilesMatch>
+

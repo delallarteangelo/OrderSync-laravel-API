@@ -10,6 +10,7 @@ type AuthState = {
   accessToken: string | null;
   bootstrapped: boolean;
   setSession: (s: { accessToken: string; user: User }) => void;
+  setUser: (user: User) => void;
   clear: () => void;
   markBootstrapped: () => void;
   /** @deprecated demo helper retained for transition */
@@ -32,6 +33,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setSession: ({ accessToken, user }) => {
     syncCartTenant(user);
     set({ accessToken, user });
+  },
+  setUser: (user) => {
+    syncCartTenant(user);
+    set({ user });
   },
   clear: () => {
     const userId = get().user?.id;

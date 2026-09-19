@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
-#[Fillable(['business_id', 'cashier_user_id', 'cashier_name', 'sale_number', 'receipt_number', 'status', 'subtotal_minor', 'discount_total_minor', 'tax_total_minor', 'grand_total_minor', 'tax_rate_basis_points', 'payment_method', 'tendered_minor', 'change_minor', 'payment_reference', 'idempotency_key', 'request_fingerprint', 'completed_at'])]
+#[Fillable(['business_id', 'business_name', 'receipt_header', 'receipt_footer', 'cashier_user_id', 'cashier_name', 'sale_number', 'receipt_number', 'status', 'subtotal_minor', 'discount_total_minor', 'tax_total_minor', 'grand_total_minor', 'tax_rate_basis_points', 'payment_method', 'tendered_minor', 'change_minor', 'payment_reference', 'idempotency_key', 'request_fingerprint', 'completed_at'])]
 class Sale extends Model
 {
     protected function casts(): array

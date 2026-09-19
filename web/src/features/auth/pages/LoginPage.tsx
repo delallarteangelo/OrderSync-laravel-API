@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useLocation, Navigate, Link } from "react-router-dom";
-import { Store, ShoppingBag, ScanBarcode, Loader2 } from "lucide-react";
+import { Download, Loader2, ScanBarcode, ShoppingBag, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -9,13 +9,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuthStore } from "@/app/stores/authStore";
 import { login as apiLogin } from "@/shared/api/auth";
 import { isApiError } from "@/shared/api/errors";
-import { flags } from "@/shared/config/env";
+import { env, flags } from "@/shared/config/env";
 import type { BusinessMembership } from "@/shared/types/auth";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Separator } from "@/shared/components/ui/separator";
+import { OrderSyncLogo } from "@/shared/components/OrderSyncLogo";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -31,6 +40,7 @@ export function LoginPage() {
   const bootstrapped = useAuthStore((s) => s.bootstrapped);
   const setSession = useAuthStore((s) => s.setSession);
   const [businessChoices, setBusinessChoices] = React.useState<BusinessMembership[]>([]);
+  const [customerAppDialogOpen, setCustomerAppDialogOpen] = React.useState(false);
   const requestedFrom = (location.state as { from?: string } | null)?.from;
 
   const form = useForm<FormValues>({
@@ -61,6 +71,11 @@ export function LoginPage() {
       navigate(target, { replace: true });
     },
     onError: (err) => {
+      if (isApiError(err) && err.code === "CUSTOMER_APP_REQUIRED") {
+        setBusinessChoices([]);
+        setCustomerAppDialogOpen(true);
+        return;
+      }
       if (isApiError(err) && err.code === "BUSINESS_SELECTION_REQUIRED") {
         const details = err.details as { businesses?: BusinessMembership[] } | undefined;
         const choices = details?.businesses ?? [];
@@ -99,9 +114,7 @@ export function LoginPage() {
     <div className="grid min-h-screen w-full lg:grid-cols-2">
       <div className="relative hidden flex-col justify-between bg-primary p-10 text-primary-foreground lg:flex">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15">
-            <Store className="h-6 w-6" />
-          </div>
+          <OrderSyncLogo className="h-10 w-10" decorative />
           <div>
             <p className="text-lg font-semibold">OrderSync</p>
             <p className="text-xs opacity-80">Business operations platform</p>
@@ -134,17 +147,18 @@ export function LoginPage() {
             </Card>
           </div>
         </div>
-        <p className="text-xs opacity-70">© {new Date().getFullYear()} Tonette's Minimart</p>
+        <p className="text-xs opacity-70">
+          © {new Date().getFullYear()} OrderSync. Business Management Platform for Micro and Small
+          Businesses.
+        </p>
       </div>
 
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-6">
           <div className="lg:hidden">
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Store className="h-5 w-5" />
-              </div>
-              <p className="font-semibold">Tonette's Minimart</p>
+              <OrderSyncLogo className="h-9 w-9" decorative />
+              <p className="font-semibold">OrderSync</p>
             </div>
           </div>
           <div>
@@ -255,6 +269,46 @@ export function LoginPage() {
           )}
         </div>
       </div>
+      <Dialog open={customerAppDialogOpen} onOpenChange={setCustomerAppDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mb-2 flex items-center gap-3">
+              <div className="rounded-full bg-primary/10 p-3 text-primary">
+                <Smartphone className="h-6 w-6" />
+              </div>
+              <OrderSyncLogo className="h-12 w-12" decorative />
+            </div>
+            <DialogTitle>Customers use the OrderSync mobile app</DialogTitle>
+            <DialogDescription className="leading-6">
+              The web workspace is for business owners and their staff. Customers can browse stores,
+              place orders, upload payment proof, and chat with stores through the OrderSync app.
+            </DialogDescription>
+          </DialogHeader>
+          {!env.VITE_CUSTOMER_APP_DOWNLOAD_URL ? (
+            <p className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+              The download link will be available here soon.
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCustomerAppDialogOpen(false)}>
+              Back to sign in
+            </Button>
+            {env.VITE_CUSTOMER_APP_DOWNLOAD_URL ? (
+              <Button asChild>
+                <a href={env.VITE_CUSTOMER_APP_DOWNLOAD_URL} target="_blank" rel="noreferrer">
+                  <Download className="h-4 w-4" />
+                  Download OrderSync app
+                </a>
+              </Button>
+            ) : (
+              <Button disabled>
+                <Download className="h-4 w-4" />
+                Download OrderSync app
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

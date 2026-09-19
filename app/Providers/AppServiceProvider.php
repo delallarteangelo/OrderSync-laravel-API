@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Policies\BusinessPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\ProductPolicy;
+use App\Support\Ai\GeminiAiProvider;
 use App\Support\Ai\LocalGroundedAiProvider;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -20,7 +21,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(AiSupportProvider::class, LocalGroundedAiProvider::class);
+        $this->app->singleton(AiSupportProvider::class, function ($app): AiSupportProvider {
+            $selected = config('ai_support.provider') === 'gemini';
+            $configured = filled(config('ai_support.gemini.api_key'));
+
+            return $app->make($selected && $configured ? GeminiAiProvider::class : LocalGroundedAiProvider::class);
+        });
     }
 
     /**

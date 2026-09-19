@@ -1,6 +1,10 @@
 import { http } from "./axios";
 import type { User } from "@/shared/types/auth";
 
+export type CreateUserPayload = Pick<User, "fullName" | "email" | "role" | "isActive"> & {
+  password: string;
+};
+
 export async function listUsers(): Promise<User[]> {
   const { data } = await http.get<{ items: User[] }>("/users");
   return data.items;
@@ -11,7 +15,7 @@ export async function getUser(id: string): Promise<User> {
   return data;
 }
 
-export async function createUser(payload: Partial<User> & { password?: string }): Promise<User> {
+export async function createUser(payload: CreateUserPayload): Promise<User> {
   const { data } = await http.post<User>("/users", payload);
   return data;
 }

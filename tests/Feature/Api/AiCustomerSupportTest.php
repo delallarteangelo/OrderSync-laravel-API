@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Contracts\AiSupportProvider;
 use App\Enums\BusinessStatus;
 use App\Enums\OrderStatus;
 use App\Enums\Role;
@@ -13,13 +14,159 @@ use App\Models\Membership;
 use App\Models\Order;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Support\Ai\AiSupportProviderSelector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use LogicException;
 use Tests\TestCase;
 
 class AiCustomerSupportTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_gemini_is_selected_server_side_and_preserves_tenant_scoped_support_contract(): void
+    {
+        config()->set('ai_support.provider', 'gemini');
+        config()->set('ai_support.gemini.api_key', 'test-only-placeholder');
+        app()->forgetInstance(AiSupportProvider::class);
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [['content' => ['parts' => [['text' => json_encode([
+                'answer' => 'Pickup is available from 9 AM to 6 PM daily.',
+                'supported' => true,
+                'evidenceIds' => ['K1'],
+            ], JSON_THROW_ON_ERROR)]]]]],
+            'usageMetadata' => ['promptTokenCount' => 80, 'candidatesTokenCount' => 30],
+        ], 200)]);
+        [, , $customerToken, , $ownerToken] = $this->tenant('Gemini Store', 'gemini-store');
+        $this->withToken($ownerToken)->postJson('/api/v1/ai/knowledge', [
+            'type' => 'FAQ', 'title' => 'Pickup hours', 'question' => 'What are the pickup hours?',
+            'content' => 'Pickup is available from 9 AM to 6 PM daily.', 'keywords' => ['pickup', 'hours'],
+        ])->assertCreated();
+        $this->withToken($ownerToken)->getJson('/api/v1/ai/settings')
+            ->assertOk()->assertJsonPath('provider', 'GEMINI')->assertJsonPath('externalProviderConfigured', true);
+        $threadId = $this->withToken($customerToken)->postJson('/api/v1/threads')->assertCreated()->json('id');
+        $this->withToken($customerToken)->postJson("/api/v1/threads/{$threadId}/assistant", [
+            'body' => 'What are your pickup hours?',
+        ])->assertCreated()->assertJsonPath('run.provider', 'GEMINI')
+            ->assertJsonPath('run.status', 'ANSWERED')
+            ->assertJsonPath('run.toolsUsed.0', 'tenant_knowledge');
+        $this->withToken($ownerToken)->getJson('/api/v1/ai/usage')
+            ->assertOk()->assertJsonPath('provider', 'GEMINI')->assertJsonPath('externalProviderConfigured', true);
+        Http::assertSentCount(1);
+    }
+
+    public function test_free_tier_uses_gemini_for_public_facts_but_local_for_private_order_questions(): void
+    {
+        config()->set('ai_support.provider', 'gemini');
+        config()->set('ai_support.gemini.api_key', 'test-only-placeholder');
+        config()->set('ai_support.gemini.paid_tier', false);
+        app()->forgetInstance(AiSupportProvider::class);
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [['content' => ['parts' => [['text' => json_encode([
+                'answer' => 'Pickup is available from 9 AM to 6 PM daily.',
+                'supported' => true,
+                'evidenceIds' => ['K1'],
+            ], JSON_THROW_ON_ERROR)]]]]],
+        ], 200)]);
+        [$business, $customer, $customerToken, , $ownerToken] = $this->tenant('Public Store', 'public-store');
+        $this->withToken($ownerToken)->postJson('/api/v1/ai/knowledge', [
+            'type' => 'FAQ', 'title' => 'Pickup hours', 'question' => 'What are the pickup hours?',
+            'content' => 'Pickup is available from 9 AM to 6 PM daily.', 'keywords' => ['pickup', 'hours'],
+        ])->assertCreated();
+        $threadId = $this->withToken($customerToken)->postJson('/api/v1/threads')->assertCreated()->json('id');
+        $this->withToken($customerToken)->postJson("/api/v1/threads/{$threadId}/assistant", [
+            'body' => 'What are your pickup hours? Contact customer@example.com.',
+        ])->assertCreated()->assertJsonPath('run.provider', 'GEMINI');
+        Http::assertSent(fn ($request): bool => ! str_contains(json_encode($request->data(), JSON_THROW_ON_ERROR), 'customer@example.com'));
+
+        $this->order($business, $customer, 'ORD-20260915-OWN', OrderStatus::ReadyForPickup);
+        $this->withToken($customerToken)->postJson("/api/v1/threads/{$threadId}/assistant", [
+            'body' => 'What is my order status?',
+        ])->assertCreated()->assertJsonPath('run.provider', 'LOCAL_GROUNDED');
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_gemini_selection_tracks_the_effective_ai_support_entitlement(): void
+    {
+        config()->set('ai_support.provider', 'gemini');
+        config()->set('ai_support.gemini.api_key', 'test-only-placeholder');
+        config()->set('ai_support.gemini.paid_tier', true);
+        app()->forgetInstance(AiSupportProvider::class);
+
+        $business = Business::query()->create([
+            'name' => 'Automatic Gemini Store',
+            'slug' => 'automatic-gemini-store',
+            'status' => BusinessStatus::Active,
+            'approved_at' => now(),
+        ]);
+        $premium = SubscriptionPlan::query()->where('code', 'PREMIUM')->firstOrFail();
+        $standard = SubscriptionPlan::query()->where('code', 'STANDARD')->firstOrFail();
+        $subscription = $business->subscription()->create([
+            'subscription_plan_id' => $premium->getKey(),
+            'status' => SubscriptionStatus::Active,
+            'starts_at' => now(),
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
+        $selector = app(AiSupportProviderSelector::class);
+        $provider = fn (?string $question = null): string => $selector
+            ->forBusiness($business->fresh(), $question)
+            ->code();
+
+        $this->assertSame('GEMINI', $provider('What products are available?'));
+        $this->assertSame('LOCAL_GROUNDED', $provider('What is my payment status?'));
+
+        $subscription->update([
+            'status' => SubscriptionStatus::Grace,
+            'current_period_start' => now()->subMonth(),
+            'current_period_end' => now()->subMinute(),
+            'grace_ends_at' => now()->addDay(),
+        ]);
+        $this->assertSame('GEMINI', $provider('What time does the store open?'));
+
+        $subscription->update([
+            'subscription_plan_id' => $standard->getKey(),
+            'status' => SubscriptionStatus::Active,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+            'grace_ends_at' => null,
+        ]);
+        $this->assertSame('LOCAL_GROUNDED', $provider('What products are available?'));
+
+        $subscription->update([
+            'subscription_plan_id' => $premium->getKey(),
+            'current_period_start' => now()->subMonth(),
+            'current_period_end' => now()->subDay(),
+            'grace_ends_at' => now()->subMinute(),
+        ]);
+        $this->assertSame('LOCAL_GROUNDED', $provider('What products are available?'));
+
+        $subscription->update([
+            'status' => SubscriptionStatus::Cancelled,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
+        $this->assertSame('LOCAL_GROUNDED', $provider('What products are available?'));
+
+        $subscription->update(['status' => SubscriptionStatus::Active]);
+        $business->update(['status' => BusinessStatus::Suspended]);
+        $this->assertSame('LOCAL_GROUNDED', $provider('What products are available?'));
+    }
+
+    public function test_missing_server_key_keeps_the_existing_local_provider(): void
+    {
+        config()->set('ai_support.provider', 'gemini');
+        config()->set('ai_support.gemini.api_key', null);
+        app()->forgetInstance(AiSupportProvider::class);
+        Http::fake();
+        [, , , , $ownerToken] = $this->tenant('Fallback Store', 'fallback-store');
+
+        $this->withToken($ownerToken)->getJson('/api/v1/ai/settings')
+            ->assertOk()->assertJsonPath('provider', 'LOCAL_GROUNDED')
+            ->assertJsonPath('externalProviderConfigured', false);
+        Http::assertNothingSent();
+    }
 
     public function test_owner_manages_tenant_knowledge_and_customer_receives_a_grounded_ai_labeled_answer(): void
     {
@@ -36,6 +183,8 @@ class AiCustomerSupportTest extends TestCase
         $this->withToken($otherOwnerToken)->putJson("/api/v1/ai/knowledge/{$entryId}", [
             'type' => 'FAQ', 'title' => 'Changed', 'question' => 'Changed?', 'content' => 'Changed',
         ])->assertNotFound();
+        $this->withToken($otherOwnerToken)->deleteJson("/api/v1/ai/knowledge/{$entryId}")
+            ->assertNotFound();
         $this->withToken($customerToken)->getJson('/api/v1/ai/published')
             ->assertOk()->assertJsonPath('items.0.title', 'Pickup hours');
 
@@ -57,6 +206,16 @@ class AiCustomerSupportTest extends TestCase
         $audit = $business->hasMany(AuditLog::class)->where('action', 'ai.support.completed')->firstOrFail();
         $this->assertArrayNotHasKey('body', $audit->metadata ?? []);
         $this->assertStringNotContainsString('pickup hours', mb_strtolower(json_encode($audit->metadata, JSON_THROW_ON_ERROR)));
+
+        $this->withToken($ownerToken)->deleteJson("/api/v1/ai/knowledge/{$entryId}")
+            ->assertOk()
+            ->assertJsonPath('deleted', true)
+            ->assertJsonPath('id', (string) $entryId);
+        $this->assertDatabaseMissing('ai_knowledge_entries', ['id' => $entryId]);
+        $this->assertDatabaseHas('audit_logs', [
+            'business_id' => $business->getKey(),
+            'action' => 'ai.knowledge.deleted',
+        ]);
     }
 
     public function test_product_and_order_tools_never_cross_tenant_or_customer_boundaries(): void

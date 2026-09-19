@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['business_id', 'customer_user_id', 'customer_name', 'customer_email', 'order_number', 'status', 'fulfillment_method', 'subtotal_minor', 'total_minor', 'idempotency_key', 'request_fingerprint', 'placed_at', 'confirmed_at', 'completed_at'])]
+#[Fillable(['business_id', 'customer_user_id', 'customer_name', 'customer_email', 'order_number', 'status', 'fulfillment_method', 'balance_collection_method', 'subtotal_minor', 'total_minor', 'idempotency_key', 'request_fingerprint', 'placed_at', 'confirmed_at', 'completed_at'])]
 class Order extends Model
 {
     protected function casts(): array
@@ -47,6 +47,16 @@ class Order extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(RecordedPayment::class);
+    }
+
+    public function counterPayments(): HasMany
+    {
+        return $this->hasMany(OrderCounterPayment::class);
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(OrderRefund::class);
     }
 
     public function conversationThread(): HasOne

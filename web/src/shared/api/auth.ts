@@ -5,7 +5,9 @@ export type LoginPayload = { email: string; password: string; businessId?: numbe
 export type AuthResponse = { accessToken: string; accessExpiresAt: string; user: User };
 
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
-  const { data } = await http.post<AuthResponse>("/auth/login", payload);
+  const { data } = await http.post<AuthResponse>("/auth/login", payload, {
+    _skipRefresh: true,
+  });
   return data;
 }
 
@@ -38,4 +40,11 @@ export async function changePassword(payload: {
   newPassword: string;
 }): Promise<void> {
   await http.post("/auth/change-password", payload);
+}
+
+export async function uploadProfilePicture(file: File): Promise<User> {
+  const form = new FormData();
+  form.append("avatar", file);
+  const { data } = await http.post<{ user: User }>("/auth/profile/avatar", form);
+  return data.user;
 }

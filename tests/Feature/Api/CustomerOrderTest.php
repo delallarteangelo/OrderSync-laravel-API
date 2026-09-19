@@ -83,10 +83,17 @@ class CustomerOrderTest extends TestCase
         ]);
         $this->assertDatabaseHas('reorder_alerts', ['product_id' => $product->getKey(), 'status' => 'OPEN', 'observed_quantity' => 3]);
 
-        foreach (['PREPARING', 'READY_FOR_PICKUP', 'COMPLETED'] as $status) {
+        foreach (['PREPARING', 'READY_FOR_PICKUP'] as $status) {
             $this->withToken($cashierToken)->postJson("/api/v1/orders/{$order['id']}/transition", ['next' => $status])
                 ->assertOk()->assertJsonPath('status', $status);
         }
+        $this->withToken($cashierToken)->postJson("/api/v1/orders/{$order['id']}/transition", ['next' => 'COMPLETED'])
+            ->assertStatus(409)->assertJsonPath('code', 'BALANCE_DUE');
+        $this->withToken($cashierToken)->postJson("/api/v1/orders/{$order['id']}/counter-payments", [
+            'amountMinor' => 2000, 'referenceNumber' => 'CASH-CONFIRM-1',
+        ])->assertOk()->assertJsonPath('balanceDue', 0);
+        $this->withToken($cashierToken)->postJson("/api/v1/orders/{$order['id']}/transition", ['next' => 'COMPLETED'])
+            ->assertOk()->assertJsonPath('status', 'COMPLETED');
         $this->withToken($cashierToken)->postJson("/api/v1/orders/{$order['id']}/transition", ['next' => 'COMPLETED'])
             ->assertStatus(409)->assertJsonPath('code', 'ILLEGAL_TRANSITION');
         $this->assertDatabaseCount('inventory_movements', 1);

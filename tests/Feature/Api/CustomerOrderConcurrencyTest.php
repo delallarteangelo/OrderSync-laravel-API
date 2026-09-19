@@ -98,14 +98,16 @@ class CustomerOrderConcurrencyTest extends TestCase
             'actor_name' => $customer->name,
         ]);
 
+        $connection = (string) config('database.default');
+        $database = config("database.connections.{$connection}");
         $environment = [
             'APP_ENV' => 'testing',
-            'DB_CONNECTION' => 'pgsql',
-            'DB_HOST' => (string) config('database.connections.pgsql.host'),
-            'DB_PORT' => (string) config('database.connections.pgsql.port'),
-            'DB_DATABASE' => (string) config('database.connections.pgsql.database'),
-            'DB_USERNAME' => (string) config('database.connections.pgsql.username'),
-            'DB_PASSWORD' => (string) config('database.connections.pgsql.password'),
+            'DB_CONNECTION' => $connection,
+            'DB_HOST' => (string) $database['host'],
+            'DB_PORT' => (string) $database['port'],
+            'DB_DATABASE' => (string) $database['database'],
+            'DB_USERNAME' => (string) $database['username'],
+            'DB_PASSWORD' => (string) $database['password'],
         ];
         $workers = collect(range(1, 4))->map(fn (): Process => new Process([
             PHP_BINARY,

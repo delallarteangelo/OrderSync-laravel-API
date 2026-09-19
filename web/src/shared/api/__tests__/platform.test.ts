@@ -21,7 +21,7 @@ describe("platform administration api", () => {
   });
 
   it("submits a business registration for approval", async () => {
-    const business = await registerBusiness({
+    const { business } = await registerBusiness({
       businessName: "New Store",
       ownerName: "New Owner",
       ownerEmail: "new@example.test",

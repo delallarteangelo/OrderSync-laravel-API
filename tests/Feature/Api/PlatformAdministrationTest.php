@@ -78,6 +78,66 @@ class PlatformAdministrationTest extends TestCase
             ->assertJsonPath('meta.total', 1);
     }
 
+    public function test_platform_business_and_user_lists_support_server_side_table_controls(): void
+    {
+        [$alphaOwner, $alphaBusiness] = $this->createMemberBusiness('Alpha Market', 'alpha-market');
+        [, $zuluBusiness] = $this->createMemberBusiness('Zulu Store', 'zulu-store');
+        $zuluBusiness->update(['status' => BusinessStatus::Suspended]);
+        $staff = User::factory()->create(['name' => 'Ana Staff', 'email' => 'ana.staff@example.test', 'is_active' => false]);
+        Membership::query()->create([
+            'business_id' => $alphaBusiness->getKey(),
+            'user_id' => $staff->getKey(),
+            'role' => Role::Staff,
+        ]);
+        $adminToken = $this->superAdminToken();
+
+        $this->withToken($adminToken)
+            ->getJson('/api/v1/platform/businesses?'.http_build_query([
+                'search' => $alphaOwner->email,
+                'status' => 'ACTIVE',
+                'planCode' => 'BASIC',
+                'sort' => 'name',
+                'direction' => 'asc',
+                'perPage' => 10,
+            ]))
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.perPage', 10)
+            ->assertJsonPath('data.0.name', 'Alpha Market');
+
+        $this->withToken($adminToken)
+            ->getJson('/api/v1/platform/businesses?sort=name&direction=desc&perPage=10')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Zulu Store');
+
+        foreach (['status', 'planCode', 'userCount', 'periodEnd', 'createdAt'] as $sort) {
+            $this->withToken($adminToken)
+                ->getJson("/api/v1/platform/businesses?sort={$sort}&direction=asc&perPage=10")
+                ->assertOk();
+        }
+
+        $this->withToken($adminToken)
+            ->getJson('/api/v1/platform/users?'.http_build_query([
+                'search' => 'Alpha Market',
+                'isActive' => 'false',
+                'access' => 'TENANT',
+                'membershipRole' => 'STAFF',
+                'sort' => 'fullName',
+                'direction' => 'asc',
+                'perPage' => 10,
+            ]))
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.perPage', 10)
+            ->assertJsonPath('data.0.email', 'ana.staff@example.test');
+
+        foreach (['email', 'access', 'membershipsCount', 'isActive', 'createdAt'] as $sort) {
+            $this->withToken($adminToken)
+                ->getJson("/api/v1/platform/users?sort={$sort}&direction=asc&perPage=10")
+                ->assertOk();
+        }
+    }
+
     public function test_suspension_revokes_tenant_sessions_and_reactivation_preserves_data(): void
     {
         [$owner, $business] = $this->createMemberBusiness();

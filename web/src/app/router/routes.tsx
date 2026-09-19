@@ -9,6 +9,9 @@ import { RouteErrorState } from "@/shared/components/RouteErrorState";
 const AppShell = React.lazy(() =>
   import("@/app/layout/AppShell").then(({ AppShell }) => ({ default: AppShell })),
 );
+const PlatformShell = React.lazy(() =>
+  import("@/app/layout/PlatformShell").then(({ PlatformShell }) => ({ default: PlatformShell })),
+);
 const LoginPage = React.lazy(() =>
   import("@/features/auth/pages/LoginPage").then(({ LoginPage }) => ({ default: LoginPage })),
 );
@@ -16,6 +19,21 @@ const BusinessRegistrationPage = React.lazy(() =>
   import("@/features/auth/pages/BusinessRegistrationPage").then(({ BusinessRegistrationPage }) => ({
     default: BusinessRegistrationPage,
   })),
+);
+const BusinessApplicationPage = React.lazy(() =>
+  import("@/features/auth/pages/BusinessApplicationPage").then(({ BusinessApplicationPage }) => ({
+    default: BusinessApplicationPage,
+  })),
+);
+const SubscriptionPage = React.lazy(() =>
+  import("@/features/subscription/pages/SubscriptionPage").then(({ SubscriptionPage }) => ({
+    default: SubscriptionPage,
+  })),
+);
+const PlatformApplicationsPage = React.lazy(() =>
+  import("@/features/platform/pages/PlatformApplicationsPage").then(
+    ({ PlatformApplicationsPage }) => ({ default: PlatformApplicationsPage }),
+  ),
 );
 const DashboardPage = React.lazy(() =>
   import("@/features/dashboard/pages/DashboardPage").then(({ DashboardPage }) => ({
@@ -179,24 +197,20 @@ export const router = createBrowserRouter([
       <Wrap>
         <RequireAuth>
           <RequireRole allow="SUPER_ADMIN">
-            <PlatformHomePage />
+            <PlatformShell />
           </RequireRole>
         </RequireAuth>
       </Wrap>
     ),
-  },
-  {
-    path: "/platform/payments",
-    errorElement: <RouteErrorState />,
-    element: (
-      <Wrap>
-        <RequireAuth>
-          <RequireRole allow="SUPER_ADMIN">
-            <PaymentsPage />
-          </RequireRole>
-        </RequireAuth>
-      </Wrap>
-    ),
+    children: [
+      { index: true, element: <PlatformHomePage section="dashboard" /> },
+      { path: "businesses", element: <PlatformHomePage section="businesses" /> },
+      { path: "applications", element: <PlatformApplicationsPage /> },
+      { path: "payments", element: <PaymentsPage /> },
+      { path: "plans", element: <PlatformHomePage section="plans" /> },
+      { path: "billing", element: <PlatformHomePage section="billing" /> },
+      { path: "users", element: <PlatformHomePage section="users" /> },
+    ],
   },
   {
     path: "/register-business",
@@ -204,6 +218,15 @@ export const router = createBrowserRouter([
     element: (
       <Wrap>
         <BusinessRegistrationPage />
+      </Wrap>
+    ),
+  },
+  {
+    path: "/business-application/:id",
+    errorElement: <RouteErrorState />,
+    element: (
+      <Wrap>
+        <BusinessApplicationPage />
       </Wrap>
     ),
   },
@@ -374,6 +397,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireRole allow="BUSINESS_OWNER">
             <BusinessSettingsPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: "subscription",
+        element: (
+          <RequireRole allow="BUSINESS_OWNER">
+            <SubscriptionPage />
           </RequireRole>
         ),
       },

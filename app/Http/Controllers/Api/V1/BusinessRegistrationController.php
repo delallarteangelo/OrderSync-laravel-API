@@ -7,9 +7,11 @@ use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\Membership;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\SaasPayload;
+use App\Services\SubscriptionRequestService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 
 class BusinessRegistrationController extends Controller
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(private readonly AuditLogger $audit, private readonly SubscriptionRequestService $applications) {}
 
     public function store(Request $request): JsonResponse
     {
@@ -31,13 +33,15 @@ class BusinessRegistrationController extends Controller
             'ownerName' => ['required', 'string', 'max:255'],
             'ownerEmail' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', Password::min(12)->letters()->numbers()],
+            'planCode' => ['nullable', Rule::in(['BASIC', 'STANDARD', 'PREMIUM'])],
         ]);
+        $plan = SubscriptionPlan::query()->where('code', $validated['planCode'] ?? 'BASIC')->where('is_active', true)->firstOrFail();
         $normalizedEmail = mb_strtolower(trim($validated['ownerEmail']));
         if (User::query()->whereRaw('LOWER(email) = ?', [$normalizedEmail])->exists()) {
             throw ValidationException::withMessages(['ownerEmail' => ['An account already exists for this email address.']]);
         }
 
-        $business = DB::transaction(function () use ($validated, $request, $normalizedEmail): Business {
+        [$business, $application, $applicationToken] = DB::transaction(function () use ($validated, $request, $normalizedEmail, $plan): array {
             $slug = $validated['slug'] ?? $this->uniqueSlug($validated['businessName']);
             $business = Business::query()->create([
                 'name' => trim($validated['businessName']),
@@ -58,11 +62,16 @@ class BusinessRegistrationController extends Controller
                 'role' => Role::BusinessOwner,
             ]);
             $this->audit->record('business.registration_submitted', $request, $owner, $business, Business::class, $business->getKey());
+            [$application, $applicationToken] = $this->applications->initial($business, $owner, $plan);
 
-            return $business->load(['memberships.user']);
+            return [$business->load(['memberships.user']), $application, $applicationToken];
         });
 
-        return response()->json(['business' => SaasPayload::business($business)], 201);
+        return response()->json([
+            'business' => SaasPayload::business($business),
+            'application' => ['id' => (string) $application->getKey(), 'status' => $application->status],
+            'applicationToken' => $applicationToken,
+        ], 201);
     }
 
     private function uniqueSlug(string $name): string

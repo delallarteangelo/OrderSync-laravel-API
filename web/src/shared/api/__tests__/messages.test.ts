@@ -13,6 +13,8 @@ import {
 } from "@/shared/api/messages";
 import {
   askAiAssistant,
+  createAiKnowledge,
+  deleteAiKnowledge,
   getAiSupportSettings,
   getAiUsage,
   listAiKnowledge,
@@ -79,5 +81,19 @@ describe("messaging api", () => {
       provider: "LOCAL_GROUNDED",
       toolsUsed: ["tenant_knowledge"],
     });
+  });
+
+  it("deletes an AI knowledge entry", async () => {
+    await loginAsAdmin();
+    const entry = await createAiKnowledge({
+      type: "FAQ",
+      title: "Temporary answer",
+      question: "Is this temporary?",
+      content: "Yes.",
+    });
+
+    await deleteAiKnowledge(entry.id);
+
+    expect((await listAiKnowledge()).some((item) => item.id === entry.id)).toBe(false);
   });
 });

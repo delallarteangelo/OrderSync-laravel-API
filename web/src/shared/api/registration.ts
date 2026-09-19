@@ -7,17 +7,24 @@ export type BusinessRegistrationPayload = {
   ownerEmail: string;
   password: string;
   timezone: string;
+  planCode?: "BASIC" | "STANDARD" | "PREMIUM";
+};
+
+export type BusinessRegistrationResult = {
+  business: PlatformBusiness;
+  application: { id: string };
+  applicationToken: string;
 };
 
 export async function registerBusiness(
   payload: BusinessRegistrationPayload,
-): Promise<PlatformBusiness> {
-  const { data } = await http.post<{ business: PlatformBusiness }>(
+): Promise<BusinessRegistrationResult> {
+  const { data } = await http.post<BusinessRegistrationResult>(
     "/business-registrations",
     payload,
     {
       _skipRefresh: true,
     },
   );
-  return data.business;
+  return data;
 }

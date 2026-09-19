@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\DatabaseDialect;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -64,7 +65,9 @@ return new class extends Migration
             $table->string('action', 100)->index();
             $table->string('subject_type')->nullable();
             $table->string('subject_id')->nullable();
-            $table->jsonb('metadata')->nullable();
+            DatabaseDialect::isPostgreSql()
+                ? $table->jsonb('metadata')->nullable()
+                : $table->json('metadata')->nullable();
             $table->string('ip_address', 45)->nullable();
             $table->string('user_agent', 512)->nullable();
             $table->timestampTz('created_at')->useCurrent()->index();
@@ -83,7 +86,7 @@ return new class extends Migration
         Schema::dropIfExists('access_tokens');
         Schema::dropIfExists('memberships');
 
-        DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_platform_role_check');
+        DatabaseDialect::dropCheckConstraint('users', 'users_platform_role_check', ifExists: true);
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn(['is_active', 'platform_role']);
         });

@@ -17,6 +17,7 @@ export interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
+  busy?: boolean;
   onConfirm: () => void;
 }
 
@@ -28,27 +29,31 @@ export function ConfirmDialog({
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   destructive = false,
+  busy = false,
   onConfirm,
 }: ConfirmDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+          <DialogDescription className={description ? undefined : "sr-only"}>
+            {description ?? "Confirm whether you want to continue with this action."}
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
             {cancelLabel}
           </Button>
           <Button
             variant={destructive ? "destructive" : "default"}
+            disabled={busy}
             onClick={() => {
               onConfirm();
-              onOpenChange(false);
+              if (!busy) onOpenChange(false);
             }}
           >
-            {confirmLabel}
+            {busy ? "Working…" : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

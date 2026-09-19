@@ -2,6 +2,8 @@ import * as React from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
+  OnChangeFn,
+  PaginationState,
   SortingState,
   flexRender,
   getCoreRowModel,
@@ -10,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -33,6 +35,15 @@ export interface DataTableProps<TData, TValue> {
   searchPlaceholder?: string;
   toolbar?: React.ReactNode;
   pageSize?: number;
+  pageSizeOptions?: number[];
+  pagination?: PaginationState;
+  onPaginationChange?: OnChangeFn<PaginationState>;
+  manualPagination?: boolean;
+  pageCount?: number;
+  totalRows?: number;
+  sorting?: SortingState;
+  onSortingChange?: OnChangeFn<SortingState>;
+  manualSorting?: boolean;
   emptyState?: React.ReactNode;
   emptyTitle?: string;
   emptyDescription?: string;
@@ -50,6 +61,15 @@ export function DataTable<TData, TValue>({
   searchPlaceholder = "Search…",
   toolbar,
   pageSize = 10,
+  pageSizeOptions = [10, 25, 50],
+  pagination,
+  onPaginationChange,
+  manualPagination = false,
+  pageCount,
+  totalRows,
+  sorting,
+  onSortingChange,
+  manualSorting = false,
   emptyState,
   emptyTitle = "No results",
   emptyDescription = "Try changing the search or filters.",
@@ -59,21 +79,39 @@ export function DataTable<TData, TValue>({
   loadingLabel = "Loading records…",
   className,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [internalSorting, setInternalSorting] = React.useState<SortingState>([]);
+  const [internalPagination, setInternalPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize,
+  });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  const activeSorting = sorting ?? internalSorting;
+  const activePagination = pagination ?? internalPagination;
 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnFilters },
-    onSortingChange: setSorting,
+    state: { sorting: activeSorting, columnFilters, pagination: activePagination },
+    onSortingChange: onSortingChange ?? setInternalSorting,
+    onPaginationChange: onPaginationChange ?? setInternalPagination,
     onColumnFiltersChange: setColumnFilters,
+    manualSorting,
+    manualPagination,
+    pageCount,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize } },
   });
+
+  const displayedTotal = totalRows ?? table.getFilteredRowModel().rows.length;
+  const firstDisplayed =
+    displayedTotal === 0 ? 0 : activePagination.pageIndex * activePagination.pageSize + 1;
+  const lastDisplayed = Math.min(
+    displayedTotal,
+    (activePagination.pageIndex + 1) * activePagination.pageSize,
+  );
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -101,7 +139,16 @@ export function DataTable<TData, TValue>({
                 {table.getHeaderGroups().map((hg) => (
                   <TableRow key={hg.id}>
                     {hg.headers.map((h) => (
-                      <TableHead key={h.id}>
+                      <TableHead
+                        key={h.id}
+                        aria-sort={
+                          h.column.getIsSorted() === "asc"
+                            ? "ascending"
+                            : h.column.getIsSorted() === "desc"
+                              ? "descending"
+                              : "none"
+                        }
+                      >
                         {h.isPlaceholder ? null : h.column.getCanSort() ? (
                           <button
                             type="button"
@@ -109,7 +156,13 @@ export function DataTable<TData, TValue>({
                             onClick={() => h.column.toggleSorting(h.column.getIsSorted() === "asc")}
                           >
                             {flexRender(h.column.columnDef.header, h.getContext())}
-                            <ArrowUpDown className="h-3 w-3" />
+                            {h.column.getIsSorted() === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : h.column.getIsSorted() === "desc" ? (
+                              <ArrowDown className="h-3 w-3" />
+                            ) : (
+                              <ArrowUpDown className="h-3 w-3" />
+                            )}
                           </button>
                         ) : (
                           flexRender(h.column.columnDef.header, h.getContext())
@@ -132,7 +185,10 @@ export function DataTable<TData, TValue>({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="h-32 text-center">
+                    <TableCell
+                      colSpan={table.getVisibleLeafColumns().length}
+                      className="h-32 text-center"
+                    >
                       {emptyState ?? (
                         <EmptyState
                           title={emptyTitle}
@@ -146,12 +202,31 @@ export function DataTable<TData, TValue>({
               </TableBody>
             </Table>
           </div>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-muted-foreground">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {Math.max(1, table.getPageCount())}
-            </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <p>
+                Showing {firstDisplayed}–{lastDisplayed} of {displayedTotal} records
+              </p>
+              <label className="inline-flex items-center gap-2">
+                Rows per page
+                <select
+                  aria-label="Rows per page"
+                  className="h-8 rounded-md border bg-background px-2 text-foreground"
+                  value={activePagination.pageSize}
+                  onChange={(event) => table.setPageSize(Number(event.target.value))}
+                >
+                  {pageSizeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <div className="flex items-center gap-1">
+              <span className="mr-2 text-xs text-muted-foreground">
+                Page {activePagination.pageIndex + 1} of {Math.max(1, table.getPageCount())}
+              </span>
               <Button
                 aria-label="Previous page"
                 variant="outline"

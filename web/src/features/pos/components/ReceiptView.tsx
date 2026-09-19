@@ -27,7 +27,9 @@ export function ReceiptView({ sale, onClose }: Props) {
       <div className="receipt-print w-full max-w-[320px] rounded-md border bg-white p-4 font-mono text-[12px] leading-tight text-black shadow-sm">
         <div className="text-center">
           <p className="text-sm font-bold">{sale.businessName}</p>
-          <p>OrderSync POS sales receipt</p>
+          <p className="whitespace-pre-line">
+            {sale.receiptHeader || "OrderSync POS sales receipt"}
+          </p>
         </div>
         <hr className="my-2 border-dashed border-black/50" />
         <div className="flex justify-between">
@@ -76,7 +78,9 @@ export function ReceiptView({ sale, onClose }: Props) {
         {sale.paymentReference && <Row label="Reference" value={sale.paymentReference} />}
         {sale.change != null && <Row label="Change" value={<Money value={sale.change} />} />}
         <hr className="my-2 border-dashed border-black/50" />
-        <p className="text-center">Thank you for shopping!</p>
+        <p className="whitespace-pre-line text-center">
+          {sale.receiptFooter ?? "Thank you for shopping!"}
+        </p>
         <p className="text-center text-[10px]">Recorded by OrderSync.</p>
       </div>
     </div>

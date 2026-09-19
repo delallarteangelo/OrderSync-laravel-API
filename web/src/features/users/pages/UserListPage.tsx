@@ -149,7 +149,7 @@ export function UserListPage() {
     <>
       <PageHeader
         title="Users"
-        description="Manage admins and cashiers for Tonette's Minimart."
+        description={`Manage admins and cashiers for ${me?.business?.name ?? "your business"}.`}
         actions={
           <Button asChild>
             <Link to="/users/new">

@@ -8,7 +8,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
-import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +39,7 @@ import {
   useUpdateNotificationPreferences,
 } from "@/shared/hooks/useApi";
 import type { NotificationPreferences, UserNotification } from "@/shared/types/messaging";
+import { ProfilePictureDialog } from "@/features/profile/components/ProfilePictureDialog";
 
 function initialsOf(name: string) {
   return name
@@ -69,6 +70,7 @@ export function Topbar() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const clear = useAuthStore((s) => s.clear);
+  const [profileOpen, setProfileOpen] = React.useState(false);
   const [pwOpen, setPwOpen] = React.useState(false);
   const notifications = useNotifications();
   const markRead = useMarkNotificationRead();
@@ -237,6 +239,11 @@ export function Topbar() {
           <DropdownMenuTrigger asChild>
             <Button aria-label="Open account menu" variant="ghost" className="h-9 gap-2 px-2">
               <Avatar className="h-7 w-7">
+                <AvatarImage
+                  src={user.avatarUrl}
+                  alt={`${user.fullName}'s profile picture`}
+                  className="object-cover"
+                />
                 <AvatarFallback className="bg-primary/10 text-primary">
                   {initialsOf(user.fullName)}
                 </AvatarFallback>
@@ -251,7 +258,7 @@ export function Topbar() {
           <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuLabel>{user.fullName}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => toast.info("Profile (coming soon)")}>
+            <DropdownMenuItem onClick={() => setProfileOpen(true)}>
               <UserIcon className="h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
@@ -270,6 +277,8 @@ export function Topbar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ProfilePictureDialog open={profileOpen} onOpenChange={setProfileOpen} />
 
       <Dialog open={pwOpen} onOpenChange={setPwOpen}>
         <DialogContent>

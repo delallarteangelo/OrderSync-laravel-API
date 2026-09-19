@@ -46,6 +46,10 @@ export async function deactivateAiKnowledge(id: string): Promise<AiKnowledgeEntr
   return data;
 }
 
+export async function deleteAiKnowledge(id: string): Promise<void> {
+  await http.delete(`/ai/knowledge/${id}`);
+}
+
 export async function getAiSupportSettings(): Promise<AiSupportSettings> {
   const { data } = await http.get<AiSupportSettings>("/ai/settings");
   return data;

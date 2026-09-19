@@ -88,6 +88,7 @@ class SaasPayload
             'id' => (string) $record->getKey(),
             'businessId' => (string) $record->business_id,
             'subscriptionId' => (string) $record->subscription_id,
+            'subscriptionRequestId' => $record->subscription_request_id ? (string) $record->subscription_request_id : null,
             'businessName' => $record->relationLoaded('business') ? $record->business?->name : null,
             'amountMinor' => $record->amount_minor,
             'currency' => $record->currency,

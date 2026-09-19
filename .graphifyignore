@@ -1,0 +1,33 @@
+# Initial OrderSync graph: code and executable configuration only.
+# Keep dependencies, generated output, media, uploads, and long-form docs out.
+*
+
+!app/
+!app/**
+!bootstrap/
+bootstrap/*
+!bootstrap/app.php
+!config/
+!config/**
+!database/
+!database/**
+!routes/
+!routes/**
+!tests/
+!tests/**
+
+!web/
+web/*
+!web/src/
+!web/src/**
+!web/package.json
+
+!minigrocery_androidapp/
+minigrocery_androidapp/*
+!minigrocery_androidapp/lib/
+!minigrocery_androidapp/lib/**
+!minigrocery_androidapp/test/
+!minigrocery_androidapp/test/**
+!minigrocery_androidapp/pubspec.yaml
+
+!composer.json

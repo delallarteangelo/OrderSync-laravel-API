@@ -10,6 +10,7 @@ use App\Services\CustomerOrderService;
 use App\Services\OrderPayload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CustomerOrderController extends Controller
 {
@@ -82,6 +83,17 @@ class CustomerOrderController extends Controller
         }
 
         return response()->json(OrderPayload::order($order));
+    }
+
+    public function balanceMethod(Request $request, Order $order): JsonResponse
+    {
+        abort_unless($order->business_id === $this->business($request)->getKey() && $order->customer_user_id === $request->user()->getKey(), 404);
+        $validated = $request->validate(['method' => ['required', Rule::in(['CASH_AT_PICKUP', 'WALLET_TOPUP'])]]);
+        try {
+            return response()->json(OrderPayload::order($this->orders->chooseBalanceMethod($order, $request->user(), $request, $validated['method'])));
+        } catch (OrderWorkflowException $exception) {
+            return $this->error($exception);
+        }
     }
 
     private function business(Request $request): Business

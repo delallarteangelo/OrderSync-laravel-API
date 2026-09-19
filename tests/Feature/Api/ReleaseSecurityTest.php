@@ -22,8 +22,13 @@ class ReleaseSecurityTest extends TestCase
     {
         $allowed = [
             'api/v1/auth/login' => ['POST'],
+            'api/v1/auth/register-customer' => ['POST'],
             'api/v1/auth/refresh' => ['POST'],
             'api/v1/business-registrations' => ['POST'],
+            'api/v1/business-registrations/resume' => ['POST'],
+            'api/v1/business-registrations/{application}/status' => ['GET', 'HEAD'],
+            'api/v1/business-registrations/{application}/payments' => ['POST'],
+            'api/v1/subscription-plans' => ['GET', 'HEAD'],
             'api/v1/health' => ['GET', 'HEAD'],
             'api/v1/storefronts' => ['GET', 'HEAD'],
             'api/v1/storefronts/{slug}' => ['GET', 'HEAD'],
@@ -87,6 +92,7 @@ class ReleaseSecurityTest extends TestCase
             'api/v1/reports/',
             'api/v1/tenant/',
             'api/v1/threads',
+            'api/v1/users',
         ] as $prefix) {
             if (str_starts_with($uri, $prefix)) {
                 return true;

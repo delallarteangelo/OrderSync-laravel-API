@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+const customerAppDownloadUrl =
+  "https://drive.google.com/drive/folders/17TPLZ_aRmWRUHwwieGjS32HH9BreBA4y?usp=sharing";
+
 const schema = z.object({
   VITE_API_BASE_URL: z.string().default("/api/v1"),
   VITE_WS_BASE_URL: z.string().default("ws://localhost:5173/ws"),
@@ -11,6 +14,11 @@ const schema = z.object({
   VITE_USE_POLLING_CHAT: z.enum(["true", "false"]).default("false"),
   VITE_PWA_ENABLED: z.enum(["true", "false"]).default("true"),
   VITE_AI_SUPPORT_ENABLED: z.enum(["true", "false"]).default("false"),
+  VITE_CUSTOMER_APP_DOWNLOAD_URL: z
+    .string()
+    .url()
+    .or(z.literal(""))
+    .default(customerAppDownloadUrl),
 });
 
 export const env = schema.parse({
@@ -24,6 +32,7 @@ export const env = schema.parse({
   VITE_USE_POLLING_CHAT: import.meta.env.VITE_USE_POLLING_CHAT,
   VITE_PWA_ENABLED: import.meta.env.VITE_PWA_ENABLED,
   VITE_AI_SUPPORT_ENABLED: import.meta.env.VITE_AI_SUPPORT_ENABLED,
+  VITE_CUSTOMER_APP_DOWNLOAD_URL: import.meta.env.VITE_CUSTOMER_APP_DOWNLOAD_URL,
 });
 
 export const flags = {

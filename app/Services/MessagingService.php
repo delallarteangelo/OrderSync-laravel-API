@@ -15,6 +15,7 @@ use App\Models\Order;
 use App\Models\RealtimeEvent;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\Database\DatabaseDialect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -37,9 +38,15 @@ class MessagingService
 
     public function generalThread(Business $business, User $customer): ConversationThread
     {
+        $values = ['order_id' => null, 'customer_name' => $customer->name, 'customer_email' => $customer->email];
+
+        if (DatabaseDialect::isMySqlFamily()) {
+            $values['general_customer_user_id'] = $customer->getKey();
+        }
+
         return ConversationThread::query()->firstOrCreate(
             ['business_id' => $business->getKey(), 'customer_user_id' => $customer->getKey(), 'kind' => ConversationKind::General->value],
-            ['order_id' => null, 'customer_name' => $customer->name, 'customer_email' => $customer->email],
+            $values,
         );
     }
 

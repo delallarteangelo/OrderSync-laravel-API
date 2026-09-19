@@ -1,6 +1,7 @@
 import * as React from "react";
-import { Bot, CircleDollarSign, HandHelping, Plus, Save, ShieldCheck } from "lucide-react";
+import { Bot, CircleDollarSign, HandHelping, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -16,6 +17,7 @@ import {
   useAiUsage,
   useCreateAiKnowledge,
   useDeactivateAiKnowledge,
+  useDeleteAiKnowledge,
   useResolveSupportHandoff,
   useSupportHandoffs,
   useUpdateAiSupportSettings,
@@ -47,10 +49,12 @@ export function AiSupportPage() {
   const handoffs = useSupportHandoffs();
   const createKnowledge = useCreateAiKnowledge();
   const deactivateKnowledge = useDeactivateAiKnowledge();
+  const deleteKnowledge = useDeleteAiKnowledge();
   const updateSettings = useUpdateAiSupportSettings();
   const resolveHandoff = useResolveSupportHandoff();
   const [draft, setDraft] = React.useState<KnowledgeDraft>(emptyKnowledge);
   const [settingsDraft, setSettingsDraft] = React.useState<AiSupportSettings | null>(null);
+  const [deleteEntry, setDeleteEntry] = React.useState<{ id: string; title: string } | null>(null);
 
   React.useEffect(() => {
     if (settings.data && !settingsDraft) setSettingsDraft(settings.data);
@@ -96,7 +100,17 @@ export function AiSupportPage() {
         description="Grounded answers, published store knowledge, usage controls, and human handoff."
       />
       <div className="mb-4 grid gap-4 md:grid-cols-4">
-        <Summary label="Provider mode" value="Local grounded" icon={<Bot className="h-4 w-4" />} />
+        <Summary
+          label="Provider mode"
+          value={
+            usage.data?.provider === "GEMINI"
+              ? usage.data.publicInformationOnly
+                ? "Gemini · public info"
+                : "Google Gemini"
+              : "Local grounded"
+          }
+          icon={<Bot className="h-4 w-4" />}
+        />
         <Summary
           label="Requests this month"
           value={usage.data?.requests ?? 0}
@@ -115,8 +129,11 @@ export function AiSupportPage() {
       </div>
       <Card className="mb-4 border-blue-200 bg-blue-50/50">
         <CardContent className="p-4 text-sm text-blue-950">
-          No external AI provider is configured. Answers are assembled only from this tenant’s
-          published knowledge, live products/stock, and the signed-in customer’s own orders.
+          {settings.data?.externalProviderConfigured
+            ? settings.data.publicInformationOnly
+              ? "Free-tier Gemini is connected for public store information only. Laravel selects published knowledge and public product/stock facts; the customer’s raw message and order details are never sent to Google. Personal questions use OrderSync’s local support, and unverified replies go to a person."
+              : "Google Gemini is connected through Laravel. It receives only this tenant’s selected published knowledge, live product/stock facts, and the signed-in customer’s own order facts; unverified replies are handed to a person."
+            : "No external AI provider is configured. Answers are assembled only from this tenant’s published knowledge, live products/stock, and the signed-in customer’s own orders."}
         </CardContent>
       </Card>
       <Tabs defaultValue="knowledge">
@@ -214,19 +231,27 @@ export function AiSupportPage() {
                     )}
                     <p className="mt-2 whitespace-pre-wrap text-sm">{entry.content}</p>
                   </div>
-                  {entry.isActive && (
+                  <div className="flex shrink-0 gap-2">
+                    {entry.isActive && (
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          deactivateKnowledge.mutate(entry.id, {
+                            onSuccess: () => toast.success("Knowledge entry deactivated"),
+                            onError: fail,
+                          })
+                        }
+                      >
+                        Deactivate
+                      </Button>
+                    )}
                     <Button
-                      variant="outline"
-                      onClick={() =>
-                        deactivateKnowledge.mutate(entry.id, {
-                          onSuccess: () => toast.success("Knowledge entry deactivated"),
-                          onError: fail,
-                        })
-                      }
+                      variant="destructive"
+                      onClick={() => setDeleteEntry({ id: entry.id, title: entry.title })}
                     >
-                      Deactivate
+                      <Trash2 className="mr-1 h-4 w-4" /> Delete
                     </Button>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -318,7 +343,10 @@ export function AiSupportPage() {
                   />
                   <div className="rounded-md border p-3 text-sm">
                     <p className="font-medium">Provider: {settingsDraft.provider}</p>
-                    <p className="text-muted-foreground">External provider configured: No</p>
+                    <p className="text-muted-foreground">
+                      External provider configured:{" "}
+                      {settingsDraft.externalProviderConfigured ? "Yes" : "No"}
+                    </p>
                   </div>
                   <div className="md:col-span-2">
                     <Button onClick={saveSettings} disabled={updateSettings.isPending}>
@@ -333,6 +361,32 @@ export function AiSupportPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      <ConfirmDialog
+        open={deleteEntry !== null}
+        onOpenChange={(open) => !open && setDeleteEntry(null)}
+        title="Delete knowledge entry?"
+        description={
+          deleteEntry
+            ? `“${deleteEntry.title}” will be permanently removed and will no longer be available to customer support.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        destructive
+        busy={deleteKnowledge.isPending}
+        onConfirm={() => {
+          if (!deleteEntry) return;
+          deleteKnowledge.mutate(deleteEntry.id, {
+            onSuccess: () => {
+              toast.success("Knowledge entry deleted");
+              setDeleteEntry(null);
+            },
+            onError: (error) => {
+              fail(error);
+              setDeleteEntry(null);
+            },
+          });
+        }}
+      />
     </>
   );
 }

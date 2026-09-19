@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\DatabaseDialect;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -87,7 +88,9 @@ return new class extends Migration
             $table->string('to_status', 20)->nullable();
             $table->string('from_plan_code', 32)->nullable();
             $table->string('to_plan_code', 32)->nullable();
-            $table->jsonb('metadata')->nullable();
+            DatabaseDialect::isPostgreSql()
+                ? $table->jsonb('metadata')->nullable()
+                : $table->json('metadata')->nullable();
             $table->timestampTz('created_at')->useCurrent()->index();
             $table->index(['business_id', 'created_at']);
         });
@@ -151,7 +154,7 @@ return new class extends Migration
         Schema::dropIfExists('billing_records');
         Schema::dropIfExists('subscriptions');
 
-        DB::statement('ALTER TABLE businesses DROP CONSTRAINT IF EXISTS businesses_status_check');
+        DatabaseDialect::dropCheckConstraint('businesses', 'businesses_status_check', ifExists: true);
         Schema::table('businesses', function (Blueprint $table) {
             $table->dropColumn(['status', 'submitted_at', 'approved_at', 'suspended_at', 'suspension_reason']);
         });

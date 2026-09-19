@@ -19,6 +19,7 @@ import { useAuthStore } from "@/app/stores/authStore";
 import {
   createAiKnowledge,
   deactivateAiKnowledge,
+  deleteAiKnowledge,
   getAiSupportSettings,
   getAiUsage,
   listAiKnowledge,
@@ -101,7 +102,7 @@ export const qk = {
   aiHandoffs: (businessId: string) => ["tenant", businessId, "ai", "handoffs"] as const,
   users: ["users"] as const,
   user: (id: string) => ["user", id] as const,
-  settings: ["settings"] as const,
+  settings: (businessId: string) => ["tenant", businessId, "settings"] as const,
   reportSales: (businessId: string, r?: ReportRange) =>
     ["tenant", businessId, "reports", "sales", r ?? {}] as const,
   reportOrders: (businessId: string, r?: ReportRange) =>
@@ -300,6 +301,7 @@ export const useOrders = (filters?: OrderFilters) => {
   return useQuery({
     queryKey: tenantQk.orders(businessId, filters),
     queryFn: () => listOrders(filters),
+    refetchInterval: 15_000,
   });
 };
 export const useOrder = (id: string | undefined) => {
@@ -308,6 +310,7 @@ export const useOrder = (id: string | undefined) => {
     queryKey: tenantQk.order(businessId, id ?? ""),
     queryFn: () => getOrder(id!),
     enabled: !!id,
+    refetchInterval: 15_000,
   });
 };
 
@@ -499,6 +502,15 @@ export function useDeactivateAiKnowledge() {
   });
 }
 
+export function useDeleteAiKnowledge() {
+  const businessId = useBusinessId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAiKnowledge,
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.aiKnowledge(businessId) }),
+  });
+}
+
 export function useAiSupportSettings() {
   const businessId = useBusinessId();
   return useQuery({ queryKey: qk.aiSettings(businessId), queryFn: getAiSupportSettings });
@@ -577,12 +589,29 @@ export function useResetUserPassword() {
 }
 
 // ---- Settings ----
-export const useSettings = () => useQuery({ queryKey: qk.settings, queryFn: getSettings });
+export const useSettings = () => {
+  const businessId = useBusinessId();
+  return useQuery({
+    queryKey: qk.settings(businessId),
+    queryFn: getSettings,
+    enabled: businessId !== "no-business",
+  });
+};
 export function useUpdateSettings() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   return useMutation({
     mutationFn: updateSettings,
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.settings }),
+    onSuccess: (settings) => {
+      qc.setQueryData(qk.settings(businessId), settings);
+      const { user, accessToken, setSession } = useAuthStore.getState();
+      if (user?.business?.id === businessId && accessToken) {
+        setSession({
+          accessToken,
+          user: { ...user, business: { ...user.business, name: settings.storeName } },
+        });
+      }
+    },
   });
 }
 

@@ -1,22 +1,43 @@
-import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { formatDistanceToNow, parseISO } from "date-fns";
 
-export function fmtDate(value: string | Date, pattern = "MMM d, yyyy"): string {
-  const d = typeof value === "string" ? parseISO(value) : value;
-  return format(d, pattern);
+const PHILIPPINE_TIME_ZONE = "Asia/Manila";
+
+function asDate(value: string | Date): Date {
+  return typeof value === "string" ? parseISO(value) : value;
+}
+
+export function fmtDate(value: string | Date): string {
+  return new Intl.DateTimeFormat("en-PH", {
+    timeZone: PHILIPPINE_TIME_ZONE,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(asDate(value));
 }
 
 export function fmtDateTime(value: string | Date): string {
-  const d = typeof value === "string" ? parseISO(value) : value;
-  return format(d, "MMM d, yyyy h:mm a");
+  return new Intl.DateTimeFormat("en-PH", {
+    timeZone: PHILIPPINE_TIME_ZONE,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(asDate(value));
 }
 
 export function fmtTime(value: string | Date): string {
-  const d = typeof value === "string" ? parseISO(value) : value;
-  return format(d, "h:mm a");
+  return new Intl.DateTimeFormat("en-PH", {
+    timeZone: PHILIPPINE_TIME_ZONE,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(asDate(value));
 }
 
 export function relative(value: string | Date): string {
-  const d = typeof value === "string" ? parseISO(value) : value;
+  const d = asDate(value);
   return formatDistanceToNow(d, { addSuffix: true });
 }
 

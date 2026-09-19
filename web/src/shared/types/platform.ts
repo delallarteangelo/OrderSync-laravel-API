@@ -1,4 +1,4 @@
-export type BusinessStatus = "PENDING" | "ACTIVE" | "SUSPENDED";
+export type BusinessStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "REJECTED";
 export type SubscriptionStatus = "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
 export type BillingStatus = "PENDING" | "PAID" | "OVERDUE" | "VOID";
 export type PlanCode = "BASIC" | "STANDARD" | "PREMIUM";
@@ -48,6 +48,7 @@ export type BillingRecord = {
   id: string;
   businessId: string;
   subscriptionId: string;
+  subscriptionRequestId?: string | null;
   businessName: string | null;
   amountMinor: number;
   currency: "PHP";
@@ -80,5 +81,5 @@ export type PlatformDashboard = {
 
 export type Paginated<T> = {
   data: T[];
-  meta: { currentPage: number; lastPage: number; total: number };
+  meta: { currentPage: number; lastPage: number; perPage?: number; total: number };
 };

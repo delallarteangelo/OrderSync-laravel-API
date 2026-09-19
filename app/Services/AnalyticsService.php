@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use App\Support\Database\DatabaseDialect;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,16 +21,17 @@ class AnalyticsService
     public function sales(Business $business, string $bucket, CarbonImmutable $from, CarbonImmutable $to): array
     {
         $timezone = $business->timezone;
+        [$completedBucket, $completedBucketBindings] = $this->bucketExpression('completed_at', $bucket, $timezone);
         $pos = DB::table('sales')->where('business_id', $business->getKey())
             ->whereBetween('completed_at', [$from, $to])
-            ->selectRaw($this->bucketExpression('completed_at', $bucket).' AS bucket, 1 AS transaction_count, subtotal_minor AS gross_minor, discount_total_minor AS discount_minor, grand_total_minor AS net_minor', [$timezone]);
+            ->selectRaw($completedBucket.' AS bucket, 1 AS transaction_count, subtotal_minor AS gross_minor, discount_total_minor AS discount_minor, grand_total_minor AS net_minor', $completedBucketBindings);
         $orders = DB::table('orders')->where('business_id', $business->getKey())
             ->where('status', OrderStatus::Completed->value)
             ->whereBetween('completed_at', [$from, $to])
-            ->selectRaw($this->bucketExpression('completed_at', $bucket).' AS bucket, 1 AS transaction_count, subtotal_minor AS gross_minor, 0 AS discount_minor, total_minor AS net_minor', [$timezone]);
+            ->selectRaw($completedBucket.' AS bucket, 1 AS transaction_count, subtotal_minor AS gross_minor, 0 AS discount_minor, total_minor AS net_minor', $completedBucketBindings);
 
         return DB::query()->fromSub($pos->unionAll($orders), 'transactions')
-            ->selectRaw('bucket, SUM(transaction_count)::int AS sales_count, SUM(gross_minor)::bigint AS gross_minor, SUM(discount_minor)::bigint AS discount_minor, SUM(net_minor)::bigint AS net_minor')
+            ->selectRaw('bucket, SUM(transaction_count) AS sales_count, SUM(gross_minor) AS gross_minor, SUM(discount_minor) AS discount_minor, SUM(net_minor) AS net_minor')
             ->groupBy('bucket')->orderBy('bucket')->get()
             ->map(fn ($row): array => [
                 'bucket' => $row->bucket,
@@ -43,11 +45,12 @@ class AnalyticsService
     /** @return array<int, array<string, int|string>> */
     public function orders(Business $business, string $bucket, CarbonImmutable $from, CarbonImmutable $to): array
     {
+        [$placedBucket, $placedBucketBindings] = $this->bucketExpression('placed_at', $bucket, $business->timezone);
         $source = DB::table('orders')->where('business_id', $business->getKey())
             ->whereBetween('placed_at', [$from, $to])
-            ->selectRaw($this->bucketExpression('placed_at', $bucket).' AS bucket, status', [$business->timezone]);
+            ->selectRaw($placedBucket.' AS bucket, status', $placedBucketBindings);
         $rows = DB::query()->fromSub($source, 'bucketed_orders')
-            ->selectRaw('bucket, status, COUNT(*)::int AS aggregate')
+            ->selectRaw('bucket, status, COUNT(*) AS aggregate')
             ->groupBy('bucket', 'status')->orderBy('bucket')->get();
 
         return $rows->groupBy('bucket')->map(function (Collection $group, string $key): array {
@@ -72,7 +75,7 @@ class AnalyticsService
     {
         $movements = DB::table('inventory_movements')->where('business_id', $business->getKey())
             ->whereBetween('created_at', [$from, $to])
-            ->selectRaw('product_id, COALESCE(SUM(delta), 0)::int AS net_movement, COALESCE(SUM(CASE WHEN reason IN (?, ?) THEN -delta ELSE 0 END), 0)::int AS units_sold, COALESCE(SUM(CASE WHEN reason = ? THEN delta ELSE 0 END), 0)::int AS units_restocked', [InventoryReason::PosSale->value, InventoryReason::OrderConfirmed->value, InventoryReason::Restock->value])
+            ->selectRaw('product_id, COALESCE(SUM(delta), 0) AS net_movement, COALESCE(SUM(CASE WHEN reason IN (?, ?) THEN -delta ELSE 0 END), 0) AS units_sold, COALESCE(SUM(CASE WHEN reason = ? THEN delta ELSE 0 END), 0) AS units_restocked', [InventoryReason::PosSale->value, InventoryReason::OrderConfirmed->value, InventoryReason::Restock->value])
             ->groupBy('product_id')->get()->keyBy('product_id');
 
         return Product::query()->where('business_id', $business->getKey())
@@ -102,15 +105,15 @@ class AnalyticsService
     {
         $pos = DB::table('sale_lines')->join('sales', 'sales.id', '=', 'sale_lines.sale_id')
             ->where('sales.business_id', $business->getKey())->whereBetween('sales.completed_at', [$from, $to])
-            ->selectRaw('sale_lines.product_id, SUM(sale_lines.quantity)::int AS quantity, SUM(sale_lines.line_total_minor)::bigint AS revenue_minor, COUNT(DISTINCT sale_lines.sale_id)::int AS transactions')
+            ->selectRaw('sale_lines.product_id, SUM(sale_lines.quantity) AS quantity, SUM(sale_lines.line_total_minor) AS revenue_minor, COUNT(DISTINCT sale_lines.sale_id) AS transactions')
             ->groupBy('sale_lines.product_id');
         $orders = DB::table('order_lines')->join('orders', 'orders.id', '=', 'order_lines.order_id')
             ->where('orders.business_id', $business->getKey())->where('orders.status', OrderStatus::Completed->value)
             ->whereBetween('orders.completed_at', [$from, $to])
-            ->selectRaw('order_lines.product_id, SUM(order_lines.quantity)::int AS quantity, SUM(order_lines.line_total_minor)::bigint AS revenue_minor, COUNT(DISTINCT order_lines.order_id)::int AS transactions')
+            ->selectRaw('order_lines.product_id, SUM(order_lines.quantity) AS quantity, SUM(order_lines.line_total_minor) AS revenue_minor, COUNT(DISTINCT order_lines.order_id) AS transactions')
             ->groupBy('order_lines.product_id');
         $performance = DB::query()->fromSub($pos->unionAll($orders), 'performance')
-            ->selectRaw('product_id, SUM(quantity)::int AS quantity, SUM(revenue_minor)::bigint AS revenue_minor, SUM(transactions)::int AS transactions')
+            ->selectRaw('product_id, SUM(quantity) AS quantity, SUM(revenue_minor) AS revenue_minor, SUM(transactions) AS transactions')
             ->groupBy('product_id')->get()->keyBy('product_id');
         $products = Product::query()->where('business_id', $business->getKey())->where('is_active', true)->orderBy('name')->get()
             ->map(function (Product $product) use ($performance): array {
@@ -126,7 +129,7 @@ class AnalyticsService
             });
         $customers = DB::table('orders')->where('business_id', $business->getKey())
             ->where('status', OrderStatus::Completed->value)->whereBetween('completed_at', [$from, $to])
-            ->selectRaw('customer_user_id, customer_name, customer_email, COUNT(*)::int AS order_count, SUM(total_minor)::bigint AS revenue_minor')
+            ->selectRaw('customer_user_id, customer_name, customer_email, COUNT(*) AS order_count, SUM(total_minor) AS revenue_minor')
             ->groupBy('customer_user_id', 'customer_name', 'customer_email')->orderByDesc('revenue_minor')->limit(25)->get()
             ->map(fn ($row): array => [
                 'customerId' => $row->customer_user_id === null ? null : (string) $row->customer_user_id,
@@ -191,12 +194,29 @@ class AnalyticsService
         return $pos + $orders;
     }
 
-    private function bucketExpression(string $column, string $bucket): string
+    /** @return array{0: string, 1: array<int, string>} */
+    private function bucketExpression(string $column, string $bucket, string $timezone): array
     {
+        if (DatabaseDialect::isPostgreSql()) {
+            return [match ($bucket) {
+                'week' => "to_char(date_trunc('week', {$column} AT TIME ZONE ?), 'YYYY-MM-DD')",
+                'month' => "to_char(date_trunc('month', {$column} AT TIME ZONE ?), 'YYYY-MM')",
+                default => "to_char({$column} AT TIME ZONE ?, 'YYYY-MM-DD')",
+            }, [$timezone]];
+        }
+
+        // Offset conversion avoids relying on named MySQL timezone tables, which
+        // are not guaranteed to be loaded on shared hosting. OrderSync's launch
+        // tenant uses Asia/Manila, which has a stable UTC offset year-round.
+        $offset = CarbonImmutable::now($timezone)->format('P');
+
         return match ($bucket) {
-            'week' => "to_char(date_trunc('week', {$column} AT TIME ZONE ?), 'YYYY-MM-DD')",
-            'month' => "to_char(date_trunc('month', {$column} AT TIME ZONE ?), 'YYYY-MM')",
-            default => "to_char({$column} AT TIME ZONE ?, 'YYYY-MM-DD')",
+            'week' => [
+                "DATE_FORMAT(DATE_SUB(CONVERT_TZ({$column}, '+00:00', ?), INTERVAL WEEKDAY(CONVERT_TZ({$column}, '+00:00', ?)) DAY), '%Y-%m-%d')",
+                [$offset, $offset],
+            ],
+            'month' => ["DATE_FORMAT(CONVERT_TZ({$column}, '+00:00', ?), '%Y-%m')", [$offset]],
+            default => ["DATE_FORMAT(CONVERT_TZ({$column}, '+00:00', ?), '%Y-%m-%d')", [$offset]],
         };
     }
 }

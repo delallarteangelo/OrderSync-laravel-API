@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import { PwaManager } from "@/shared/pwa/PwaManager";
 
 describe("PwaManager", () => {
@@ -7,19 +7,12 @@ describe("PwaManager", () => {
     Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
   });
 
-  it("offers the browser install prompt when available", async () => {
-    const prompt = vi.fn().mockResolvedValue(undefined);
-    const event = new Event("beforeinstallprompt") as Event & {
-      prompt: () => Promise<void>;
-      userChoice: Promise<{ outcome: "accepted"; platform: string }>;
-    };
-    event.prompt = prompt;
-    event.userChoice = Promise.resolve({ outcome: "accepted", platform: "web" });
-
+  it("hides the in-page install prompt without disabling browser installation", () => {
+    const event = new Event("beforeinstallprompt", { cancelable: true });
     render(<PwaManager />);
     fireEvent(window, event);
-    fireEvent.click(await screen.findByRole("button", { name: /install ordersync/i }));
-    await waitFor(() => expect(prompt).toHaveBeenCalledOnce());
+    expect(event.defaultPrevented).toBe(true);
+    expect(screen.queryByRole("button", { name: /install ordersync/i })).not.toBeInTheDocument();
   });
 
   it("explains exactly what remains available offline", () => {

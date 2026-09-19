@@ -147,6 +147,7 @@ class CatalogInventoryTest extends TestCase
         $path = Product::query()->findOrFail($product['id'])->primaryImage()->value('path');
         Storage::disk('public')->assertExists($path);
         $this->assertStringContainsString("product-images/{$businessA->getKey()}/", $path);
+        $this->assertSame(Storage::disk('public')->url($path), $response->json('imageUrl'));
         $this->withToken($tokenA)->post("/api/v1/products/{$product['id']}/image", [
             'image' => UploadedFile::fake()->image('replacement.webp', 120, 120),
         ], ['Accept' => 'application/json'])->assertOk();

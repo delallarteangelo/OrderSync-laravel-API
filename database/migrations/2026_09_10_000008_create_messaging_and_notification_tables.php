@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\DatabaseDialect;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,11 @@ return new class extends Migration
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('customer_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('order_id')->nullable()->constrained()->cascadeOnDelete();
+            if (! DatabaseDialect::isPostgreSql()) {
+                // MySQL/MariaDB do not support PostgreSQL-style partial unique
+                // indexes. Only GENERAL threads populate this surrogate column.
+                $table->unsignedBigInteger('general_customer_user_id')->nullable();
+            }
             $table->string('kind', 20);
             $table->string('customer_name');
             $table->string('customer_email');
@@ -21,6 +27,12 @@ return new class extends Migration
             $table->timestampsTz();
             $table->index(['business_id', 'last_message_at']);
             $table->index(['business_id', 'customer_user_id']);
+            if (! DatabaseDialect::isPostgreSql()) {
+                // NULL values remain repeatable in MySQL/MariaDB unique keys, matching
+                // the PostgreSQL partial-index behavior for unrelated thread kinds.
+                $table->unique(['business_id', 'general_customer_user_id'], 'conversation_threads_general_unique');
+                $table->unique(['business_id', 'order_id'], 'conversation_threads_order_unique');
+            }
         });
 
         Schema::create('conversation_messages', function (Blueprint $table) {
@@ -33,7 +45,7 @@ return new class extends Migration
             $table->text('body');
             $table->timestampTz('sent_at')->useCurrent();
             $table->timestampTz('created_at')->useCurrent();
-            $table->index(['business_id', 'conversation_thread_id', 'id']);
+            $table->index(['business_id', 'conversation_thread_id', 'id'], 'conversation_messages_thread_lookup_index');
         });
 
         Schema::create('conversation_read_states', function (Blueprint $table) {
@@ -80,19 +92,25 @@ return new class extends Migration
             $table->string('type', 40);
             $table->string('resource_type', 50)->nullable();
             $table->string('resource_id')->nullable();
-            $table->jsonb('data')->nullable();
+            DatabaseDialect::isPostgreSql()
+                ? $table->jsonb('data')->nullable()
+                : $table->json('data')->nullable();
             $table->timestampTz('occurred_at')->useCurrent();
             $table->index(['business_id', 'user_id', 'id']);
         });
 
         DB::statement("ALTER TABLE conversation_threads ADD CONSTRAINT conversation_threads_kind_check CHECK (kind IN ('GENERAL', 'ORDER'))");
         DB::statement("ALTER TABLE conversation_threads ADD CONSTRAINT conversation_threads_parent_check CHECK ((kind = 'GENERAL' AND order_id IS NULL) OR (kind = 'ORDER' AND order_id IS NOT NULL))");
-        DB::statement("CREATE UNIQUE INDEX conversation_threads_general_unique ON conversation_threads (business_id, customer_user_id) WHERE kind = 'GENERAL' AND customer_user_id IS NOT NULL");
-        DB::statement("CREATE UNIQUE INDEX conversation_threads_order_unique ON conversation_threads (business_id, order_id) WHERE kind = 'ORDER'");
+        if (DatabaseDialect::isPostgreSql()) {
+            DB::statement("CREATE UNIQUE INDEX conversation_threads_general_unique ON conversation_threads (business_id, customer_user_id) WHERE kind = 'GENERAL' AND customer_user_id IS NOT NULL");
+            DB::statement("CREATE UNIQUE INDEX conversation_threads_order_unique ON conversation_threads (business_id, order_id) WHERE kind = 'ORDER'");
+        }
         DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_kind_check CHECK (kind IN ('HUMAN', 'SYSTEM'))");
         DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_role_check CHECK (sender_role IN ('BUSINESS_OWNER', 'STAFF', 'CASHIER', 'CUSTOMER', 'SYSTEM'))");
-        DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_sender_check CHECK ((kind = 'SYSTEM' AND sender_user_id IS NULL AND sender_role = 'SYSTEM') OR (kind = 'HUMAN' AND sender_user_id IS NOT NULL AND sender_role <> 'SYSTEM'))");
-        DB::statement('ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_body_check CHECK (char_length(btrim(body)) BETWEEN 1 AND 4000)');
+        if (DatabaseDialect::isPostgreSql()) {
+            DB::statement("ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_sender_check CHECK ((kind = 'SYSTEM' AND sender_user_id IS NULL AND sender_role = 'SYSTEM') OR (kind = 'HUMAN' AND sender_user_id IS NOT NULL AND sender_role <> 'SYSTEM'))");
+        }
+        DB::statement('ALTER TABLE conversation_messages ADD CONSTRAINT conversation_messages_body_check CHECK (char_length(trim(body)) BETWEEN 1 AND 4000)');
         DB::statement("ALTER TABLE user_notifications ADD CONSTRAINT user_notifications_type_check CHECK (type IN ('MESSAGE', 'ORDER', 'PAYMENT', 'SYSTEM'))");
     }
 

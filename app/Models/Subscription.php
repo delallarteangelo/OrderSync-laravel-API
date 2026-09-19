@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['business_id', 'subscription_plan_id', 'status', 'starts_at', 'current_period_start', 'current_period_end', 'grace_ends_at', 'cancelled_at'])]
+#[Fillable(['business_id', 'subscription_plan_id', 'status', 'starts_at', 'current_period_start', 'current_period_end', 'grace_ends_at', 'cancelled_at', 'period_price_minor'])]
 class Subscription extends Model
 {
     protected function casts(): array
@@ -20,6 +20,7 @@ class Subscription extends Model
             'current_period_end' => 'immutable_datetime',
             'grace_ends_at' => 'immutable_datetime',
             'cancelled_at' => 'immutable_datetime',
+            'period_price_minor' => 'integer',
         ];
     }
 

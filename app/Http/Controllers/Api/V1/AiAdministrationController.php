@@ -79,9 +79,24 @@ class AiAdministrationController extends Controller
         return response()->json(AiSupportPayload::knowledge($knowledge->refresh()));
     }
 
+    public function destroy(Request $request, AiKnowledgeEntry $knowledge): JsonResponse
+    {
+        $this->assertTenant($request, $knowledge);
+        $entryId = $knowledge->getKey();
+        $this->audit->record('ai.knowledge.deleted', $request, $request->user(), $this->business($request), AiKnowledgeEntry::class, $entryId, [
+            'type' => $knowledge->type->value,
+            'title' => $knowledge->title,
+        ]);
+        $knowledge->delete();
+
+        return response()->json(['deleted' => true, 'id' => (string) $entryId]);
+    }
+
     public function settings(Request $request): JsonResponse
     {
-        return response()->json(AiSupportPayload::settings($this->support->settings($this->business($request))));
+        $business = $this->business($request);
+
+        return response()->json(AiSupportPayload::settings($this->support->settings($business), $business));
     }
 
     public function updateSettings(Request $request): JsonResponse
@@ -107,7 +122,7 @@ class AiAdministrationController extends Controller
             'maximum_question_characters' => $settings->maximum_question_characters,
         ]);
 
-        return response()->json(AiSupportPayload::settings($settings->refresh()));
+        return response()->json(AiSupportPayload::settings($settings->refresh(), $this->business($request)));
     }
 
     public function usage(Request $request): JsonResponse

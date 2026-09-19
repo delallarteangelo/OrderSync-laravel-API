@@ -16,6 +16,8 @@ const variants: Record<OrderStatus, { label: string; className: string }> = {
     className: "bg-emerald-100 text-emerald-800 border-emerald-200",
   },
   CANCELLED: { label: "Cancelled", className: "bg-slate-200 text-slate-700 border-slate-300" },
+  REFUND_PENDING: { label: "Refund pending", className: "bg-orange-100 text-orange-800 border-orange-200" },
+  REFUNDED: { label: "Refunded", className: "bg-slate-200 text-slate-700 border-slate-300" },
 };
 
 export function StatusChip({ status, className }: { status: OrderStatus; className?: string }) {

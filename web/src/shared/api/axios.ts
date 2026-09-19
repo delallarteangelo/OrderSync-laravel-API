@@ -20,7 +20,7 @@ export const http: AxiosInstance = axios.create({
   baseURL: env.VITE_API_BASE_URL,
   withCredentials: true,
   timeout: 20_000,
-  headers: { "X-Client": "tonettes-web" },
+  headers: { "X-Client": "ordersync-web" },
 });
 
 attachAuthInterceptor(http);

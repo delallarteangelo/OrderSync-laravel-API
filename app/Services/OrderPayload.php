@@ -12,7 +12,8 @@ class OrderPayload
     /** @return array<string, mixed> */
     public static function order(Order $order): array
     {
-        $order->loadMissing(['business', 'lines', 'statusEvents', 'payments.business', 'payments.submitter', 'payments.reviewer', 'payments.reviewEvents']);
+        $order->loadMissing(['business', 'lines', 'statusEvents', 'payments.business', 'payments.submitter', 'payments.reviewer', 'payments.reviewEvents', 'counterPayments.receiver', 'refunds.actor']);
+        $settlement = app(OrderSettlementService::class)->summary($order);
 
         return [
             'id' => (string) $order->getKey(),
@@ -37,6 +38,15 @@ class OrderPayload
             ])->all(),
             'subtotal' => $order->subtotal_minor / 100,
             'total' => $order->total_minor / 100,
+            'walletPaid' => $settlement['wallet'] / 100,
+            'counterPaid' => $settlement['counter'] / 100,
+            'amountReceived' => $settlement['received'] / 100,
+            'balanceDue' => in_array($order->status, [\App\Enums\OrderStatus::RefundPending, \App\Enums\OrderStatus::Refunded], true) ? 0 : $settlement['balance'] / 100,
+            'refundedAmount' => $settlement['refunded'] / 100,
+            'financialStatus' => $order->status === \App\Enums\OrderStatus::RefundPending ? 'REFUND_PENDING'
+                : ($order->status === \App\Enums\OrderStatus::Refunded ? 'REFUNDED'
+                    : ($settlement['balance'] === 0 ? 'PAID' : ($settlement['received'] > 0 ? 'PARTIALLY_PAID' : 'UNPAID'))),
+            'balanceCollectionMethod' => $order->balance_collection_method,
             'fulfillmentMethod' => $order->fulfillment_method,
             'status' => $order->status->value,
             'placedAt' => $order->placed_at->toIso8601String(),
@@ -48,6 +58,16 @@ class OrderPayload
                 'note' => $event->note,
             ])->all(),
             'payments' => $order->payments->sortByDesc('submitted_at')->values()->map(fn (RecordedPayment $payment): array => RecordedPaymentPayload::payment($payment))->all(),
+            'counterPayments' => $order->counterPayments->map(fn ($payment): array => [
+                'id' => (string) $payment->getKey(), 'amount' => $payment->amount_minor / 100,
+                'referenceNumber' => $payment->reference_number, 'receivedAt' => $payment->received_at->toIso8601String(),
+                'receivedBy' => $payment->receiver?->name ?? 'Former user',
+            ])->all(),
+            'refunds' => $order->refunds->map(fn ($refund): array => [
+                'amount' => $refund->amount_minor / 100, 'method' => $refund->method,
+                'referenceNumber' => $refund->reference_number,
+                'refundedAt' => $refund->refunded_at->toIso8601String(),
+            ])->all(),
         ];
     }
 }

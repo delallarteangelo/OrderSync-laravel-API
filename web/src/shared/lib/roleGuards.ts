@@ -40,6 +40,8 @@ export function allowedTransitions(role: Role | undefined, status: OrderStatus):
     COMPLETED: [],
     REJECTED: [],
     CANCELLED: [],
+    REFUND_PENDING: [],
+    REFUNDED: [],
   };
   if (role === "BUSINESS_OWNER" || role === "STAFF" || role === "CASHIER") return base[status];
   return [];

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Camera, History, ScanBarcode, Search, Store, Trash2, X } from "lucide-react";
+import { ArrowLeft, Camera, History, ScanBarcode, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -10,7 +10,8 @@ import { Separator } from "@/shared/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 import { Money } from "@/shared/components/Money";
-import { useCategories, useFinalizeSale, useProducts } from "@/shared/hooks/useApi";
+import { OrderSyncLogo } from "@/shared/components/OrderSyncLogo";
+import { useCategories, useFinalizeSale, useProducts, useSettings } from "@/shared/hooks/useApi";
 import { usePosCartStore } from "@/app/stores/posCartStore";
 import { useAuthStore } from "@/app/stores/authStore";
 import { useRole } from "@/shared/hooks/useRole";
@@ -21,12 +22,16 @@ import { ScanInput } from "../components/ScanInput";
 import { PaymentDialog } from "../components/PaymentDialog";
 import { ReceiptView } from "../components/ReceiptView";
 import { WebcamScannerDialog } from "../components/WebcamScannerDialog";
+import { PosProductTile } from "../components/PosProductTile";
 import type { PaymentMethod, PosSale } from "@/shared/types/pos";
 
 export function PosPage() {
-  const products = useProducts().data ?? [];
-  const categories = useCategories().data ?? [];
-  const taxRate = 0;
+  const productsData = useProducts().data;
+  const categoriesData = useCategories().data;
+  const products = React.useMemo(() => productsData ?? [], [productsData]);
+  const categories = React.useMemo(() => categoriesData ?? [], [categoriesData]);
+  const settingsQ = useSettings();
+  const taxRate = (settingsQ.data?.taxRate ?? 0) / 100;
   const cart = usePosCartStore();
   const { isAdmin } = useRole();
   const user = useAuthStore((s) => s.user)!;
@@ -65,15 +70,35 @@ export function PosPage() {
   const tax = Math.round((subtotal - discountTotal) * taxRate * 100) / 100;
   const grandTotal = subtotal - discountTotal + tax;
 
-  const addProduct = (product: (typeof products)[number]) => {
-    const inCart = cart.lines.find((line) => line.productId === product.id)?.quantity ?? 0;
-    if (!product.isActive || product.stockOnHand <= inCart) {
-      toast.error(`${product.name} has no more available stock`);
-      return;
-    }
-    cart.addProduct(product);
-    toast.success(`Added ${product.name}`);
-  };
+  const addProduct = React.useCallback(
+    (product: (typeof products)[number]) => {
+      const inCart = cart.lines.find((line) => line.productId === product.id)?.quantity ?? 0;
+      if (!product.isActive || product.stockOnHand <= inCart) {
+        toast.error(`${product.name} has no more available stock`);
+        return;
+      }
+      cart.addProduct(product);
+      toast.success(`Added ${product.name}`);
+    },
+    [cart],
+  );
+
+  const handleScan = React.useCallback(
+    async (code: string) => {
+      const local = products.find((p) => p.isActive && (p.sku === code || p.barcode === code));
+      if (local) {
+        addProduct(local);
+        return;
+      }
+      try {
+        const remote = await getProductByBarcode(code);
+        addProduct(remote);
+      } catch {
+        toast.error(`No product for "${code}"`);
+      }
+    },
+    [addProduct, products],
+  );
 
   const openPayment = () => {
     if (!checkoutKey.current) checkoutKey.current = crypto.randomUUID();
@@ -81,19 +106,7 @@ export function PosPage() {
   };
 
   // Global barcode/SKU scan
-  useBarcodeScanner(async (code) => {
-    const local = products.find((p) => p.isActive && (p.sku === code || p.barcode === code));
-    if (local) {
-      addProduct(local);
-      return;
-    }
-    try {
-      const remote = await getProductByBarcode(code);
-      addProduct(remote);
-    } catch {
-      toast.error(`No product for "${code}"`);
-    }
-  });
+  useBarcodeScanner(handleScan, { enabled: !webcamOpen });
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -111,20 +124,6 @@ export function PosPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [cart.lines.length, paymentOpen]);
-
-  const handleScan = async (code: string) => {
-    const local = products.find((p) => p.isActive && (p.sku === code || p.barcode === code));
-    if (local) {
-      addProduct(local);
-      return;
-    }
-    try {
-      const remote = await getProductByBarcode(code);
-      addProduct(remote);
-    } catch {
-      toast.error(`No product for "${code}"`);
-    }
-  };
 
   const handleFinalize = (method: PaymentMethod, tendered?: number, paymentReference?: string) => {
     const idempotencyKey = checkoutKey.current ?? crypto.randomUUID();
@@ -162,9 +161,7 @@ export function PosPage() {
       {/* Slim topbar */}
       <header className="flex h-14 items-center gap-3 border-b bg-background px-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Store className="h-4 w-4" />
-          </div>
+          <OrderSyncLogo className="h-8 w-8 rounded-md" decorative />
           <p className="text-sm font-semibold">POS</p>
         </div>
         <Badge variant="secondary">{user.fullName}</Badge>
@@ -220,28 +217,14 @@ export function PosPage() {
             </CardContent>
           </Card>
 
-          <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-auto pr-1 sm:grid-cols-3 xl:grid-cols-4">
+          <div className="grid min-h-0 flex-1 auto-rows-max content-start grid-cols-2 gap-3 overflow-auto pr-1 sm:grid-cols-3 xl:grid-cols-4">
             {visibleProducts.map((p) => (
-              <button
+              <PosProductTile
                 key={p.id}
-                disabled={p.stockOnHand === 0}
-                onClick={() => addProduct(p)}
-                className="group relative flex flex-col items-start gap-1 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary hover:bg-accent/40 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <div className="flex h-16 w-full items-center justify-center rounded-md bg-muted/40 text-muted-foreground">
-                  <ScanBarcode className="h-6 w-6 opacity-50" />
-                </div>
-                <p className="line-clamp-2 text-xs font-medium">{p.name}</p>
-                <p className="text-[10px] text-muted-foreground">{categoryName(p.categoryId)}</p>
-                <div className="mt-auto flex w-full items-center justify-between">
-                  <Money value={p.price} className="text-sm font-semibold" />
-                  {p.stockOnHand <= p.lowStockThreshold && (
-                    <Badge variant={p.stockOnHand === 0 ? "destructive" : "warning"}>
-                      {p.stockOnHand === 0 ? "Out" : `${p.stockOnHand}`}
-                    </Badge>
-                  )}
-                </div>
-              </button>
+                product={p}
+                categoryName={categoryName(p.categoryId)}
+                onSelect={() => addProduct(p)}
+              />
             ))}
             {visibleProducts.length === 0 && (
               <div className="col-span-full flex h-32 items-center justify-center text-sm text-muted-foreground">
@@ -348,6 +331,14 @@ export function PosPage() {
             )}
           </div>
           <div className="space-y-2 border-t p-4">
+            {settingsQ.isError && (
+              <div role="alert" className="text-sm text-destructive">
+                Business settings are unavailable.{" "}
+                <button className="underline" onClick={() => void settingsQ.refetch()}>
+                  Try again
+                </button>
+              </div>
+            )}
             <Row label="Subtotal" value={<Money value={subtotal} />} />
             {discountTotal > 0 && <Row label="Discount" value={<Money value={discountTotal} />} />}
             <Row label="Tax" value={<Money value={tax} />} />
@@ -363,7 +354,7 @@ export function PosPage() {
             <Button
               className="w-full"
               size="lg"
-              disabled={cart.lines.length === 0 || finalizeM.isPending}
+              disabled={cart.lines.length === 0 || finalizeM.isPending || !settingsQ.data}
               onClick={openPayment}
             >
               Charge <Money value={grandTotal} className="ml-2" />
@@ -395,7 +386,7 @@ export function PosPage() {
           toast.success("Cart cleared");
         }}
       />
-      <WebcamScannerDialog open={webcamOpen} onOpenChange={setWebcamOpen} />
+      <WebcamScannerDialog open={webcamOpen} onOpenChange={setWebcamOpen} onScan={handleScan} />
     </div>
   );
 }

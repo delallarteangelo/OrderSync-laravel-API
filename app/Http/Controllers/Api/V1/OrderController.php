@@ -9,13 +9,14 @@ use App\Models\Business;
 use App\Models\Order;
 use App\Services\CustomerOrderService;
 use App\Services\OrderPayload;
+use App\Services\OrderSettlementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
 {
-    public function __construct(private readonly CustomerOrderService $orders) {}
+    public function __construct(private readonly CustomerOrderService $orders, private readonly OrderSettlementService $settlement) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -78,6 +79,39 @@ class OrderController extends Controller
         }
 
         return response()->json(OrderPayload::order($order));
+    }
+
+    public function collectCounter(Request $request, Order $order): JsonResponse
+    {
+        abort_unless($order->business_id === $this->business($request)->getKey(), 404);
+        $validated = $request->validate(['amountMinor' => ['required', 'integer', 'min:1'], 'referenceNumber' => ['required', 'string', 'max:120']]);
+        try {
+            return response()->json(OrderPayload::order($this->settlement->collectCounter($order, $request->user(), $request, $validated['amountMinor'], $validated['referenceNumber'])));
+        } catch (OrderWorkflowException $exception) {
+            return $this->error($exception);
+        }
+    }
+
+    public function recordRefund(Request $request, Order $order): JsonResponse
+    {
+        abort_unless($order->business_id === $this->business($request)->getKey(), 404);
+        $validated = $request->validate([
+            'method' => ['required', Rule::in(['GCASH', 'MAYA', 'CASH'])],
+            'referenceNumber' => ['required', 'string', 'max:120'],
+            'amountMinor' => ['required', 'integer', 'min:1'],
+            'refundConfirmed' => ['required', 'accepted'],
+        ]);
+        try {
+            return response()->json(OrderPayload::order($this->settlement->recordRefund($order, $request->user(), $request, $validated['method'], $validated['referenceNumber'], $validated['amountMinor'])));
+        } catch (OrderWorkflowException $exception) {
+            return $this->error($exception);
+        }
+    }
+
+    private function error(OrderWorkflowException $exception): JsonResponse
+    {
+        return response()->json(['code' => $exception->errorCode, 'message' => $exception->getMessage(),
+            ...($exception->fieldErrors === [] ? [] : ['fieldErrors' => $exception->fieldErrors])], $exception->status);
     }
 
     private function business(Request $request): Business

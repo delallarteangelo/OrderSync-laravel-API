@@ -11,4 +11,6 @@ enum OrderStatus: string
     case ReadyForPickup = 'READY_FOR_PICKUP';
     case Completed = 'COMPLETED';
     case Cancelled = 'CANCELLED';
+    case RefundPending = 'REFUND_PENDING';
+    case Refunded = 'REFUNDED';
 }

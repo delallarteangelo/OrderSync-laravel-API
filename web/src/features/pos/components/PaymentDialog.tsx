@@ -35,7 +35,7 @@ export function PaymentDialog({ open, onOpenChange, total, submitting, onFinaliz
   React.useEffect(() => {
     if (open) {
       setMethod("CASH");
-      setTenderedStr(total.toFixed(2));
+      setTenderedStr("");
       setPaymentReference("");
     }
   }, [open, total]);
@@ -62,8 +62,9 @@ export function PaymentDialog({ open, onOpenChange, total, submitting, onFinaliz
           </TabsList>
           <TabsContent value="CASH" className="space-y-3 pt-3">
             <div className="space-y-1.5">
-              <Label>Tendered (₱)</Label>
+              <Label htmlFor="cash-tendered">Tendered (₱)</Label>
               <Input
+                id="cash-tendered"
                 type="number"
                 value={tenderedStr}
                 onChange={(e) => setTenderedStr(e.target.value)}
@@ -109,8 +110,9 @@ export function PaymentDialog({ open, onOpenChange, total, submitting, onFinaliz
         </Tabs>
         {method !== "CASH" && (
           <div className="space-y-1.5">
-            <Label>Payment reference</Label>
+            <Label htmlFor="payment-reference">Payment reference</Label>
             <Input
+              id="payment-reference"
               value={paymentReference}
               onChange={(event) => setPaymentReference(event.target.value)}
               maxLength={120}

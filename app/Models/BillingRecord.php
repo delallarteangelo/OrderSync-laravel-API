@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['business_id', 'subscription_id', 'amount_minor', 'currency', 'status', 'period_start', 'period_end', 'due_at', 'paid_at', 'reference', 'notes'])]
+#[Fillable(['business_id', 'subscription_id', 'subscription_request_id', 'amount_minor', 'currency', 'status', 'period_start', 'period_end', 'due_at', 'paid_at', 'reference', 'notes'])]
 class BillingRecord extends Model
 {
     protected function casts(): array
@@ -36,5 +36,10 @@ class BillingRecord extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(RecordedPayment::class);
+    }
+
+    public function subscriptionRequest(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionRequest::class);
     }
 }

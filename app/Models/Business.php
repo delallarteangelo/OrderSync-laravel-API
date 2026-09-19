@@ -39,6 +39,11 @@ class Business extends Model
         return $this->hasOne(Subscription::class);
     }
 
+    public function settings(): HasOne
+    {
+        return $this->hasOne(BusinessSetting::class);
+    }
+
     public function billingRecords(): HasMany
     {
         return $this->hasMany(BillingRecord::class);

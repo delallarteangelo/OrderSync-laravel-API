@@ -9,6 +9,8 @@ export const orderStatusSchema = z.enum([
   "READY_FOR_PICKUP",
   "COMPLETED",
   "CANCELLED",
+  "REFUND_PENDING",
+  "REFUNDED",
 ]);
 
 export type OrderStatus = z.infer<typeof orderStatusSchema>;
@@ -37,12 +39,21 @@ export type Order = {
   items: OrderItem[];
   subtotal: number;
   total: number;
+  walletPaid: number;
+  counterPaid: number;
+  amountReceived: number;
+  balanceDue: number;
+  refundedAmount: number;
+  financialStatus: "UNPAID" | "PARTIALLY_PAID" | "PAID" | "REFUND_PENDING" | "REFUNDED";
+  balanceCollectionMethod: "CASH_AT_PICKUP" | "WALLET_TOPUP";
   fulfillmentMethod: "PICKUP";
   status: OrderStatus;
   placedAt: string;
   updatedAt: string;
   statusHistory: OrderStatusEvent[];
   payments: RecordedPayment[];
+  counterPayments: Array<{ id: string; amount: number; referenceNumber: string; receivedAt: string; receivedBy: string }>;
+  refunds: Array<{ amount: number; method: "GCASH" | "MAYA" | "CASH"; referenceNumber: string; refundedAt: string }>;
 };
 
 export type StorefrontSummary = {

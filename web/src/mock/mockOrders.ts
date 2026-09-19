@@ -69,12 +69,21 @@ function makeOrder(idx: number, status: OrderStatus): Order {
     items,
     subtotal,
     total: subtotal,
+    walletPaid: 0,
+    counterPaid: 0,
+    amountReceived: 0,
+    balanceDue: subtotal,
+    refundedAmount: 0,
+    financialStatus: "UNPAID",
+    balanceCollectionMethod: "CASH_AT_PICKUP",
     fulfillmentMethod: "PICKUP",
     status,
     placedAt,
     updatedAt: history[history.length - 1].at,
     statusHistory: history,
     payments: [],
+    counterPayments: [],
+    refunds: [],
   };
 }
 

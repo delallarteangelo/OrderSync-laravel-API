@@ -61,7 +61,11 @@ class ProductController extends Controller
     {
         $business = $this->business($request);
         $validated = $this->validateProduct($request, $business);
-        $product = $this->inventory->createProduct($business, $request->user(), $request, $this->attributes($validated, true));
+        $attributes = $this->attributes($validated, true);
+        if (! array_key_exists('low_stock_threshold', $attributes)) {
+            $attributes['low_stock_threshold'] = $business->settings()->value('low_stock_default') ?? 0;
+        }
+        $product = $this->inventory->createProduct($business, $request->user(), $request, $attributes);
 
         return response()->json(CatalogPayload::product($product), 201);
     }

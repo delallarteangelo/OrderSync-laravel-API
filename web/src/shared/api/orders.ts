@@ -64,3 +64,18 @@ export async function cancelCustomerOrder(id: string, note?: string): Promise<Or
   const { data } = await http.post<Order>(`/customer/orders/${id}/cancel`, { note });
   return data;
 }
+
+export async function chooseCustomerBalanceMethod(id: string, method: Order["balanceCollectionMethod"]): Promise<Order> {
+  const { data } = await http.patch<Order>(`/customer/orders/${id}/balance-method`, { method });
+  return data;
+}
+
+export async function collectOrderCounterPayment(id: string, amountMinor: number, referenceNumber: string): Promise<Order> {
+  const { data } = await http.post<Order>(`/orders/${id}/counter-payments`, { amountMinor, referenceNumber });
+  return data;
+}
+
+export async function recordOrderRefund(id: string, method: "GCASH" | "MAYA" | "CASH", amountMinor: number, referenceNumber: string): Promise<Order> {
+  const { data } = await http.post<Order>(`/orders/${id}/refund`, { method, amountMinor, referenceNumber, refundConfirmed: true });
+  return data;
+}
